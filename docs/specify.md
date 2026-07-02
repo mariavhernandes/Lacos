@@ -73,11 +73,26 @@ O MVP **não inclui**:
 - O sistema deve informar eventos relevantes sobre mensagens e atualizações de grupos.
 
 
-## Acompanhamento familiar
+## Acompanhamento familiar (detalhamento do MVP)
 
-- O familiar deve poder solicitar vínculo ao perfil do idoso.
-- O idoso deve aceitar ou recusar a solicitação de vínculo.
-- Após a aprovação, o familiar deverá visualizar apenas as informações e funcionalidades previstas para seu perfil, conforme as regras definidas pelo sistema.
+- O familiar pode solicitar vínculo ao perfil do idoso; o idoso aceita ou recusa.  
+- Cada idoso poderá ter no máximo um familiar vinculado; cada familiar poderá estar vinculado a no máximo um idoso. Não são permitidos múltiplos vínculos para o mesmo idoso.  
+- Tanto o idoso quanto o familiar podem remover o vínculo a qualquer momento; a desvinculação ocorre imediatamente, sem confirmação adicional, encerrando automaticamente o acesso do familiar às funcionalidades de acompanhamento.  
+- Após a aprovação do vínculo, o familiar terá acesso exclusivamente às informações e funcionalidades previstas para o perfil de familiar:
+  - Pode visualizar: nome completo, foto de perfil, faixa etária (exibida no perfil público), cidade e estado, interesses cadastrados, lista de amigos do idoso, grupos dos quais o idoso participa, eventos/atividades confirmadas pelo idoso, e conversas ou mensagens sinalizadas como suspeitas pelo painel de alerta.
+  - Não pode: editar qualquer informação do perfil do idoso; acessar senha ou credenciais; acessar configurações da conta do idoso; criar, editar ou excluir grupos em nome do idoso; enviar solicitações de amizade em nome do idoso; enviar mensagens em nome do idoso; ou manter rede social própria no lugar do idoso.
+- Mensagens sinalizadas:
+  - O sistema pode sinalizar tanto conversas privadas (1:1) quanto mensagens em grupos.
+  - Quando uma conversa for sinalizada, o familiar terá acesso ao histórico completo da conversa relacionada ao alerta, incluindo anexos (imagens, áudios, documentos), enquanto o vínculo existir.
+  - Ao visualizar participantes de conversas sinalizadas, o familiar verá somente os campos de perfil públicos (nome, foto, cidade, faixa etária, interesses). Dados de contato privados (e‑mail, telefone) não são exibidos ao familiar, salvo se o próprio usuário os marcar como públicos.
+- Acesso e logs:
+  - O acesso do familiar às conversas sinalizadas é mantido indefinidamente enquanto o vínculo existir; todas as ações do familiar (visualização de conversas, downloads de anexos, bloqueios, marcação de alertas como resolvidos, desvinculação) devem ser registradas em logs de auditoria para conformidade e moderação.
+
+Ações disponíveis ao familiar sobre alertas e participantes
+- O familiar pode marcar um alerta como resolvido.
+  - Ao marcar como resolvido o sistema registra a resolução e oculta/remova o acesso do familiar apenas à conversa sinalizada correspondente (não afeta outras conversas sinalizadas).
+- O familiar pode bloquear um participante em nome do idoso.
+  - O bloqueio aplica‑se à conta do idoso: o participante é automaticamente removido da lista de amigos do idoso e removido de todos os grupos em comum com o idoso; não poderá enviar novas mensagens, solicitações de amizade ou realizar outras interações ao idoso. O histórico de conversas permanece armazenado para fins de auditoria/alertas de segurança.
 
 
 ## Central de ajuda
@@ -97,11 +112,21 @@ O MVP **não inclui**:
   - avisos importantes da plataforma.
 
 
-## Segurança
+## Segurança / Regras operacionais (complemento)
 
-- Apenas usuários confirmados como amigos podem iniciar conversas privadas.
-- O sistema deve permitir que um usuário bloqueie outro usuário.
-- O sistema deve limitar o envio excessivo de solicitações de amizade para reduzir práticas de spam.
+- Apenas usuários confirmados como amigos podem trocar mensagens privadas entre si (regra válida entre usuários idosos). O familiar não participa do fluxo de troca privada habitual entre usuários.  
+- Sinalizações de segurança podem originar‑se de conversas privadas (1:1) ou de grupos; o sistema deve registrar sinalizações e permitir a visualização por familiares conforme regras acima.  
+- Limitação de envio de solicitações de amizade (anti‑spam):
+  - Cada usuário pode enviar até 20 solicitações de amizade por período.
+  - Ao atingir o limite, o sistema impede o envio de novas solicitações e exibe mensagem informando que o limite diário foi alcançado.
+  - O envio de novas solicitações é liberado 24 horas após o momento em que o usuário atingiu o limite (janela móvel).
+- Dados de nascimento e privacidade:
+  - O sistema armazena a data de nascimento completa para cálculo de idade e validação interna.
+  - Em perfis públicos será exibida apenas a faixa etária (ex.: 60–69); a data de nascimento completa não é exibida a outros usuários nem ao familiar.
+- Tratamento de anexos:
+  - Familiares podem visualizar e baixar anexos (imagens, áudios, documentos) presentes nas conversas sinalizadas enquanto mantiverem acesso permitido pelo alerta.
+- Auditoria e rastreabilidade:
+  - Todas as ações relevantes realizadas pelo familiar (acesso/visualização de conversas sinalizadas, download de anexos, bloqueios, marcações como resolvidas, desvinculação) devem ficar registradas em logs de auditoria para conformidade e investigação futura.
 
 
 # Fluxos principais
