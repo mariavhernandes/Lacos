@@ -185,7 +185,6 @@ Campos principais:
 - createdAt
 - updatedAt
 - privacySettings
-- status
 
 #### friendships
 
@@ -213,7 +212,6 @@ Campos principais:
 - requestedAt
 - approvedAt
 - removedAt
-- permissions
 
 #### chats
 
@@ -287,13 +285,12 @@ Campos principais:
 - state
 - openingHours
 - coordinates
-- rating
 - imageUrl
 - createdAt
 
 #### alerts
 
-Registros de alertas de segurança e sinalizações.
+Estrutura destinada ao armazenamento de alertas de segurança em futuras versões do sistema. A geração automática desses alertas por Inteligência Artificial não faz parte do escopo do MVP.
 
 Campos principais:
 
@@ -405,6 +402,8 @@ Responsável por enviar:
 - convites e atualizações de grupos;
 - notificações de vínculo familiar;
 - avisos importantes da plataforma.
+
+A infraestrutura também será preparada para, em versões futuras, permitir o envio de notificações relacionadas a alertas de segurança gerados por Inteligência Artificial.
 
 ### 8.5 Serviço de mapas
 
@@ -524,14 +523,14 @@ Entregáveis:
 Objetivos:
 
 - solicitação e aprovação de vínculo familiar;
-- acesso restrito de familiares;
-- sinalização de alertas e logs de auditoria.
+- acesso restrito de familiares conforme as regras definidas;
+- implementação da estrutura necessária para futura integração com o sistema de alertas.
 
 Entregáveis:
 
 - fluxo de vínculo implementado;
 - permissões por perfil executadas;
-- visualização segura de conversas sinalizadas.
+- arquitetura preparada para futura implementação do sistema de alertas baseado em Inteligência Artificial.
 
 ### Fase 6 — Qualidade e entrega
 
@@ -603,7 +602,6 @@ Mitigação:
 
 Mitigação:
 
-- implementar fallback por polling ou mensagens internas quando necessário;
 - testar em ambientes reais antes da entrega.
 
 ---
