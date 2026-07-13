@@ -26,12 +26,12 @@ Este documento organiza as atividades de implementação do MVP do Laços em tar
 - Paralelo: Sim. Pode ser executada em paralelo com TASK-002.
 
 ### TASK-002 — Configurar integrações com Firebase
-- Descrição: configurar Firebase Authentication, Firestore, Storage e as chaves de ambiente necessárias para o projeto.
+- Descrição: configurar o Firebase Authentication e o Cloud Firestore, preparando a infraestrutura inicial do backend para autenticação e armazenamento de dados do sistema.
 - Dependências: TASK-001.
-- Critérios de conclusão:
-  - o projeto está conectado ao Firebase;
-  - autenticação, Firestore e Storage estão habilitados;
-  - a aplicação consegue inicializar sem erros de configuração.
+Critérios de conclusão:
+- o projeto está conectado ao Firebase;
+- Firebase Authentication e Cloud Firestore estão configurados e funcionando;
+- a aplicação consegue inicializar sem erros de configuração.
 - Paralelo: Sim. Pode ser executada em paralelo com TASK-003.
 
 ### TASK-003 — Definir tema, rotas e componentes base
@@ -162,13 +162,13 @@ Este documento organiza as atividades de implementação do MVP do Laços em tar
   - o histórico é armazenado no Firestore.
 - Paralelo: Não.
 
-### TASK-015 — Implementar anexos simples e leitura de mensagens
-- Descrição: permitir o envio de anexos básicos e marcar mensagens como lidas no chat.
-- Dependências: TASK-014.
+### TASK-015 — Implementar seleção de avatares para o perfil
+- Descrição: disponibilizar um conjunto de avatares pré-definidos para que o usuário escolha uma imagem de perfil durante o cadastro ou posteriormente na edição do perfil, utilizando assets locais do Flutter.
+Dependências: TASK-007, TASK-008.
 - Critérios de conclusão:
-  - anexos simples podem ser enviados e salvos;
-  - mensagens são marcadas como lidas quando visualizadas;
-  - a interface exibe o estado de leitura de forma clara.
+  - o usuário consegue selecionar um avatar entre as opções disponíveis;
+  - o avatar escolhido é salvo corretamente no Cloud Firestore;
+  - o avatar é exibido corretamente no perfil e nas demais telas da aplicação.
 - Paralelo: Não.
 
 ---
@@ -216,7 +216,7 @@ Este documento organiza as atividades de implementação do MVP do Laços em tar
 - Paralelo: Não.
 
 ### TASK-020 — Implementar logs de auditoria para ações do familiar
-- Descrição: registrar ações relevantes do familiar, como visualização de conversas, downloads de anexos, bloqueios e marcação de alertas.
+- Descrição: registrar ações relevantes do familiar, como visualização de informações autorizadas, alterações de configurações e marcação de alertas.
 - Dependências: TASK-019.
 - Critérios de conclusão:
   - ações relevantes são registradas com data, usuário e contexto;
