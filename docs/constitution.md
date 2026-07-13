@@ -1,220 +1,221 @@
-# Constitution do Projeto Laços
+# Constitution do Projeto Laï¿½os
 
-## Visão Geral
+## Visï¿½o Geral
 
-O Laços é uma plataforma composta por um aplicativo mobile e uma aplicação web desenvolvidos em Flutter, destinada a combater o isolamento social entre pessoas idosas. A plataforma promove socialização, bem-estar e qualidade de vida, permitindo que idosos encontrem pessoas com interesses em comum, participem de grupos, conversem por chat e descubram locais de lazer adequados às suas preferências.
+O Laï¿½os ï¿½ uma plataforma composta por um aplicativo mobile e uma aplicaï¿½ï¿½o web desenvolvidos em Flutter, destinada a combater o isolamento social entre pessoas idosas. A plataforma promove socializaï¿½ï¿½o, bem-estar e qualidade de vida, permitindo que idosos encontrem pessoas com interesses em comum, participem de grupos, conversem por chat e descubram locais de lazer adequados ï¿½s suas preferï¿½ncias.
 
-O sistema também oferece uma área para familiares ou responsáveis, permitindo o acompanhamento das informações autorizadas pelo idoso, melhorando a segurança e a tranquilidade da família.
+O sistema tambï¿½m oferece uma ï¿½rea para familiares ou responsï¿½veis, permitindo o acompanhamento das informaï¿½ï¿½es autorizadas pelo idoso, melhorando a seguranï¿½a e a tranquilidade da famï¿½lia.
 
 ## Objetivo
 
-A Constitution define as regras, o escopo e os princípios que regerão o desenvolvimento da primeira versão do Laços, com foco no MVP, no público idoso e nos familiares ou responsáveis.
+A Constitution define as regras, o escopo e os princï¿½pios que regerï¿½o o desenvolvimento da primeira versï¿½o do Laï¿½os, com foco no MVP, no pï¿½blico idoso e nos familiares ou responsï¿½veis.
 
-## Público-Alvo
+## Pï¿½blico-Alvo
 
-- Público principal: pessoas da terceira idade que desejam ampliar seu círculo social e participar de atividades presenciais.
-- Público secundário: familiares e responsáveis que desejam acompanhar e apoiar o uso da plataforma de forma segura.
+- Pï¿½blico principal: pessoas da terceira idade que desejam ampliar seu cï¿½rculo social e participar de atividades presenciais.
+- Pï¿½blico secundï¿½rio: familiares e responsï¿½veis que desejam acompanhar e apoiar o uso da plataforma de forma segura.
 
-## Escopo da Primeira Versão
+## Escopo da Primeira Versï¿½o
 
-A primeira versão do Laços deverá priorizar as funcionalidades essenciais que promovam socialização e acompanhamento seguro, entregues de forma simples, acessível e segura.
+A primeira versï¿½o do Laï¿½os deverï¿½ priorizar as funcionalidades essenciais que promovam socializaï¿½ï¿½o e acompanhamento seguro, entregues de forma simples, acessï¿½vel e segura.
 
 ### Funcionalidades para idosos
 
-- Cadastro e login de usuários.
-- Recuperação de senha.
-- Criação e edição de perfil com informações pessoais e interesses.
-- Pesquisa de locais de lazer e atividades voltadas à terceira idade, com filtros por categoria e localização.
-- Visualização de informações detalhadas dos locais de lazer (descrição, endereço, horário de funcionamento e avaliações).
-- Sistema de sugestões de amizades baseado em interesses em comum.
-- Chat privado entre usuários amigos.
-- Criação e participação em grupos de interesse.
-- Sistema de notificações.
+- Cadastro e login de usuï¿½rios.
+- Recuperaï¿½ï¿½o de senha.
+- Criaï¿½ï¿½o e ediï¿½ï¿½o de perfil com informaï¿½ï¿½es pessoais e interesses.
+- Pesquisa de locais de lazer e atividades voltadas ï¿½ terceira idade, com filtros por categoria e localizaï¿½ï¿½o.
+- Visualizaï¿½ï¿½o de informaï¿½ï¿½es detalhadas dos locais de lazer (descriï¿½ï¿½o, endereï¿½o, horï¿½rio de funcionamento e avaliaï¿½ï¿½es).
+- Sistema de sugestï¿½es de amizades baseado em interesses em comum.
+- Chat privado por mensagens de texto entre usuÃ¡rios amigos.
+- Criaï¿½ï¿½o e participaï¿½ï¿½o em grupos de interesse.
+- Sistema de notificaï¿½ï¿½es.
 - Central de ajuda.
 
-### Funcionalidades para familiares ou responsáveis
+### Funcionalidades para familiares ou responsï¿½veis
 
 - Cadastro e login.
-- Associação ao perfil do idoso mediante autorização explícita.
-- Visualização das informações autorizadas pelo idoso.
+- Associaï¿½ï¿½o ao perfil do idoso mediante autorizaï¿½ï¿½o explï¿½cita.
+- Visualizaï¿½ï¿½o das informaï¿½ï¿½es autorizadas pelo idoso.
 - Gerenciamento de contatos.
-- Recebimento de notificações relacionadas à segurança.
-- Configuração de preferências de acompanhamento.
+- Recebimento de notificaï¿½ï¿½es relacionadas ï¿½ seguranï¿½a.
+- Configuraï¿½ï¿½o de preferï¿½ncias de acompanhamento.
 
-## Regras de Privacidade e Autorização
+## Regras de Privacidade e Autorizaï¿½ï¿½o
 
-- O idoso é o proprietário de seus dados e controla a vinculação de familiares ou responsáveis à sua conta.
-- O vínculo somente será estabelecido mediante autorização explícita do idoso, que poderá aceitar ou recusar a solicitação.
-- Após aprovação, o familiar terá acesso às informações e funcionalidades padronizadas pelo sistema para seu perfil.
-- As informações disponíveis ao familiar serão somente aquelas necessárias para promover segurança e acompanhamento, respeitando a LGPD.
-- Dados sensíveis como senha, credenciais de acesso e demais informações restritas permanecerão inacessíveis a outros usuários.
+- O idoso ï¿½ o proprietï¿½rio de seus dados e controla a vinculaï¿½ï¿½o de familiares ou responsï¿½veis ï¿½ sua conta.
+- O vï¿½nculo somente serï¿½ estabelecido mediante autorizaï¿½ï¿½o explï¿½cita do idoso, que poderï¿½ aceitar ou recusar a solicitaï¿½ï¿½o.
+- Apï¿½s aprovaï¿½ï¿½o, o familiar terï¿½ acesso ï¿½s informaï¿½ï¿½es e funcionalidades padronizadas pelo sistema para seu perfil.
+- As informaï¿½ï¿½es disponï¿½veis ao familiar serï¿½o somente aquelas necessï¿½rias para promover seguranï¿½a e acompanhamento, respeitando a LGPD.
+- Dados sensï¿½veis como senha, credenciais de acesso e demais informaï¿½ï¿½es restritas permanecerï¿½o inacessï¿½veis a outros usuï¿½rios.
 
-## Tecnologias e Integrações
+## Tecnologias e Integraï¿½ï¿½es
 
 - Plataforma mobile: Flutter para Android e iOS.
-- Aplicação web responsiva: Flutter Web.
+- Aplicaï¿½ï¿½o web responsiva: Flutter Web.
 - Linguagem: Dart.
-- Backend e banco de dados: Firebase Authentication, Cloud Firestore e Firebase Storage.
-- Integrações: serviço de mapas para exibição de locais de lazer e atividades; notificações push para avisos, solicitações de vínculo, mensagens e atualizações.
+- Backend e banco de dados: Firebase Authentication e Cloud Firestore.
+- Integraï¿½ï¿½es: serviï¿½o de mapas para exibiï¿½ï¿½o de locais de lazer e atividades; notificaï¿½ï¿½es push para avisos, solicitaï¿½ï¿½es de vï¿½nculo, mensagens e atualizaï¿½ï¿½es.
 - IDE: Visual Studio Code.
 - Versionamento: GitHub.
 - Assistente de desenvolvimento: GitHub Copilot.
 - Metodologia: Spec-Driven Development (SDD).
+- Recursos grÃ¡ficos da aplicaÃ§Ã£o (Ã­cones, ilustraÃ§Ãµes e avatares) serÃ£o incluÃ­dos como assets do Flutter.
 
-## Qualidade de Experiência
+## Qualidade de Experiï¿½ncia
 
 ### Usabilidade
 
 - Interface simples, intuitiva e consistente.
-- Navegação com poucos passos para ações importantes.
-- Botões grandes e fáceis de selecionar.
-- Linguagem clara e objetiva, sem termos técnicos.
-- Feedback visual para todas as ações (confirmações, erros e carregamentos).
-- Fidelidade ao protótipo no Figma.
+- Navegaï¿½ï¿½o com poucos passos para aï¿½ï¿½es importantes.
+- Botï¿½es grandes e fï¿½ceis de selecionar.
+- Linguagem clara e objetiva, sem termos tï¿½cnicos.
+- Feedback visual para todas as aï¿½ï¿½es (confirmaï¿½ï¿½es, erros e carregamentos).
+- Fidelidade ao protï¿½tipo no Figma.
 
 ### Acessibilidade
 
-- Fontes legíveis com possibilidade de ampliação.
+- Fontes legï¿½veis com possibilidade de ampliaï¿½ï¿½o.
 - Alto contraste entre textos e elementos.
-- Ícones acompanhados de textos explicativos sempre que possível.
-- Áreas de toque amplas.
+- ï¿½cones acompanhados de textos explicativos sempre que possï¿½vel.
+- ï¿½reas de toque amplas.
 - Compatibilidade com recursos de acessibilidade de Android, iOS e navegadores.
 
 ### Desempenho
 
 - Tempo de carregamento reduzido para telas principais.
-- Navegação fluida entre telas.
+- Navegaï¿½ï¿½o fluida entre telas.
 - Consultas ao banco de dados otimizadas.
-- Componentes reutilizáveis.
+- Recursos grÃ¡ficos locais (assets) para reduzir dependÃªncia de serviÃ§os externos.
 - Funcionalidade responsiva na web.
 
-## Exclusões do MVP
+## Exclusï¿½es do MVP
 
-Ficam fora do escopo da primeira versão do Laços:
+Ficam fora do escopo da primeira versï¿½o do Laï¿½os:
 
-- Chamadas de áudio e vídeo entre usuários.
-- Chat de ajuda baseado em inteligência artificial.
-- Compartilhamento de localização em tempo real.
+- Chamadas de ï¿½udio e vï¿½deo entre usuï¿½rios.
+- Chat de ajuda baseado em inteligï¿½ncia artificial.
+- Compartilhamento de localizaï¿½ï¿½o em tempo real.
 
 ## Regras de Relacionamento Social
 
-- A conexão entre idosos será baseada em solicitação e aceitação de amizade.
-- Um usuário pode enviar solicitação de amizade para outro.
-- O destinatário pode aceitar ou recusar a solicitação.
+- A conexï¿½o entre idosos serï¿½ baseada em solicitaï¿½ï¿½o e aceitaï¿½ï¿½o de amizade.
+- Um usuï¿½rio pode enviar solicitaï¿½ï¿½o de amizade para outro.
+- O destinatï¿½rio pode aceitar ou recusar a solicitaï¿½ï¿½o.
 - Apenas amigos confirmados podem trocar mensagens privadas.
-- Usuários podem participar de grupos de interesse para conhecer novas pessoas.
-- O sistema sugere amizades com base em interesses, faixa etária semelhante, cidade/região e participação em grupos ou atividades em comum.
-- Usuários podem bloquear outros usuários. Após o bloqueio:
-  - Não é possível enviar novas solicitações de amizade.
-  - Não é possível trocar mensagens pelo chat.
-  - O usuário bloqueado não pode visualizar determinadas interações privadas.
+- Usuï¿½rios podem participar de grupos de interesse para conhecer novas pessoas.
+- O sistema sugere amizades com base em interesses, faixa etï¿½ria semelhante, cidade/regiï¿½o e participaï¿½ï¿½o em grupos ou atividades em comum.
+- Usuï¿½rios podem bloquear outros usuï¿½rios. Apï¿½s o bloqueio:
+  - Nï¿½o ï¿½ possï¿½vel enviar novas solicitaï¿½ï¿½es de amizade.
+  - Nï¿½o ï¿½ possï¿½vel trocar mensagens pelo chat.
+  - O usuï¿½rio bloqueado nï¿½o pode visualizar determinadas interaï¿½ï¿½es privadas.
 
-## Notificações
+## Notificaï¿½ï¿½es
 
-As notificações devem ser utilizadas apenas para eventos importantes, evitando excesso de alertas.
+As notificaï¿½ï¿½es devem ser utilizadas apenas para eventos importantes, evitando excesso de alertas.
 
 ### Para idosos
 
-- Recebimento de solicitação de amizade.
-- Aceitação de solicitação de amizade.
+- Recebimento de solicitaï¿½ï¿½o de amizade.
+- Aceitaï¿½ï¿½o de solicitaï¿½ï¿½o de amizade.
 - Novas mensagens no chat.
-- Convites ou atualizações de grupos.
-- Solicitações de vínculo enviadas por familiares ou responsáveis.
+- Convites ou atualizaï¿½ï¿½es de grupos.
+- Solicitaï¿½ï¿½es de vï¿½nculo enviadas por familiares ou responsï¿½veis.
 - Avisos importantes da plataforma.
 
-### Para familiares ou responsáveis
+### Para familiares ou responsï¿½veis
 
-- Aprovação ou recusa da solicitação de vínculo pelo idoso.
-- Alertas de segurança do sistema.
+- Aprovaï¿½ï¿½o ou recusa da solicitaï¿½ï¿½o de vï¿½nculo pelo idoso.
+- Alertas de seguranï¿½a do sistema.
 - Avisos importantes relacionados ao perfil do idoso.
 - Comunicados da plataforma.
 
 ### Diretrizes de envio
 
-- Enviar apenas notificações relevantes.
-- Agrupar notificações repetidas sempre que possível.
+- Enviar apenas notificaï¿½ï¿½es relevantes.
+- Agrupar notificaï¿½ï¿½es repetidas sempre que possï¿½vel.
 - Exibir mensagens claras e objetivas.
 
-## Critérios de Aceitação
+## Critï¿½rios de Aceitaï¿½ï¿½o
 
-Uma funcionalidade será considerada concluída quando:
+Uma funcionalidade serï¿½ considerada concluï¿½da quando:
 
-- Estiver implementada conforme a especificação da etapa Specify.
-- Atender aos requisitos funcionais e não funcionais.
-- Seguir fielmente o protótipo do Figma.
-- Estiver integrada corretamente ao Firebase quando necessário.
+- Estiver implementada conforme a especificaï¿½ï¿½o da etapa Specify.
+- Atender aos requisitos funcionais e nï¿½o funcionais.
+- Seguir fielmente o protï¿½tipo do Figma.
+- Estiver integrada corretamente ao Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging quando necessÃ¡rio.
 - Funcionar corretamente em Flutter Mobile e Flutter Web.
-- Apresentar interface acessível e intuitiva.
-- Não apresentar erros de execução ou falhas críticas.
-- Seguir os padrões de código e arquitetura da equipe.
-- For revisada por outro integrante antes da integração à branch principal.
-- For aprovada na Checklist do SDD antes da implementação final.
+- Apresentar interface acessï¿½vel e intuitiva.
+- Nï¿½o apresentar erros de execuï¿½ï¿½o ou falhas crï¿½ticas.
+- Seguir os padrï¿½es de cï¿½digo e arquitetura da equipe.
+- For revisada por outro integrante antes da integraï¿½ï¿½o ï¿½ branch principal.
+- For aprovada na Checklist do SDD antes da implementaï¿½ï¿½o final.
 
 ### Indicadores de sucesso
 
-- Implementação de todas as funcionalidades previstas para o MVP.
+- Implementaï¿½ï¿½o de todas as funcionalidades previstas para o MVP.
 - Compatibilidade entre mobile e web.
-- Interface fiel ao protótipo.
-- Navegação simples e intuitiva.
-- Integração completa com Firebase.
-- Código organizado, reutilizável e documentado.
+- Interface fiel ao protï¿½tipo.
+- Navegaï¿½ï¿½o simples e intuitiva.
+- IntegraÃ§Ã£o completa com Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging.
+- Cï¿½digo organizado, reutilizï¿½vel e documentado.
 - Desenvolvimento seguindo as etapas do Spec-Driven Development.
 
 ## Processo de Acesso
 
 ### Cadastro
 
-- O usuário escolhe entre criar conta como Idoso ou Familiar/Responsável.
-- O cadastro solicita apenas as informações necessárias: nome, data de nascimento, e-mail, senha e dados do perfil.
-- Durante o cadastro do idoso, é possível informar interesses.
-- Após concluir o cadastro, o usuário acessa imediatamente a plataforma.
+- O usuï¿½rio escolhe entre criar conta como Idoso ou Familiar/Responsï¿½vel.
+- O cadastro solicita apenas as informaï¿½ï¿½es necessï¿½rias: nome, data de nascimento, e-mail, senha e dados do perfil.
+- Durante o cadastro do idoso, ï¿½ possï¿½vel informar interesses.
+- Apï¿½s concluir o cadastro, o usuï¿½rio acessa imediatamente a plataforma.
 
 ### Login
 
 - Acesso com e-mail e senha via Firebase Authentication.
 
-### Recuperação de senha
+### Recuperaï¿½ï¿½o de senha
 
-- O usuário pede recuperação informando o e-mail cadastrado.
-- Será enviado um link de redefinição de senha por e-mail.
+- O usuï¿½rio pede recuperaï¿½ï¿½o informando o e-mail cadastrado.
+- Serï¿½ enviado um link de redefiniï¿½ï¿½o de senha por e-mail.
 
 ### Primeiro acesso
 
-- O usuário recebe uma breve introdução sobre as funcionalidades.
-- Em seguida, é direcionado para a tela inicial.
+- O usuï¿½rio recebe uma breve introduï¿½ï¿½o sobre as funcionalidades.
+- Em seguida, ï¿½ direcionado para a tela inicial.
 
-### Vinculação idoso-familiar
+### Vinculaï¿½ï¿½o idoso-familiar
 
-- O familiar envia solicitação de vínculo ao idoso.
+- O familiar envia solicitaï¿½ï¿½o de vï¿½nculo ao idoso.
 - O idoso aceita ou recusa.
-- Após aprovação, o vínculo é estabelecido e o familiar recebe acesso às funcionalidades previstas.
+- Apï¿½s aprovaï¿½ï¿½o, o vï¿½nculo ï¿½ estabelecido e o familiar recebe acesso ï¿½s funcionalidades previstas.
 
-## Segurança e Moderação
+## Seguranï¿½a e Moderaï¿½ï¿½o
 
-- Usuários podem bloquear outros para impedir interações, solicitações de amizade e mensagens.
+- Usuï¿½rios podem bloquear outros para impedir interaï¿½ï¿½es, solicitaï¿½ï¿½es de amizade e mensagens.
 - Apenas amigos confirmados podem enviar mensagens privadas.
-- Solicitações de amizade podem ser aceitas ou recusadas.
-- O sistema limita o envio excessivo de solicitações em curto período para reduzir spam.
-- Links suspeitos ou não autorizados podem ser bloqueados pelo sistema.
-- Familiares têm acesso apenas às funcionalidades previstas para o seu perfil.
-- Todas as interações devem respeitar as políticas de uso da plataforma e a LGPD.
-- Moderação automática avançada e sistemas complexos de denúncias são previstos para versões futuras.
+- Solicitaï¿½ï¿½es de amizade podem ser aceitas ou recusadas.
+- O sistema limita o envio excessivo de solicitaï¿½ï¿½es em curto perï¿½odo para reduzir spam.
+- Links suspeitos ou nï¿½o autorizados podem ser bloqueados pelo sistema.
+- Familiares tï¿½m acesso apenas ï¿½s funcionalidades previstas para o seu perfil.
+- Todas as interaï¿½ï¿½es devem respeitar as polï¿½ticas de uso da plataforma e a LGPD.
+- Moderaï¿½ï¿½o automï¿½tica avanï¿½ada e sistemas complexos de denï¿½ncias sï¿½o previstos para versï¿½es futuras.
 
-## Práticas de Desenvolvimento
+## Prï¿½ticas de Desenvolvimento
 
 - O desenvolvimento segue a metodologia SDD: Constitution, Specify, Clarify, Plan, Tasks, Analyze, Checklist e Implement.
-- Nenhuma funcionalidade será implementada antes da aprovação de sua especificação.
-- O desenvolvimento será incremental, priorizando o MVP.
-- GitHub será usado para versionamento.
-- Cada funcionalidade será desenvolvida em branch própria (`feature/nome-da-funcionalidade`).
-- Alterações diretas na branch `main` são proibidas.
-- Integração por Pull Requests revisados por pelo menos um integrante.
-- Código deve seguir padrões definidos pela equipe e ser organizado, legível e reutilizável.
-- Mobile e web devem compartilhar o máximo de código possível.
-- Regras de negócio centralizadas para evitar comportamentos diferentes entre plataformas.
-- Integração com Firebase testada antes do merge.
-- Documentação atualizada sempre que houver alterações relevantes.
+- Nenhuma funcionalidade serï¿½ implementada antes da aprovaï¿½ï¿½o de sua especificaï¿½ï¿½o.
+- O desenvolvimento serï¿½ incremental, priorizando o MVP.
+- GitHub serï¿½ usado para versionamento.
+- Cada funcionalidade serï¿½ desenvolvida em branch prï¿½pria (`feature/nome-da-funcionalidade`).
+- Alteraï¿½ï¿½es diretas na branch `main` sï¿½o proibidas.
+- Integraï¿½ï¿½o por Pull Requests revisados por pelo menos um integrante.
+- Cï¿½digo deve seguir padrï¿½es definidos pela equipe e ser organizado, legï¿½vel e reutilizï¿½vel.
+- Mobile e web devem compartilhar o mï¿½ximo de cï¿½digo possï¿½vel.
+- Regras de negï¿½cio centralizadas para evitar comportamentos diferentes entre plataformas.
+- IntegraÃ§Ã£o com Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging testada antes do merge.
+- Documentaï¿½ï¿½o atualizada sempre que houver alteraï¿½ï¿½es relevantes.
 
 ## Idioma
 
-- O MVP será lançado apenas em português.
+- O MVP serï¿½ lanï¿½ado apenas em portuguï¿½s.

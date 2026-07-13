@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1099165037533",
+    "project_id": "lacos-b1f67",
+    "storage_bucket": "lacos-b1f67.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1099165037533:android:37cbbac27c9d14b1ddbc34",
+        "android_client_info": {
+          "package_name": "com.lacos.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCizmMBXVtFo-uC-PMcwkKBBPm_WSK_ecA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -39,9 +39,9 @@ A arquitetura proposta é uma abordagem híbrida entre:
    - Controle de sessão e perfis.
 
 3. Camada de dados
-   - Firestore para dados estruturados;
-   - Storage para arquivos e imagens;
-   - Regras de segurança para controle de acesso.
+   - Cloud Firestore para armazenamento dos dados estruturados do sistema;
+   - Regras de segurança para controle de acesso;
+   - Recursos estáticos, como imagens da interface e avatares, incorporados ao aplicativo.
 
 4. Camada de notificações
    - Firebase Cloud Messaging para notificações push;
@@ -177,7 +177,7 @@ Campos principais:
 - birthDate
 - ageRange
 - email
-- photoUrl
+- avatar
 - city
 - state
 - interests: array
@@ -185,7 +185,6 @@ Campos principais:
 - createdAt
 - updatedAt
 - privacySettings
-- status
 
 #### friendships
 
@@ -213,7 +212,6 @@ Campos principais:
 - requestedAt
 - approvedAt
 - removedAt
-- permissions
 
 #### chats
 
@@ -237,7 +235,6 @@ Campos principais:
 - id
 - senderId
 - text
-- attachments: array
 - createdAt
 - isRead
 - messageType
@@ -256,7 +253,6 @@ Campos principais:
 - location
 - createdAt
 - memberIds: array
-- imageUrl
 - isActive
 
 #### groupMessages
@@ -268,7 +264,6 @@ Campos principais:
 - id
 - senderId
 - text
-- attachments
 - createdAt
 - isRead
 
@@ -287,13 +282,12 @@ Campos principais:
 - state
 - openingHours
 - coordinates
-- rating
-- imageUrl
+- imageReference
 - createdAt
 
 #### alerts
 
-Registros de alertas de segurança e sinalizações.
+Estrutura destinada ao armazenamento de alertas de segurança em futuras versões do sistema. A geração automática desses alertas por Inteligência Artificial não faz parte do escopo do MVP.
 
 Campos principais:
 
@@ -331,38 +325,16 @@ Campos principais:
 
 ---
 
-## 6. Armazenamento de arquivos
+## 6. Autenticação e autorização
 
-### 6.1 Firebase Storage
-
-As imagens e arquivos anexos deverão ser organizados por pastas, por exemplo:
-
-```text
-uploads/
-  users/{uid}/profile.jpg
-  chats/{chatId}/{messageId}/{fileName}
-  groups/{groupId}/{fileName}
-  locations/{locationId}/{fileName}
-```
-
-### 6.2 Regras de segurança
-
-- Somente o proprietário da imagem ou usuários autorizados poderão acessar certos arquivos.
-- Anexos de conversas sinalizadas podem ter acesso controlado ao familiar vinculado.
-- Arquivos inválidos ou excessivamente grandes devem ser validados antes do upload.
-
----
-
-## 7. Autenticação e autorização
-
-### 7.1 Firebase Authentication
+### 6.1 Firebase Authentication
 
 - Cadastro com e-mail e senha.
 - Login com e-mail e senha.
 - Recuperação de senha por e-mail.
 - Sessão persistente para mobile e web.
 
-### 7.2 Controle de permissões
+### 6.2 Controle de permissões
 
 As permissões devem ser aplicadas por tipo de usuário e por contexto:
 
@@ -370,7 +342,7 @@ As permissões devem ser aplicadas por tipo de usuário e por contexto:
 - familiar: acesso restrito às informações autorizadas e aos alertas permitidos;
 - usuários comuns: acesso limitado a funcionalidades públicas e de interação social.
 
-### 7.3 Regras de segurança no Firestore
+### 6.3 Regras de segurança no Firestore
 
 As regras devem garantir:
 
@@ -381,21 +353,23 @@ As regras devem garantir:
 
 ---
 
-## 8. Integrações externas
+## 7. Integrações externas
 
-### 8.1 Firebase Authentication
+### 7.1 Firebase Authentication
 
 Responsável por cadastro, login, sessão e recuperação de senha.
 
-### 8.2 Cloud Firestore
+### 7.2 Cloud Firestore
 
 Responsável por armazenar dados transacionais do sistema, como perfis, amizades, grupos, chats e alertas.
 
-### 8.3 Firebase Storage
+### 7.3 Recursos estáticos da aplicação
 
-Responsável por armazenar imagens de perfil, fotos de grupos, anexos e conteúdo multimídia.
+As imagens da interface, ícones e avatares serão incorporados ao aplicativo como recursos locais (assets) do Flutter, eliminando a necessidade de um serviço de armazenamento de arquivos no MVP.
 
-### 8.4 Firebase Cloud Messaging
+Os locais e atividades poderão utilizar imagens disponibilizadas pela API de mapas utilizada, sem necessidade de armazenamento próprio.
+
+### 7.4 Firebase Cloud Messaging
 
 Responsável por enviar:
 
@@ -406,11 +380,13 @@ Responsável por enviar:
 - notificações de vínculo familiar;
 - avisos importantes da plataforma.
 
-### 8.5 Serviço de mapas
+A infraestrutura também será preparada para, em versões futuras, permitir o envio de notificações relacionadas a alertas de segurança gerados por Inteligência Artificial.
+
+### 7.5 Serviço de mapas
 
 Para exibição de locais de lazer e atividades, o sistema poderá integrar um provedor de mapas com base em localização e geolocalização opcional.
 
-### 8.6 Observabilidade
+### 7.6 Observabilidade
 
 - Logs estruturados para eventos críticos;
 - monitoramento de erros e falhas de autenticação;
@@ -418,9 +394,9 @@ Para exibição de locais de lazer e atividades, o sistema poderá integrar um p
 
 ---
 
-## 9. Padrões de desenvolvimento
+## 8. Padrões de desenvolvimento
 
-### 9.1 Padrão de arquitetura
+### 8.1 Padrão de arquitetura
 
 Será adotado um padrão baseado em features com separação entre:
 
@@ -428,14 +404,14 @@ Será adotado um padrão baseado em features com separação entre:
 - data: repositórios, fontes de dados e mapeamentos;
 - presentation: telas, widgets, controllers e estados.
 
-### 9.2 Padrão de interface
+### 8.2 Padrão de interface
 
 - design system próprio ou componentes reutilizáveis;
 - consistência visual com o protótipo do Figma;
 - botões grandes, contraste adequado, texto claro e navegação simples;
 - componentes adaptados para touch, mouse e teclado.
 
-### 9.3 Acessibilidade
+### 8.3 Acessibilidade
 
 - suporte a fontes ampliáveis;
 - contraste adequado;
@@ -443,7 +419,7 @@ Será adotado um padrão baseado em features com separação entre:
 - áreas de toque amplas;
 - navegação por teclado e semântica correta.
 
-### 9.4 Padrões de código
+### 8.4 Padrões de código
 
 - nomes claros e consistentes;
 - uso de tipos fortes em Dart;
@@ -452,7 +428,7 @@ Será adotado um padrão baseado em features com separação entre:
 - comentários apenas quando necessários;
 - documentação mínima para módulos complexos.
 
-### 9.5 Versionamento
+### 8.5 Versionamento
 
 - branch por funcionalidade: feature/nome-da-funcionalidade;
 - pull requests obrigatórios;
@@ -461,14 +437,14 @@ Será adotado um padrão baseado em features com separação entre:
 
 ---
 
-## 10. Estratégia de implementação do MVP
+## 9. Estratégia de implementação do MVP
 
 ### Fase 1 — Base do projeto
 
 Objetivos:
 
 - criar o projeto Flutter com estrutura modular;
-- configurar Firebase Authentication, Firestore e Storage;
+- configurar Firebase Authentication e Cloud Firestore;
 - definir tema, rotas, componentes base e arquitetura inicial.
 
 Entregáveis:
@@ -524,14 +500,14 @@ Entregáveis:
 Objetivos:
 
 - solicitação e aprovação de vínculo familiar;
-- acesso restrito de familiares;
-- sinalização de alertas e logs de auditoria.
+- acesso restrito de familiares conforme as regras definidas;
+- implementação da estrutura necessária para futura integração com o sistema de alertas.
 
 Entregáveis:
 
 - fluxo de vínculo implementado;
 - permissões por perfil executadas;
-- visualização segura de conversas sinalizadas.
+- arquitetura preparada para futura implementação do sistema de alertas baseado em Inteligência Artificial.
 
 ### Fase 6 — Qualidade e entrega
 
@@ -549,26 +525,25 @@ Entregáveis:
 
 ---
 
-## 11. Estratégia de testes
+## 10. Estratégia de testes
 
-### 11.1 Testes unitários
+### 10.1 Testes unitários
 
 - validação de regras de idade, permissões, limite de solicitações e estados de vínculo;
 - testes de utilidades e validadores.
 
-### 11.2 Testes de widgets
+### 10.2 Testes de widgets
 
 - telas de login, cadastro, perfil, descoberta, amizade, chat e grupos;
 - validação de componentes acessíveis e responsivos.
 
-### 11.3 Testes de integração
+### 10.3 Testes de integração
 
 - autenticação com Firebase;
-- leitura e escrita no Firestore;
-- upload de arquivos no Storage;
+- leitura e escrita de dados no Cloud Firestore;
 - recebimento de notificações por FCM.
 
-### 11.4 Testes manuais
+### 10.4 Testes manuais
 
 - validação em Android, iOS e Web;
 - checagem de fluxo completo para idoso e familiar;
@@ -576,7 +551,7 @@ Entregáveis:
 
 ---
 
-## 12. Riscos e mitigação
+## 11. Riscos e mitigação
 
 ### Risco: complexidade de permissões
 
@@ -603,12 +578,11 @@ Mitigação:
 
 Mitigação:
 
-- implementar fallback por polling ou mensagens internas quando necessário;
 - testar em ambientes reais antes da entrega.
 
 ---
 
-## 13. Critérios de conclusão do plano
+## 12. Critérios de conclusão do plano
 
 O plano estará concluído quando:
 
