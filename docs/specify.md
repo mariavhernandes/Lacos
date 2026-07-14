@@ -15,7 +15,7 @@ Permitir que idosos ampliem sua rede social, participem de atividades presenciai
 O MVP inclui:
 
 - cadastro, login e recuperação de senha;
-- criação e edição de perfil com informações pessoais e interesses;
+- criação e edição de perfil com informações pessoais, interesses e seleção de avatar;
 - busca e visualização de locais de lazer e atividades;
 - sugestões de amizades com base nos interesses cadastrados;
 - envio, aceite e recusa de solicitações de amizade;
@@ -46,9 +46,10 @@ O MVP **não inclui**:
 
 ## Perfil e interesses
 
-- O idoso deve informar nome, data de nascimento, e-mail, senha e interesses relevantes.
+- O idoso deve informar nome, data de nascimento, e-mail, senha, interesses relevantes e selecionar um avatar entre as opções disponíveis.
 - O sistema deve exibir o perfil do usuário com as informações cadastradas.
 - O usuário poderá editar suas informações de perfil sempre que desejar.
+- O usuário poderá selecionar um avatar entre as opções disponibilizadas pela aplicação durante o cadastro ou na edição do perfil.
 
 
 ## Descoberta de locais e atividades
@@ -67,7 +68,7 @@ O MVP **não inclui**:
 
 ## Chat e grupos
 
-- Usuários amigos devem poder trocar mensagens privadas.
+- Usuários amigos devem poder trocar mensagens privadas de texto.
 - Usuários idosos devem poder criar grupos de interesse.
 - Todos os usuários poderão visualizar e participar dos grupos disponíveis na plataforma.
 - O sistema deve informar eventos relevantes sobre mensagens e atualizações de grupos.
@@ -83,10 +84,10 @@ O MVP **não inclui**:
   - Não pode: editar qualquer informação do perfil do idoso; acessar senha ou credenciais; acessar configurações da conta do idoso; criar, editar ou excluir grupos em nome do idoso; enviar solicitações de amizade em nome do idoso; enviar mensagens em nome do idoso; ou manter rede social própria no lugar do idoso.
 - Mensagens sinalizadas:
   - O sistema pode sinalizar tanto conversas privadas (1:1) quanto mensagens em grupos.
-  - Quando uma conversa for sinalizada, o familiar terá acesso ao histórico completo da conversa relacionada ao alerta, incluindo anexos (imagens, áudios, documentos), enquanto o vínculo existir.
+  - Quando uma conversa for sinalizada, o familiar terá acesso ao histórico completo da conversa relacionada ao alerta, enquanto o vínculo existir.
   - Ao visualizar participantes de conversas sinalizadas, o familiar verá somente os campos de perfil públicos (nome, foto, cidade, faixa etária, interesses). Dados de contato privados (e‑mail, telefone) não são exibidos ao familiar, salvo se o próprio usuário os marcar como públicos.
 - Acesso e logs:
-  - O acesso do familiar às conversas sinalizadas é mantido indefinidamente enquanto o vínculo existir; todas as ações do familiar (visualização de conversas, downloads de anexos, bloqueios, marcação de alertas como resolvidos, desvinculação) devem ser registradas em logs de auditoria para conformidade e moderação.
+  - O acesso do familiar às conversas sinalizadas é mantido indefinidamente enquanto o vínculo existir; todas as ações do familiar (visualização de conversas, bloqueios, marcação de alertas como resolvidos, desvinculação) devem ser registradas em logs de auditoria para conformidade e moderação.
 
 Ações disponíveis ao familiar sobre alertas e participantes
 - O familiar pode marcar um alerta como resolvido.
@@ -123,10 +124,8 @@ Ações disponíveis ao familiar sobre alertas e participantes
 - Dados de nascimento e privacidade:
   - O sistema armazena a data de nascimento completa para cálculo de idade e validação interna.
   - Em perfis públicos será exibida apenas a faixa etária (ex.: 60–69); a data de nascimento completa não é exibida a outros usuários nem ao familiar.
-- Tratamento de anexos:
-  - Familiares podem visualizar e baixar anexos (imagens, áudios, documentos) presentes nas conversas sinalizadas enquanto mantiverem acesso permitido pelo alerta.
 - Auditoria e rastreabilidade:
-  - Todas as ações relevantes realizadas pelo familiar (acesso/visualização de conversas sinalizadas, download de anexos, bloqueios, marcações como resolvidas, desvinculação) devem ficar registradas em logs de auditoria para conformidade e investigação futura.
+  - Todas as ações relevantes realizadas pelo familiar, como visualização de informações autorizadas, alterações de configurações, marcação de alertas e desvinculação, devem ficar registradas em logs de auditoria.
 
 
 # Fluxos principais
@@ -169,3 +168,4 @@ Ações disponíveis ao familiar sobre alertas e participantes
 - O sistema respeita as permissões de cada tipo de usuário (idoso e familiar).
 - A interface implementada corresponde ao protótipo desenvolvido no Figma.
 - A experiência atende aos requisitos de acessibilidade definidos para o MVP.
+- O usuário consegue selecionar e visualizar seu avatar em seu perfil e nas demais telas da aplicação.
