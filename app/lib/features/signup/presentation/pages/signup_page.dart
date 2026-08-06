@@ -1,5 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import '../../../../../core/routes/app_routes.dart';
+import '../../../../../core/services/auth_service.dart';
 
 class DateInputFormatter extends TextInputFormatter {
   @override
@@ -65,6 +69,7 @@ class _SignupPageState extends State<SignupPage> {
   String? _selectedCity;
   String? _selectedRelationship;
   bool _termsAccepted = false;
+  bool _isLoading = false;
 
   List<InterestItem> _interests = [];
 
@@ -180,18 +185,72 @@ class _SignupPageState extends State<SignupPage> {
     return true;
   }
 
+  List<String> _getSelectedInterests() {
+    return _interests.where((item) => item.isSelected).map((item) => item.label).toList();
+  }
+
+  Future<void> _submit() async {
+    if (!_validateCurrentStep()) return;
+
+    setState(() => _isLoading = true);
+    FocusScope.of(context).unfocus();
+
+    try {
+      if (_flow == SignupFlow.idoso) {
+        await AuthService.signUpElderly(
+          name: _nameController.text,
+          email: _emailController.text,
+          password: _passwordController.text,
+          birthDate: _dateController.text,
+          city: _selectedCity ?? '',
+          interests: _getSelectedInterests(),
+          linkedElderEmail: _elderEmailController.text,
+        );
+      } else {
+        await AuthService.signUpFamily(
+          name: _nameController.text,
+          email: _emailController.text,
+          password: _passwordController.text,
+          relationship: _selectedRelationship ?? '',
+          linkedElderEmail: _elderEmailController.text,
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cadastro realizado com sucesso!'),
+            backgroundColor: Color(0xFF033B63),
+          ),
+        );
+        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (route) => false);
+      }
+    } on FirebaseAuthException catch (e) {
+      final message = switch (e.code) {
+        'email-already-in-use' => 'Este e-mail já está cadastrado.',
+        'invalid-email' => 'O e-mail informado não é válido.',
+        'weak-password' => 'A senha deve ter pelo menos 6 caracteres.',
+        'operation-not-allowed' => 'Cadastro com e-mail e senha não está habilitado.',
+        'network-request-failed' => 'Falha de rede. Verifique sua conexão.',
+        _ => 'Erro no cadastro: ${e.message ?? 'Tente novamente.'}',
+      };
+      _showError(message);
+    } catch (error) {
+      _showError('Erro ao salvar seus dados. Tente novamente mais tarde.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _next() {
     if (!_validateCurrentStep()) return;
 
     if (_step < maxSteps - 1) {
       setState(() => _step += 1);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cadastro realizado com sucesso!'),
-          backgroundColor: Color(0xFF033B63),
-        ),
-      );
+      _submit();
     }
   }
 
@@ -428,7 +487,7 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: _next,
+                    onPressed: _isLoading ? null : _next,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF033B63),
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
@@ -436,13 +495,27 @@ class _SignupPageState extends State<SignupPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
-                      isLastStep ? 'Criar' : 'Avançar',
-                      style: const TextStyle(
-                        fontFamily: 'Quicksand',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.white,
+                    child: SizedBox(
+                      height: 24,
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.2,
+                                ),
+                              )
+                            : Text(
+                                isLastStep ? 'Criar' : 'Avançar',
+                                style: const TextStyle(
+                                  fontFamily: 'Quicksand',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -840,13 +913,13 @@ class _StepContentState extends State<_StepContent> {
                   );
                 },
               ),
-              const SizedBox(height: 16),
-              _input(
-                label: 'E-mail do familiar (opcional)',
-                hint: 'Digite o e-mail',
-                controller: widget.elderEmailController,
-                keyboardType: TextInputType.emailAddress,
-              ),
+              // const SizedBox(height: 16),
+              // _input(
+              //   label: 'E-mail do familiar (opcional)',
+              //   hint: 'Digite o e-mail',
+              //   controller: widget.elderEmailController,
+              //   keyboardType: TextInputType.emailAddress,
+              // ),
               const SizedBox(height: 18),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
