@@ -39,7 +39,7 @@ A arquitetura proposta é uma abordagem híbrida entre:
    - Controle de sessão e perfis.
 
 3. Camada de dados
-   - Cloud Firestore para armazenamento dos dados estruturados do sistema;
+   - Cloud Firestore para armazenamento dos dados estruturados do sistema, como usuários, perfis, amizades, grupos, chats e notificações. Os dados de locais e atividades serão obtidos por meio de uma API externa;
    - Regras de segurança para controle de acesso;
    - Recursos estáticos, como imagens da interface e avatares, incorporados ao aplicativo.
 
@@ -267,23 +267,9 @@ Campos principais:
 - createdAt
 - isRead
 
-#### locations
+#### descoberta de locais e atividades
 
-Catálogo de locais e atividades.
-
-Campos principais:
-
-- id
-- name
-- category
-- description
-- address
-- city
-- state
-- openingHours
-- coordinates
-- imageReference
-- createdAt
+Os dados de locais e atividades não serão armazenados no Firestore. Essas informações serão obtidas em tempo real por meio de uma API externa, responsável por fornecer dados como nome, categoria, endereço, horário de funcionamento, imagens, avaliações e demais informações disponíveis.
 
 #### alerts
 
@@ -384,7 +370,7 @@ A infraestrutura também será preparada para, em versões futuras, permitir o e
 
 ### 7.5 Serviço de mapas
 
-Para exibição de locais de lazer e atividades, o sistema poderá integrar um provedor de mapas com base em localização e geolocalização opcional.
+Serviço responsável pela exibição da localização dos locais e atividades. Os dados exibidos serão fornecidos por uma API externa, podendo utilizar geolocalização do usuário para cálculo de distância e exibição dos resultados.
 
 ### 7.6 Observabilidade
 
