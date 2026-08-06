@@ -54,8 +54,21 @@ O MVP **não inclui**:
 
 ## Descoberta de locais e atividades
 
-- O usuário deve pesquisar locais e atividades por categoria e localização.
-- O sistema deve exibir detalhes do local, incluindo descrição, endereço, horário de funcionamento e demais informações disponíveis.
+O usuário poderá pesquisar locais e atividades por categoria e localização.
+
+Os resultados da busca serão obtidos por meio de uma API externa, exibindo informações como:
+
+- nome;
+- categoria;
+- endereço;
+- descrição (quando disponível);
+- horário de funcionamento;
+- imagens;
+- avaliação;
+- quantidade de avaliações;
+- distância em relação ao usuário.
+
+A distância será calculada utilizando a localização atual do dispositivo.
 
 
 ## Conexões e amizades

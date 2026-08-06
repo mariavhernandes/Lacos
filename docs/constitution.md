@@ -54,7 +54,7 @@ A primeira vers�o do La�os dever� priorizar as funcionalidades essenciais 
 - Plataforma mobile: Flutter para Android e iOS.
 - Aplica��o web responsiva: Flutter Web.
 - Linguagem: Dart.
-- Backend e banco de dados: Firebase Authentication e Cloud Firestore.
+Backend e banco de dados: Firebase Authentication e Cloud Firestore para autenticação e gerenciamento dos dados internos da aplicação. Para a funcionalidade de descoberta de locais e atividades, o sistema utilizará uma API externa como fonte de dados.
 - Integra��es: servi�o de mapas para exibi��o de locais de lazer e atividades; notifica��es push para avisos, solicita��es de v�nculo, mensagens e atualiza��es.
 - IDE: Visual Studio Code.
 - Versionamento: GitHub.
@@ -143,7 +143,7 @@ Uma funcionalidade ser� considerada conclu�da quando:
 - Estiver implementada conforme a especifica��o da etapa Specify.
 - Atender aos requisitos funcionais e n�o funcionais.
 - Seguir fielmente o prot�tipo do Figma.
-- Estiver integrada corretamente ao Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging quando necessário.
+- Estiver integrada corretamente ao Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging quando necessário. A funcionalidade de descoberta de locais e atividades deverá consumir os dados por meio de uma API externa.
 - Funcionar corretamente em Flutter Mobile e Flutter Web.
 - Apresentar interface acess�vel e intuitiva.
 - N�o apresentar erros de execu��o ou falhas cr�ticas.

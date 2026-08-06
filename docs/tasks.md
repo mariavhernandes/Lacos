@@ -101,20 +101,23 @@ Critérios de conclusão:
 ## 4. Descoberta
 
 ### TASK-009 — Implementar busca de locais e atividades
-- Descrição: criar a tela de descoberta com busca por categoria e localização, exibindo locais e atividades disponíveis.
+- Descrição:
+criar a tela de descoberta com busca por categoria e localização, exibindo locais e atividades disponíveis obtidos por meio de uma API externa.
 - Dependências: TASK-003.
 - Critérios de conclusão:
   - o usuário consegue pesquisar locais e atividades;
-  - os resultados são exibidos com nome, categoria e descrição;
+  - os resultados são obtidos por meio de uma API externa;
+  - os resultados exibem nome, categoria e descrição quando disponível;
   - a busca funciona com filtros básicos.
 - Paralelo: Sim. Pode ser executada em paralelo com TASK-010.
 
 ### TASK-010 — Implementar detalhes de local e atividade
-- Descrição: criar a tela de detalhes com informações completas do local, como endereço, horário e descrição.
+- Descrição:
+criar a tela de detalhes utilizando as informações retornadas por uma API externa, exibindo endereço, horário de funcionamento, descrição, imagens, avaliações e demais informações disponíveis.
 - Dependências: TASK-009.
 - Critérios de conclusão:
   - o usuário consegue abrir os detalhes de um item encontrado;
-  - as informações principais são apresentadas de forma clara;
+  - as informações retornadas pela API externa são apresentadas de forma clara;
   - a tela é responsiva para mobile e web.
 - Paralelo: Sim. Pode ser executada em paralelo com TASK-009.
 
