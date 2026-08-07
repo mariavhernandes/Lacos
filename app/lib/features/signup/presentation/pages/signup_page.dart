@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -279,6 +281,7 @@ class _SignupPageState extends State<SignupPage> {
       _resetInterests();
     });
   }
+  
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -414,59 +417,77 @@ class _SignupPageState extends State<SignupPage> {
               ),
 
               const SizedBox(height: 12),
-              if (_step == 0) ...[
-                const SizedBox(height: 10),
-                RichText(
-                  text: const TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Já possui uma conta? ',
-                        style: TextStyle(
-                          fontFamily: 'Raleway',
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF033B63),
+                if (_step == 0) ...[
+                  const SizedBox(height: 10),
+                  
+                  // Link: Já possui uma conta? Entrar
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.login);
+                      },
+                      child: RichText(
+                        text: const TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Já possui uma conta? ',
+                              style: TextStyle(
+                                fontFamily: 'Raleway',
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF033B63),
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'Entrar',
+                              style: TextStyle(
+                                fontFamily: 'Raleway',
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF157699),
+                                decoration: TextDecoration.underline,
+                                decorationColor: Color(0xFF157699),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      TextSpan(
-                        text: 'Entrar',
-                        style: TextStyle(
-                          fontFamily: 'Raleway',
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF157699),
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: _toggleFlow,
-                  child: RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: isElderly ? 'É um familiar? ' : 'É um idoso? ',
-                          style: const TextStyle(
-                            fontFamily: 'Raleway',
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF033B63),
-                          ),
-                        ),
-                        const TextSpan(
-                          text: 'Clique aqui',
-                          style: TextStyle(
-                            fontFamily: 'Raleway',
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF157699),
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-                ),
-              ],
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Link: É um familiar / idoso? Clique aqui
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: _toggleFlow,
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: isElderly ? 'É um familiar? ' : 'É um idoso? ',
+                              style: const TextStyle(
+                                fontFamily: 'Raleway',
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF033B63),
+                              ),
+                            ),
+                            const TextSpan(
+                              text: 'Clique aqui',
+                              style: TextStyle(
+                                fontFamily: 'Raleway',
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF157699),
+                                decoration: TextDecoration.underline,
+                                decorationColor: Color(0xFF157699),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
 
               const SizedBox(height: 16),
 
