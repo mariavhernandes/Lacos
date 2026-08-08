@@ -70,15 +70,12 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
 
-      // Mapeia a coleção correspondente ao perfil marcado na tela
       final String primaryCollection =
           _profile == LoginProfile.usuario ? 'idosos' : 'familiares';
 
-      // 1. Busca na coleção primária baseada na seleção
       DocumentSnapshot<Map<String, dynamic>> userDoc =
           await FirebaseFirestore.instance.collection(primaryCollection).doc(uid).get();
 
-      // 2. Se não encontrar, faz fallback para as coleções alternativas
       if (!userDoc.exists) {
         final String secondaryCollection =
             _profile == LoginProfile.usuario ? 'users' : 'idosos';
@@ -88,7 +85,6 @@ class _LoginPageState extends State<LoginPage> {
             .get();
       }
 
-      // 3. Fallback final para 'users' caso não tenha achado antes
       if (!userDoc.exists) {
         userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       }
@@ -101,21 +97,18 @@ class _LoginPageState extends State<LoginPage> {
 
       final userData = userDoc.data()!;
 
-      // Busca o tipo de conta verificando os campos mais comuns e normaliza para minúsculo
       final String rawRole = (userData['role'] ??
                               userData['tipo'] ??
                               userData['perfil'] ??
                               userData['accountType'] ??
                               '').toString().toLowerCase().trim();
 
-      // Normaliza a verificação aceitando 'idoso' ou 'usuario'
       final bool isElderlyRole = rawRole == 'idoso' || rawRole == 'usuario';
       final bool isFamilyRole = rawRole == 'familiar';
 
       final bool isSelectedElderly = _profile == LoginProfile.usuario;
       final bool isSelectedFamily = _profile == LoginProfile.familiar;
 
-      // Validação do perfil selecionado com o cadastrado no Firestore
       final bool isProfileValid = (isSelectedElderly && isElderlyRole) ||
                                   (isSelectedFamily && isFamilyRole);
 
@@ -128,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       final targetRoute = isSelectedElderly
-          ? AppRoutes.elderlyHome
+          ? AppRoutes.splashScreen
           : AppRoutes.familyHome;
 
       Navigator.pushNamedAndRemoveUntil(context, targetRoute, (route) => false);
@@ -280,7 +273,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 24),
-
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -325,7 +317,6 @@ class _LoginPageState extends State<LoginPage> {
                             return null;
                           },
                         ),
-                        
                         _buildInput(
                           label: 'Senha',
                           hint: 'Digite sua senha',
@@ -352,7 +343,6 @@ class _LoginPageState extends State<LoginPage> {
                           },
                         ),
                         const SizedBox(height: 8),
-
                         MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
@@ -386,7 +376,6 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 24),
-
                         SizedBox(
                           height: 52,
                           child: ElevatedButton(
@@ -423,7 +412,6 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
               const SizedBox(height: 22),
-
               MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
