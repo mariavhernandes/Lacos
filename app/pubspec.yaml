@@ -24,6 +24,10 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/commun/
+    - assets/images/elderly/
+    - assets/icons/icons_footer/
+    - assets/icons/navigation/
 
   fonts:
     - family: Quicksand
