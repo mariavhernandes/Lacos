@@ -78,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!userDoc.exists) {
         final String secondaryCollection =
-            _profile == LoginProfile.usuario ? 'users' : 'idosos';
+            _profile == LoginProfile.usuario ? 'users' : 'responsaveis';
         userDoc = await FirebaseFirestore.instance
             .collection(secondaryCollection)
             .doc(uid)
@@ -103,14 +103,15 @@ class _LoginPageState extends State<LoginPage> {
                               userData['accountType'] ??
                               '').toString().toLowerCase().trim();
 
-      final bool isElderlyRole = rawRole == 'idoso' || rawRole == 'usuario';
-      final bool isFamilyRole = rawRole == 'familiar';
+      final bool isElderlyRole = rawRole == 'idoso' || rawRole == 'usuario' || rawRole == 'user';
+      final bool isFamilyRole = rawRole == 'familiar' || rawRole == 'responsavel' || rawRole == 'family';
 
       final bool isSelectedElderly = _profile == LoginProfile.usuario;
       final bool isSelectedFamily = _profile == LoginProfile.familiar;
 
-      final bool isProfileValid = (isSelectedElderly && isElderlyRole) ||
-                                  (isSelectedFamily && isFamilyRole);
+      // Valida se o perfil selecionado bate com a função registrada ou se o documento veio da coleção específica
+      final bool isProfileValid = (isSelectedElderly && (isElderlyRole || rawRole.isEmpty)) ||
+                                  (isSelectedFamily && (isFamilyRole || rawRole.isEmpty));
 
       if (!isProfileValid) {
         await FirebaseAuth.instance.signOut();
@@ -120,9 +121,10 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      final targetRoute = isSelectedElderly
-          ? AppRoutes.splashScreen
-          : AppRoutes.familyHome;
+      // Redirecionamento baseado no tipo selecionado
+      final String targetRoute = isSelectedFamily
+          ? AppRoutes.familyHome
+          : AppRoutes.splashScreen;
 
       Navigator.pushNamedAndRemoveUntil(context, targetRoute, (route) => false);
     } on FirebaseAuthException catch (e) {
