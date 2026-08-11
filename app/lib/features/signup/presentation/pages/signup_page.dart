@@ -225,7 +225,7 @@ class _SignupPageState extends State<SignupPage> {
             backgroundColor: Color(0xFF033B63),
           ),
         );
-        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splashScreen, (route) => false);
       }
     } on FirebaseAuthException catch (e) {
       final message = switch (e.code) {

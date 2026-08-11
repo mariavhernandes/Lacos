@@ -25,6 +25,39 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _verificarSessaoAtiva();
+  }
+
+  void _verificarSessaoAtiva() {
+    FirebaseAuth.instance.authStateChanges().first.then((user) async {
+      if (user != null && mounted) {
+        final familyDoc = await FirebaseFirestore.instance
+            .collection('familiares')
+            .doc(user.uid)
+            .get();
+
+        if (!mounted) return;
+
+        if (familyDoc.exists) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.familyHome,
+            (route) => false,
+          );
+        } else {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.splashScreen,
+            (route) => false,
+          );
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -109,7 +142,6 @@ class _LoginPageState extends State<LoginPage> {
       final bool isSelectedElderly = _profile == LoginProfile.usuario;
       final bool isSelectedFamily = _profile == LoginProfile.familiar;
 
-      // Valida se o perfil selecionado bate com a função registrada ou se o documento veio da coleção específica
       final bool isProfileValid = (isSelectedElderly && (isElderlyRole || rawRole.isEmpty)) ||
                                   (isSelectedFamily && (isFamilyRole || rawRole.isEmpty));
 
@@ -121,7 +153,6 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      // Redirecionamento baseado no tipo selecionado
       final String targetRoute = isSelectedFamily
           ? AppRoutes.familyHome
           : AppRoutes.splashScreen;

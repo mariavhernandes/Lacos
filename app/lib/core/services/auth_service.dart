@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+import '../routes/app_routes.dart';
 
 final class AuthService {
   AuthService._();
@@ -58,8 +61,6 @@ final class AuthService {
   }) async {
     final trimmedLinkedEmail = linkedElderEmail?.trim();
 
-    // Se um e-mail de idoso foi informado, verifique se existe um documento
-    // na coleção 'idosos' com este e-mail e role 'idoso' antes de criar a conta.
     if (trimmedLinkedEmail != null && trimmedLinkedEmail.isNotEmpty) {
       final query = await _firestore
           .collection('idosos')
@@ -113,5 +114,15 @@ final class AuthService {
       await userCredential.user?.delete();
       rethrow;
     }
+  }
+
+  static Future<void> signOut() async {
+    await _auth.signOut();
+  }
+
+  static Future<void> signOutAndRedirect(BuildContext context) async {
+    await signOut();
+    if (!context.mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
   }
 }

@@ -1,5 +1,9 @@
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -10,14 +14,15 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   late String _fraseSorteada;
+  bool _isLoading = false;
 
   final List<String> _frasesAcolhedoras = [
-    "Crie novos laços. Compartilhe alegria.",
-    "Cada conversa é uma nova oportunidade de sorrir.",
-    "Conecte-se com quem faz o seu dia mais feliz.",
-    "Histórias incríveis esperam por você hoje.",
-    "O carinho e a amizade estão a um toque de distância.",
-    "Cultive momentos especiais todos os dias.",
+    'Crie novos laços. Compartilhe alegria.',
+    'Cada conversa é uma nova oportunidade de sorrir.',
+    'Conecte-se com quem faz o seu dia mais feliz.',
+    'Histórias incríveis esperam por você hoje.',
+    'O carinho e a amizade estão a um toque de distância.',
+    'Cultive momentos especiais todos os dias.',
   ];
 
   @override
@@ -33,8 +38,40 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
-  void _navegarParaHome() {
-    Navigator.pushReplacementNamed(context, '/elderly-home');
+  // Método disparado APENAS ao clicar no botão "Começar"
+  Future<void> _navegarParaHome() async {
+    setState(() => _isLoading = true);
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (!mounted) return;
+
+    if (user == null) {
+      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+      return;
+    }
+
+    final uid = user.uid;
+
+    // Checa perfil no Firestore
+    final elderlyDoc = await FirebaseFirestore.instance.collection('idosos').doc(uid).get();
+    if (!mounted) return;
+    if (elderlyDoc.exists) {
+      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.elderlyHome, (route) => false);
+      return;
+    }
+
+    final familyDoc = await FirebaseFirestore.instance.collection('familiares').doc(uid).get();
+    if (!mounted) return;
+    if (familyDoc.exists) {
+      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.familyHome, (route) => false);
+      return;
+    }
+
+    // Se por algum motivo o usuário não estiver em nenhuma coleção
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
   }
 
   @override
@@ -106,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       width: double.infinity,
                       height: 44,
                       child: ElevatedButton(
-                        onPressed: _navegarParaHome,
+                        onPressed: _isLoading ? null : _navegarParaHome,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1F5A84),
                           elevation: 0,
@@ -114,31 +151,33 @@ class _SplashScreenState extends State<SplashScreen> {
                             borderRadius: BorderRadius.circular(16.0),
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Começar',
-                              style: TextStyle(
-                                fontFamily: 'Quicksand',
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'Começar',
+                                    style: TextStyle(
+                                      fontFamily: 'Quicksand',
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Image.asset(
+                                    'assets/images/elderly/start_arrow.png',
+                                    height: 28,
+                                    width: 28,
+                                    errorBuilder: (context, error, stackTrace) => const Icon(
+                                      Icons.arrow_forward,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Image.asset(
-                              'assets/images/elderly/start_arrow.png',
-                              height: 28,
-                              width: 28,
-                              errorBuilder: (context, error, stackTrace) => const Icon(
-                                Icons.arrow_forward,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ],
