@@ -15,8 +15,14 @@ import '../../features/help/presentation/pages/help_page.dart';
 
 import '../../features/profile/presentation/pages/profile_page.dart';
 
+// ============================================================
+// PERFIL DO FAMILIAR E EDIÇÃO
+// ============================================================
+
+import '../../features/profile/presentation/pages/family/family_profile_page.dart';
+
 import '../../features/profile/presentation/pages/edit_profile/edit_about_me_page.dart';
-import '../../features/profile/presentation/pages/edit_profile/edit_appearance_page.dart';
+// import '../../features/profile/presentation/pages/edit_profile/edit_appearance_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_basic_data_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_interests_page.dart';
 
@@ -26,24 +32,37 @@ class AppRoutes {
   // ============================================================
 
   static const String home = '/';
+
   static const String login = '/login';
+
   static const String signup = SignupPage.routeName;
+
   static const String recoverPassword = '/recover-password';
 
   static const String splashScreen = '/splash';
 
   static const String elderlyHome = '/elderly-home';
+
   static const String familyHome = '/family-home';
 
   static const String profile = '/profile';
 
+  static const String familyProfile = '/family-profile';
+
   static const String notifications = '/notifications';
+
   static const String help = '/help';
 
-  // Editar perfil
+  // ============================================================
+  // EDITAR PERFIL DO IDOSO
+  // ============================================================
+
   static const String editAboutMe = '/edit-about-me';
+
   static const String editAppearance = '/edit-appearance';
+
   static const String editBasicData = '/edit-basic-data';
+
   static const String editInterests = '/edit-interests';
 
   // ============================================================
@@ -84,6 +103,8 @@ class AppRoutes {
 
       profile: (context) => const ProfilePage(),
 
+      familyProfile: (context) => const FamilyProfilePage(),
+
       // ----------------------------------------------------------
       // NOTIFICAÇÕES
       // ----------------------------------------------------------
@@ -99,13 +120,17 @@ class AppRoutes {
       // ----------------------------------------------------------
       // EDITAR SOBRE VOCÊ
       // ----------------------------------------------------------
+
       editAboutMe: (context) {
-        final arguments = ModalRoute.of(context)?.settings.arguments
-            as Map<String, dynamic>?;
+        final arguments =
+            ModalRoute.of(context)?.settings.arguments
+                as Map<String, dynamic>?;
 
-        final uid = arguments?['uid'] as String? ?? '';
+        final uid =
+            arguments?['uid'] as String? ?? '';
 
-        final initialBio = arguments?['initialBio'] as String? ?? '';
+        final initialBio =
+            arguments?['initialBio'] as String? ?? '';
 
         return EditAboutMePage(
           uid: uid,
@@ -117,22 +142,25 @@ class AppRoutes {
       // EDITAR APARÊNCIA
       // ----------------------------------------------------------
 
-      editAppearance: (context) {
-        return const EditAppearancePage();
-      },
+      // editAppearance: (context) {
+      //   return const EditAppearancePage();
+      // },
 
       // ----------------------------------------------------------
       // EDITAR DADOS BÁSICOS
       // ----------------------------------------------------------
 
       editBasicData: (context) {
-        final arguments = ModalRoute.of(context)?.settings.arguments
-            as Map<String, dynamic>?;
+        final arguments =
+            ModalRoute.of(context)?.settings.arguments
+                as Map<String, dynamic>?;
 
-        final uid = arguments?['uid'] as String? ?? '';
+        final uid =
+            arguments?['uid'] as String? ?? '';
 
         final initialData =
-            arguments?['initialData'] as Map<String, dynamic>? ?? {};
+            arguments?['initialData']
+                as Map<String, dynamic>? ?? {};
 
         return EditBasicDataPage(
           uid: uid,
@@ -145,10 +173,12 @@ class AppRoutes {
       // ----------------------------------------------------------
 
       editInterests: (context) {
-        final arguments = ModalRoute.of(context)?.settings.arguments
-            as Map<String, dynamic>?;
+        final arguments =
+            ModalRoute.of(context)?.settings.arguments
+                as Map<String, dynamic>?;
 
-        final uid = arguments?['uid'] as String? ?? '';
+        final uid =
+            arguments?['uid'] as String? ?? '';
 
         final currentInterests =
             (arguments?['currentInterests'] as List<dynamic>?)
