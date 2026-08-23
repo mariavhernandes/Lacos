@@ -136,7 +136,7 @@ class _HelpPageState extends State<HelpPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Você pode alterar o tamanho da fonte do aplicativo, de acordo com as suas necessidades.',
+                            'Este aplicativo foi desenvolvido seguindo padrões de design acessível, com cores de alto contraste, botões amplos e textos claros para garantir conforto e praticidade na sua navegação.',
                             style: TextStyle(
                               fontFamily: 'Raleway',
                               fontSize: 14,
@@ -146,28 +146,28 @@ class _HelpPageState extends State<HelpPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Ação de alterar tamanho
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF033B63),
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text(
-                              'Alterar tamanho',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
+                          // ElevatedButton(
+                          //   onPressed: () {
+                          //     // Ação de alterar tamanho
+                          //   },
+                          //   style: ElevatedButton.styleFrom(
+                          //     backgroundColor: const Color(0xFF033B63),
+                          //     elevation: 0,
+                          //     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          //     shape: RoundedRectangleBorder(
+                          //       borderRadius: BorderRadius.circular(20),
+                          //     ),
+                          //   ),
+                          //   child: const Text(
+                          //     'Alterar tamanho',
+                          //     style: TextStyle(
+                          //       fontFamily: 'Raleway',
+                          //       fontSize: 13,
+                          //       fontWeight: FontWeight.bold,
+                          //       color: Colors.white,
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                     ),

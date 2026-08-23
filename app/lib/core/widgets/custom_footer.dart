@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 
 class CustomFooter extends StatelessWidget {
   final int currentIndex;
+  final bool isFamily;
 
   const CustomFooter({
     super.key,
     required this.currentIndex,
+    this.isFamily = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Detecta se a rota atual pertence ao fluxo do Familiar
+    final currentRoute = ModalRoute.of(context)?.settings.name ?? '';
+    final isFamilyRoute = currentRoute.contains('family');
+
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -30,8 +36,9 @@ class CustomFooter extends StatelessWidget {
             label: 'Início',
             selected: currentIndex == 0,
             onTap: () {
-              if (currentIndex != 0) {
-                Navigator.pushReplacementNamed(context, '/elderly-home');
+              final homeRoute = isFamilyRoute ? '/family-home' : '/elderly-home';
+              if (currentRoute != homeRoute) {
+                Navigator.pushReplacementNamed(context, homeRoute);
               }
             },
           ),
@@ -40,7 +47,7 @@ class CustomFooter extends StatelessWidget {
             label: 'Lugares',
             selected: currentIndex == 1,
             onTap: () {
-              if (currentIndex != 1) {
+              if (currentRoute != '/places') {
                 Navigator.pushReplacementNamed(context, '/places');
               }
             },
@@ -50,7 +57,7 @@ class CustomFooter extends StatelessWidget {
             label: 'Conversas',
             selected: currentIndex == 2,
             onTap: () {
-              if (currentIndex != 2) {
+              if (currentRoute != '/chat') {
                 Navigator.pushReplacementNamed(context, '/chat');
               }
             },
@@ -60,8 +67,9 @@ class CustomFooter extends StatelessWidget {
             label: 'Perfil',
             selected: currentIndex == 3,
             onTap: () {
-              if (currentIndex != 3) {
-                Navigator.pushReplacementNamed(context, '/profile');
+              final targetProfile = isFamilyRoute ? '/family-profile' : '/profile';
+              if (currentRoute != targetProfile) {
+                Navigator.pushReplacementNamed(context, targetProfile);
               }
             },
           ),
