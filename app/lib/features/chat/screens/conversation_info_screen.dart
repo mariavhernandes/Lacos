@@ -2,15 +2,32 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../models/chat_model.dart';
+import '../services/chat_service.dart';
 
-class ConversationInfoScreen extends StatelessWidget {
+class ConversationInfoScreen extends StatefulWidget {
   const ConversationInfoScreen({super.key, required this.chat});
 
   final Chat chat;
 
   @override
+  State<ConversationInfoScreen> createState() => _ConversationInfoScreenState();
+}
+
+class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
+  late bool isBlocked;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final currentChat = ChatService.getChat(widget.chat.id!);
+
+    isBlocked = currentChat?.isBlocked ?? widget.chat.isBlocked;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final participantName = chat.participantName ?? 'Participante';
+    final participantName = widget.chat.participantName ?? 'Participante';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -22,7 +39,9 @@ class ConversationInfoScreen extends StatelessWidget {
         titleSpacing: 0,
         leadingWidth: 48,
         leading: IconButton(
-          onPressed: () => Navigator.maybePop(context),
+          onPressed: () {
+            Navigator.pop(context);
+          },
           icon: Image.asset(
             'assets/icons/navigation/back_icon.png',
             width: 20,
@@ -85,7 +104,9 @@ class ConversationInfoScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(14),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.pop(context, 'search');
+                      },
                       child: Container(
                         width: 90,
                         height: 90,
@@ -139,18 +160,86 @@ class ConversationInfoScreen extends StatelessWidget {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.block, color: AppColors.error),
-                  title: const Text(
-                    'Bloquear usuário',
-                    style: TextStyle(
-                      color: AppColors.error,
+                  leading: Icon(
+                    isBlocked ? Icons.lock_open : Icons.block,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(
+                    isBlocked ? 'Desbloquear usuário' : 'Bloquear usuário',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
                       fontSize: 16,
                       fontFamily: 'Quicksand',
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  onTap: () {
-                    showDialog(
+                  onTap: () async {
+                    if (isBlocked) {
+                      final shouldUnblock = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) {
+                          return AlertDialog(
+                            title: Text(
+                              'Deseja desbloquear "$participantName"?',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontFamily: 'Raleway',
+                                fontWeight: FontWeight.w400,
+                                fontSize: 20,
+                              ),
+                            ),
+                            content: const Text(
+                              'Você poderá voltar a enviar e receber mensagens dessa pessoa.',
+                              style: TextStyle(
+                                color: Color(0xFF8A8A8A),
+                                fontFamily: 'Quicksand',
+                                fontSize: 14,
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(dialogContext, false);
+                                },
+                                child: const Text(
+                                  'Cancelar',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontFamily: 'Quicksand',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(dialogContext, true);
+                                },
+                                child: const Text(
+                                  'Desbloquear',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontFamily: 'Quicksand',
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                      if (shouldUnblock == true) {
+                        ChatService.unblockChat(widget.chat.id!);
+
+                        if (context.mounted) {
+                          Navigator.pop(context, 'unblocked');
+                        }
+                      }
+
+                      return;
+                    }
+
+                    // Aqui continua o bloqueio que já temos.
+                    final shouldBlock = await showDialog<bool>(
                       context: context,
                       builder: (dialogContext) {
                         return AlertDialog(
@@ -175,7 +264,7 @@ class ConversationInfoScreen extends StatelessWidget {
                           actions: [
                             TextButton(
                               onPressed: () {
-                                Navigator.pop(dialogContext);
+                                Navigator.pop(dialogContext, false);
                               },
                               child: const Text(
                                 'Cancelar',
@@ -188,9 +277,7 @@ class ConversationInfoScreen extends StatelessWidget {
                             ),
                             TextButton(
                               onPressed: () {
-                                Navigator.pop(dialogContext);
-
-                                Navigator.pop(context, true);
+                                Navigator.pop(dialogContext, true);
                               },
                               child: const Text(
                                 'Bloquear',
@@ -205,6 +292,14 @@ class ConversationInfoScreen extends StatelessWidget {
                         );
                       },
                     );
+
+                    if (shouldBlock == true) {
+                      ChatService.blockChat(widget.chat.id!);
+
+                      if (context.mounted) {
+                        Navigator.pop(context, 'blocked');
+                      }
+                    }
                   },
                 ),
               ],
@@ -216,12 +311,12 @@ class ConversationInfoScreen extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
-    final hasAvatar = (chat.participantAvatar ?? '').trim().isNotEmpty;
+    final hasAvatar = (widget.chat.participantAvatar ?? '').trim().isNotEmpty;
 
     if (hasAvatar) {
       return ClipOval(
         child: Image.asset(
-          chat.participantAvatar!,
+          widget.chat.participantAvatar!,
           width: 120,
           height: 120,
           fit: BoxFit.cover,

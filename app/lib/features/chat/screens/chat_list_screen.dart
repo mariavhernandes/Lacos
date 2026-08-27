@@ -153,12 +153,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   ],
                 ),
                 child: TextField(
-                  cursorColor: Colors.black,
+                  cursorColor: const Color(0xFF8A8A8A),
                   textInputAction: TextInputAction.search,
                   style: const TextStyle(
                     fontSize: 14,
                     fontFamily: 'Quicksand',
-                    color: Colors.black,
+                    color: Color(0xFF8A8A8A),
                   ),
                   decoration: InputDecoration(
                     // AQUI ESTÁ A MUDANÇA DO TEXTO "Pesquisar conversas"
@@ -215,14 +215,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   return ChatTile(
                     chat: chats[index],
                     onTap: () async {
-                      await Navigator.push(
+                      final blocked = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ChatScreen(chat: chats[index]),
                         ),
                       );
 
+                      // Marca a conversa como lida ao voltar do chat
                       ChatService.markAsRead(chats[index].id!);
+
+                      if (blocked == true) {
+                        ChatService.blockChat(chats[index].id!);
+                      }
 
                       setState(() {});
                     },

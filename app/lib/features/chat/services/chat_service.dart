@@ -1,8 +1,5 @@
 import '../models/chat_model.dart';
 
-/// Serviço local responsável por fornecer dados fake para a lista de conversas.
-///
-/// A implementação atual é apenas de apoio visual e não utiliza Firebase.
 class ChatService {
   const ChatService._();
 
@@ -40,11 +37,37 @@ class ChatService {
     return _chats;
   }
 
+  static Chat? getChat(String chatId) {
+    final index = _chats.indexWhere((chat) => chat.id == chatId);
+
+    if (index == -1) {
+      return null;
+    }
+
+    return _chats[index];
+  }
+
   static void markAsRead(String chatId) {
     final index = _chats.indexWhere((chat) => chat.id == chatId);
 
     if (index != -1) {
       _chats[index] = _chats[index].copyWith(unreadMessages: 0);
+    }
+  }
+
+  static void blockChat(String chatId) {
+    final index = _chats.indexWhere((chat) => chat.id == chatId);
+
+    if (index != -1) {
+      _chats[index] = _chats[index].copyWith(isBlocked: true);
+    }
+  }
+
+  static void unblockChat(String chatId) {
+    final index = _chats.indexWhere((chat) => chat.id == chatId);
+
+    if (index != -1) {
+      _chats[index] = _chats[index].copyWith(isBlocked: false);
     }
   }
 }

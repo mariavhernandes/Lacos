@@ -52,6 +52,7 @@ class Chat {
     String? lastMessage,
     DateTime? lastMessageTime,
     int? unreadMessages,
+    bool? isBlocked,
   }) {
     return Chat(
       id: id ?? this.id,
@@ -61,6 +62,7 @@ class Chat {
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
       unreadMessages: unreadMessages ?? this.unreadMessages,
+      isBlocked: isBlocked ?? this.isBlocked,
     );
   }
 
@@ -74,6 +76,7 @@ class Chat {
       'lastMessage': lastMessage,
       'lastMessageTime': lastMessageTime?.toIso8601String(),
       'unreadMessages': unreadMessages,
+      'isBlocked': isBlocked,
     };
   }
 
@@ -87,6 +90,7 @@ class Chat {
       lastMessage: map['lastMessage'] as String?,
       lastMessageTime: _parseDateTime(map['lastMessageTime']),
       unreadMessages: _parseInt(map['unreadMessages']),
+      isBlocked: map['isBlocked'] as bool? ?? false,
     );
   }
 
