@@ -14,13 +14,17 @@ class DateInputFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final truncated = digitsOnly.length > 8 ? digitsOnly.substring(0, 8) : digitsOnly;
+
+    final truncated =
+        digitsOnly.length > 8 ? digitsOnly.substring(0, 8) : digitsOnly;
 
     final buffer = StringBuffer();
+
     for (int i = 0; i < truncated.length; i++) {
       if (i == 2 || i == 4) {
         buffer.write('/');
       }
+
       buffer.write(truncated[i]);
     }
 
@@ -28,7 +32,9 @@ class DateInputFormatter extends TextInputFormatter {
 
     return TextEditingValue(
       text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
+      selection: TextSelection.collapsed(
+        offset: formatted.length,
+      ),
     );
   }
 }
@@ -64,12 +70,15 @@ class _SignupPageState extends State<SignupPage> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _passwordController =
+      TextEditingController();
   final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _elderEmailController = TextEditingController();
+  final TextEditingController _elderEmailController =
+      TextEditingController();
 
   String? _selectedCity;
   String? _selectedRelationship;
+
   bool _termsAccepted = false;
   bool _isLoading = false;
 
@@ -86,42 +95,50 @@ class _SignupPageState extends State<SignupPage> {
       InterestItem(
         label: 'Dominó',
         imagePath: 'assets/images/commun/domino.png',
-        selectedImagePath: 'assets/images/commun/domino_selected.png',
+        selectedImagePath:
+            'assets/images/commun/domino_selected.png',
       ),
       InterestItem(
         label: 'Jogo de cartas',
         imagePath: 'assets/images/commun/card_games.png',
-        selectedImagePath: 'assets/images/commun/card_games_selected.png',
+        selectedImagePath:
+            'assets/images/commun/card_games_selected.png',
       ),
       InterestItem(
         label: 'Jogos de tabuleiro',
         imagePath: 'assets/images/commun/chess.png',
-        selectedImagePath: 'assets/images/commun/chess_selected.png',
+        selectedImagePath:
+            'assets/images/commun/chess_selected.png',
       ),
       InterestItem(
         label: 'Tricô/Crochê',
         imagePath: 'assets/images/commun/knitting.png',
-        selectedImagePath: 'assets/images/commun/knitting_selected.png',
+        selectedImagePath:
+            'assets/images/commun/knitting_selected.png',
       ),
       InterestItem(
         label: 'Caminhada',
         imagePath: 'assets/images/commun/walking.png',
-        selectedImagePath: 'assets/images/commun/walking_selected.png',
+        selectedImagePath:
+            'assets/images/commun/walking_selected.png',
       ),
       InterestItem(
         label: 'Dança',
         imagePath: 'assets/images/commun/dancing.png',
-        selectedImagePath: 'assets/images/commun/dancing_selected.png',
+        selectedImagePath:
+            'assets/images/commun/dancing_selected.png',
       ),
       InterestItem(
         label: 'Artesanato',
         imagePath: 'assets/images/commun/sewing.png',
-        selectedImagePath: 'assets/images/commun/sewing_selected.png',
+        selectedImagePath:
+            'assets/images/commun/sewing_selected.png',
       ),
       InterestItem(
         label: 'Jardinagem',
         imagePath: 'assets/images/commun/gardening.png',
-        selectedImagePath: 'assets/images/commun/gardening_selected.png',
+        selectedImagePath:
+            'assets/images/commun/gardening_selected.png',
       ),
     ];
   }
@@ -133,6 +150,7 @@ class _SignupPageState extends State<SignupPage> {
     _passwordController.dispose();
     _dateController.dispose();
     _elderEmailController.dispose();
+
     super.dispose();
   }
 
@@ -141,7 +159,12 @@ class _SignupPageState extends State<SignupPage> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontFamily: 'Raleway')),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontFamily: 'Raleway',
+          ),
+        ),
         backgroundColor: Colors.redAccent,
         duration: const Duration(seconds: 2),
       ),
@@ -151,50 +174,75 @@ class _SignupPageState extends State<SignupPage> {
   bool _validateCurrentStep() {
     if (_step == 0) {
       if (_nameController.text.trim().isEmpty) {
-        _showError('Por favor, informe seu nome completo.');
+        _showError(
+          'Por favor, informe seu nome completo.',
+        );
         return false;
       }
-      if (_emailController.text.trim().isEmpty || !_emailController.text.contains('@')) {
-        _showError('Por favor, insira um e-mail válido.');
+
+      if (_emailController.text.trim().isEmpty ||
+          !_emailController.text.contains('@')) {
+        _showError(
+          'Por favor, insira um e-mail válido.',
+        );
         return false;
       }
+
       if (_passwordController.text.length < 6) {
-        _showError('A senha deve ter pelo menos 6 caracteres.');
+        _showError(
+          'A senha deve ter pelo menos 6 caracteres.',
+        );
         return false;
       }
     } else if (_step == 1) {
       if (_flow == SignupFlow.idoso) {
         if (_dateController.text.length < 10) {
-          _showError('Informe uma data de nascimento válida (DD/MM/AAAA).');
+          _showError(
+            'Informe uma data de nascimento válida (DD/MM/AAAA).',
+          );
           return false;
         }
+
         if (_selectedCity == null) {
-          _showError('Por favor, selecione sua cidade.');
+          _showError(
+            'Por favor, selecione sua cidade.',
+          );
           return false;
         }
       } else {
         if (_selectedRelationship == null) {
-          _showError('Por favor, selecione o grau de parentesco.');
+          _showError(
+            'Por favor, selecione o grau de parentesco.',
+          );
           return false;
         }
       }
 
       if (!_termsAccepted) {
-        _showError('Você precisa aceitar os Termos de uso para continuar.');
+        _showError(
+          'Você precisa aceitar os Termos de uso para continuar.',
+        );
         return false;
       }
     }
+
     return true;
   }
 
   List<String> _getSelectedInterests() {
-    return _interests.where((item) => item.isSelected).map((item) => item.label).toList();
+    return _interests
+        .where((item) => item.isSelected)
+        .map((item) => item.label)
+        .toList();
   }
 
   Future<void> _submit() async {
     if (!_validateCurrentStep()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
+
     FocusScope.of(context).unfocus();
 
     try {
@@ -221,27 +269,45 @@ class _SignupPageState extends State<SignupPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cadastro realizado com sucesso!'),
+            content: Text(
+              'Cadastro realizado com sucesso!',
+            ),
             backgroundColor: Color(0xFF033B63),
           ),
         );
-        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splashScreen, (route) => false);
+
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.splashScreen,
+          (route) => false,
+        );
       }
     } on FirebaseAuthException catch (e) {
       final message = switch (e.code) {
-        'email-already-in-use' => 'Este e-mail já está cadastrado.',
-        'invalid-email' => 'O e-mail informado não é válido.',
-        'weak-password' => 'A senha deve ter pelo menos 6 caracteres.',
-        'operation-not-allowed' => 'Cadastro com e-mail e senha não está habilitado.',
-        'network-request-failed' => 'Falha de rede. Verifique sua conexão.',
-        _ => 'Erro no cadastro: ${e.message ?? 'Tente novamente.'}',
+        'email-already-in-use' =>
+          'Este e-mail já está cadastrado.',
+        'invalid-email' =>
+          'O e-mail informado não é válido.',
+        'weak-password' =>
+          'A senha deve ter pelo menos 6 caracteres.',
+        'operation-not-allowed' =>
+          'Cadastro com e-mail e senha não está habilitado.',
+        'network-request-failed' =>
+          'Falha de rede. Verifique sua conexão.',
+        _ =>
+          'Erro no cadastro: ${e.message ?? 'Tente novamente.'}',
       };
+
       _showError(message);
     } catch (error) {
-      _showError('Erro ao salvar seus dados. Tente novamente mais tarde.');
+      _showError(
+        'Erro ao salvar seus dados. Tente novamente mais tarde.',
+      );
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -250,38 +316,43 @@ class _SignupPageState extends State<SignupPage> {
     if (!_validateCurrentStep()) return;
 
     if (_step < maxSteps - 1) {
-      setState(() => _step += 1);
+      setState(() {
+        _step++;
+      });
     } else {
       _submit();
     }
   }
 
   void _back() {
-    if (_step > 0) setState(() => _step -= 1);
+    if (_step > 0) {
+      setState(() {
+        _step--;
+      });
+    }
   }
 
   void _toggleFlow() {
     setState(() {
-      _flow = _flow == SignupFlow.idoso ? SignupFlow.familiar : SignupFlow.idoso;
+      _flow = _flow == SignupFlow.idoso
+          ? SignupFlow.familiar
+          : SignupFlow.idoso;
+
       _step = 0;
       _termsAccepted = false;
 
-      // Limpa os textos digitados
       _nameController.clear();
       _emailController.clear();
       _passwordController.clear();
       _dateController.clear();
       _elderEmailController.clear();
 
-      // Limpa as seleções de dropdown
       _selectedCity = null;
       _selectedRelationship = null;
 
-      // Reseta os interesses
       _resetInterests();
     });
   }
-  
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -308,7 +379,9 @@ class _SignupPageState extends State<SignupPage> {
       final day = picked.day.toString().padLeft(2, '0');
       final month = picked.month.toString().padLeft(2, '0');
       final year = picked.year.toString();
-      _dateController.text = '$day/$month/$year';
+
+      _dateController.text =
+          '$day/$month/$year';
     }
   }
 
@@ -316,7 +389,9 @@ class _SignupPageState extends State<SignupPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         title: const Text(
           'Termos de Uso e Privacidade',
           style: TextStyle(
@@ -331,13 +406,25 @@ class _SignupPageState extends State<SignupPage> {
             '1. Garantimos a proteção e privacidade dos seus dados cadastrais.\n'
             '2. As informações compartilhadas não serão vendidas a terceiros.\n'
             '3. Você pode solicitar a exclusão de sua conta a qualquer momento.',
-            style: TextStyle(fontFamily: 'Raleway', fontSize: 14, height: 1.4),
+            style: TextStyle(
+              fontFamily: 'Raleway',
+              fontSize: 14,
+              height: 1.4,
+            ),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendi', style: TextStyle(color: Color(0xFF033B63), fontWeight: FontWeight.bold)),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text(
+              'Entendi',
+              style: TextStyle(
+                color: Color(0xFF033B63),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -353,17 +440,24 @@ class _SignupPageState extends State<SignupPage> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 16,
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment:
+                CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 8),
+
               Image.asset(
                 'assets/logos/app_logo.png',
                 height: 95,
                 fit: BoxFit.contain,
               ),
+
               const SizedBox(height: 12),
+
               const Text(
                 'Cadastre-se',
                 style: TextStyle(
@@ -373,7 +467,9 @@ class _SignupPageState extends State<SignupPage> {
                   color: Color(0xFF033B63),
                 ),
               ),
+
               const SizedBox(height: 6),
+
               const Text(
                 'Crie uma conta',
                 style: TextStyle(
@@ -383,10 +479,16 @@ class _SignupPageState extends State<SignupPage> {
                   color: Color(0xFF033B63),
                 ),
               ),
+
               const SizedBox(height: 18),
 
-              _ProgressBar(current: _step + 1, total: maxSteps),
+              _ProgressBar(
+                current: _step + 1,
+                total: maxSteps,
+              ),
+
               const SizedBox(height: 8),
+
               Text(
                 'Passo ${_step + 1}',
                 style: const TextStyle(
@@ -395,6 +497,7 @@ class _SignupPageState extends State<SignupPage> {
                   color: Color(0xFF033B63),
                 ),
               ),
+
               const SizedBox(height: 18),
 
               _StepContent(
@@ -404,95 +507,131 @@ class _SignupPageState extends State<SignupPage> {
                 emailController: _emailController,
                 passwordController: _passwordController,
                 dateController: _dateController,
-                elderEmailController: _elderEmailController,
+                elderEmailController:
+                    _elderEmailController,
                 selectedCity: _selectedCity,
-                selectedRelationship: _selectedRelationship,
+                selectedRelationship:
+                    _selectedRelationship,
                 termsAccepted: _termsAccepted,
                 interests: _interests,
-                onCityChanged: (val) => setState(() => _selectedCity = val),
-                onRelationshipChanged: (val) => setState(() => _selectedRelationship = val),
-                onTermsChanged: (val) => setState(() => _termsAccepted = val ?? false),
-                onCalendarTap: () => _selectDate(context),
+                onCityChanged: (val) {
+                  setState(() {
+                    _selectedCity = val;
+                  });
+                },
+                onRelationshipChanged: (val) {
+                  setState(() {
+                    _selectedRelationship = val;
+                  });
+                },
+                onTermsChanged: (val) {
+                  setState(() {
+                    _termsAccepted = val ?? false;
+                  });
+                },
+                onCalendarTap: () {
+                  _selectDate(context);
+                },
                 onOpenTerms: _showTermsDialog,
               ),
 
               const SizedBox(height: 12),
-                if (_step == 0) ...[
-                  const SizedBox(height: 10),
-                  
-                  // Link: Já possui uma conta? Entrar
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.pushNamed(context, AppRoutes.login);
-                      },
-                      child: RichText(
-                        text: const TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'Já possui uma conta? ',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF033B63),
-                              ),
+
+              if (_step == 0) ...[
+                const SizedBox(height: 10),
+
+                MouseRegion(
+                  cursor:
+                      SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.login,
+                      );
+                    },
+                    child: RichText(
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(
+                            text:
+                                'Já possui uma conta? ',
+                            style: TextStyle(
+                              fontFamily: 'Raleway',
+                              fontWeight:
+                                  FontWeight.w600,
+                              color:
+                                  Color(0xFF033B63),
                             ),
-                            TextSpan(
-                              text: 'Entrar',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF157699),
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFF157699),
-                              ),
+                          ),
+                          TextSpan(
+                            text: 'Entrar',
+                            style: TextStyle(
+                              fontFamily: 'Raleway',
+                              fontWeight:
+                                  FontWeight.w600,
+                              color:
+                                  Color(0xFF157699),
+                              decoration:
+                                  TextDecoration.underline,
+                              decorationColor:
+                                  Color(0xFF157699),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Link: É um familiar / idoso? Clique aqui
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: _toggleFlow,
-                      child: RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: isElderly ? 'É um familiar? ' : 'É um idoso? ',
-                              style: const TextStyle(
-                                fontFamily: 'Raleway',
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF033B63),
-                              ),
+                ),
+
+                const SizedBox(height: 12),
+
+                MouseRegion(
+                  cursor:
+                      SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: _toggleFlow,
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: isElderly
+                                ? 'É um familiar? '
+                                : 'É um idoso? ',
+                            style: const TextStyle(
+                              fontFamily: 'Raleway',
+                              fontWeight:
+                                  FontWeight.w600,
+                              color:
+                                  Color(0xFF033B63),
                             ),
-                            const TextSpan(
-                              text: 'Clique aqui',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF157699),
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFF157699),
-                              ),
+                          ),
+                          const TextSpan(
+                            text: 'Clique aqui',
+                            style: TextStyle(
+                              fontFamily: 'Raleway',
+                              fontWeight:
+                                  FontWeight.w600,
+                              color:
+                                  Color(0xFF157699),
+                              decoration:
+                                  TextDecoration.underline,
+                              decorationColor:
+                                  Color(0xFF157699),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
+                ),
+              ],
 
               const SizedBox(height: 16),
 
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
                 children: [
                   Visibility(
                     visible: _step > 0,
@@ -503,17 +642,28 @@ class _SignupPageState extends State<SignupPage> {
                       onPressed: _back,
                       child: const Text(
                         'Voltar',
-                        style: TextStyle(color: Color(0xFF033B63)),
+                        style: TextStyle(
+                          color: Color(0xFF033B63),
+                        ),
                       ),
                     ),
                   ),
+
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _next,
+                    onPressed:
+                        _isLoading ? null : _next,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF033B63),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      backgroundColor:
+                          const Color(0xFF033B63),
+                      padding:
+                          const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(12),
                       ),
                     ),
                     child: SizedBox(
@@ -523,18 +673,25 @@ class _SignupPageState extends State<SignupPage> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(
+                                child:
+                                    CircularProgressIndicator(
                                   color: Colors.white,
                                   strokeWidth: 2.2,
                                 ),
                               )
                             : Text(
-                                isLastStep ? 'Criar' : 'Avançar',
-                                style: const TextStyle(
-                                  fontFamily: 'Quicksand',
-                                  fontWeight: FontWeight.bold,
+                                isLastStep
+                                    ? 'Criar'
+                                    : 'Avançar',
+                                style:
+                                    const TextStyle(
+                                  fontFamily:
+                                      'Quicksand',
+                                  fontWeight:
+                                      FontWeight.bold,
                                   fontSize: 18,
-                                  color: Colors.white,
+                                  color:
+                                      Colors.white,
                                 ),
                               ),
                       ),
@@ -554,21 +711,37 @@ class _ProgressBar extends StatelessWidget {
   final int current;
   final int total;
 
-  const _ProgressBar({Key? key, required this.current, required this.total}) : super(key: key);
+  const _ProgressBar({
+    Key? key,
+    required this.current,
+    required this.total,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final ratio = (current / total).clamp(0.0, 1.0);
-    return Column(
+    final ratio =
+        (current / total).clamp(0.0, 1.0);
+
+    return Stack(
       children: [
-        Stack(
-          children: [
-            Container(height: 8, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8))),
-            FractionallySizedBox(
-              widthFactor: ratio,
-              child: Container(height: 8, decoration: BoxDecoration(color: const Color(0xFF0D4E6A), borderRadius: BorderRadius.circular(8))),
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius:
+                BorderRadius.circular(8),
+          ),
+        ),
+        FractionallySizedBox(
+          widthFactor: ratio,
+          child: Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D4E6A),
+              borderRadius:
+                  BorderRadius.circular(8),
             ),
-          ],
+          ),
         ),
       ],
     );
@@ -578,18 +751,24 @@ class _ProgressBar extends StatelessWidget {
 class _StepContent extends StatefulWidget {
   final SignupFlow flow;
   final int step;
+
   final TextEditingController nameController;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController dateController;
   final TextEditingController elderEmailController;
+
   final String? selectedCity;
   final String? selectedRelationship;
+
   final bool termsAccepted;
+
   final List<InterestItem>? interests;
+
   final ValueChanged<String?> onCityChanged;
   final ValueChanged<String?> onRelationshipChanged;
   final ValueChanged<bool?> onTermsChanged;
+
   final VoidCallback onCalendarTap;
   final VoidCallback onOpenTerms;
 
@@ -614,7 +793,8 @@ class _StepContent extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<_StepContent> createState() => _StepContentState();
+  State<_StepContent> createState() =>
+      _StepContentState();
 }
 
 class _StepContentState extends State<_StepContent> {
@@ -631,7 +811,8 @@ class _StepContentState extends State<_StepContent> {
     ValueChanged<String>? onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding:
+          const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
@@ -652,32 +833,53 @@ class _StepContentState extends State<_StepContent> {
             color: Color(0xFF828282),
           ),
           filled: true,
-          fillColor: const Color(0xFFF6F6F6),
+          fillColor:
+              const Color(0xFFF6F6F6),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF888888)),
+            borderRadius:
+                BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: Color(0xFF888888),
+            ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF033B63), width: 2),
+            borderRadius:
+                BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: Color(0xFF033B63),
+              width: 2,
+            ),
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius:
+                BorderRadius.circular(12),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPasswordStrengthIndicator(String password) {
-    if (password.isEmpty) return const SizedBox.shrink();
+  Widget _buildPasswordStrengthIndicator(
+      String password) {
+    if (password.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     int score = 0;
+
     if (password.length >= 6) score++;
     if (password.length >= 8) score++;
-    if (RegExp(r'[A-Z]').hasMatch(password)) score++;
-    if (RegExp(r'[0-9]').hasMatch(password)) score++;
-    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) score++;
+    if (RegExp(r'[A-Z]').hasMatch(password)) {
+      score++;
+    }
+    if (RegExp(r'[0-9]').hasMatch(password)) {
+      score++;
+    }
+    if (RegExp(
+      r'[!@#$%^&*(),.?":{}|<>]',
+    ).hasMatch(password)) {
+      score++;
+    }
 
     Color color = Colors.red;
     String label = 'Fraca';
@@ -694,18 +896,22 @@ class _StepContentState extends State<_StepContent> {
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 4),
         Row(
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
+                borderRadius:
+                    BorderRadius.circular(4),
+                child:
+                    LinearProgressIndicator(
                   value: flexValue,
                   color: color,
-                  backgroundColor: Colors.grey.shade300,
+                  backgroundColor:
+                      Colors.grey.shade300,
                   minHeight: 6,
                 ),
               ),
@@ -715,7 +921,8 @@ class _StepContentState extends State<_StepContent> {
               label,
               style: TextStyle(
                 fontFamily: 'Raleway',
-                fontWeight: FontWeight.bold,
+                fontWeight:
+                    FontWeight.bold,
                 color: color,
                 fontSize: 12,
               ),
@@ -727,80 +934,147 @@ class _StepContentState extends State<_StepContent> {
   }
 
   void _showAddOtherDialog() {
-    final TextEditingController otherController = TextEditingController();
+    final TextEditingController
+        otherController =
+        TextEditingController();
 
     showDialog(
       context: context,
       builder: (dialogContext) {
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(24),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding:
+                const EdgeInsets.all(24),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize:
+                  MainAxisSize.min,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Adicionar atividades:',
                   style: TextStyle(
                     fontFamily: 'Raleway',
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                        FontWeight.bold,
                     fontSize: 18,
-                    color: Color(0xFF033B63),
+                    color:
+                        Color(0xFF033B63),
                   ),
                 ),
+
                 const SizedBox(height: 16),
+
                 TextField(
-                  controller: otherController,
-                  decoration: InputDecoration(
-                    hintText: 'Ex: Hidroginástica',
-                    hintStyle: const TextStyle(
-                      fontFamily: 'Raleway',
-                      color: Color(0xFFB0B0B0),
+                  controller:
+                      otherController,
+                  decoration:
+                      InputDecoration(
+                    hintText:
+                        'Ex: Hidroginástica',
+                    hintStyle:
+                        const TextStyle(
+                      fontFamily:
+                          'Raleway',
+                      color:
+                          Color(0xFFB0B0B0),
                     ),
                     filled: true,
-                    fillColor: const Color(0xFFF6F6F6),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFF888888)),
+                    fillColor:
+                        const Color(
+                            0xFFF6F6F6),
+                    border:
+                        OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius
+                              .circular(
+                                  16),
+                      borderSide:
+                          const BorderSide(
+                        color:
+                            Color(
+                                0xFF888888),
+                      ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFF888888)),
+                    enabledBorder:
+                        OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius
+                              .circular(
+                                  16),
+                      borderSide:
+                          const BorderSide(
+                        color:
+                            Color(
+                                0xFF888888),
+                      ),
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 24),
+
                 Center(
-                  child: ElevatedButton(
+                  child:
+                      ElevatedButton(
                     onPressed: () {
-                      final text = otherController.text.trim();
+                      final text =
+                          otherController
+                              .text
+                              .trim();
+
                       if (text.isNotEmpty) {
                         setState(() {
-                          (widget.interests ?? []).add(InterestItem(
-                            label: text,
-                            isSelected: true,
-                          ));
+                          (widget.interests ??
+                                  [])
+                              .add(
+                            InterestItem(
+                              label: text,
+                              isSelected:
+                                  true,
+                            ),
+                          );
                         });
-                        Navigator.of(dialogContext).pop();
+
+                        Navigator.of(
+                                dialogContext)
+                            .pop();
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF033B63),
-                      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                    style: ElevatedButton
+                        .styleFrom(
+                      backgroundColor:
+                          const Color(
+                              0xFF033B63),
+                      padding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 36,
+                        vertical: 12,
+                      ),
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                                    16),
                       ),
                     ),
                     child: const Text(
                       'Adicionar',
                       style: TextStyle(
-                        fontFamily: 'Quicksand',
-                        fontWeight: FontWeight.bold,
+                        fontFamily:
+                            'Quicksand',
+                        fontWeight:
+                            FontWeight.bold,
                         fontSize: 18,
-                        color: Colors.white,
+                        color:
+                            Colors.white,
                       ),
                     ),
                   ),
@@ -813,174 +1087,456 @@ class _StepContentState extends State<_StepContent> {
     );
   }
 
+  // ============================================================
+  // CARD DE INTERESSE
+  // ============================================================
+  Widget _buildInterestCard(
+    InterestItem item,
+  ) {
+    final String? activeImagePath =
+        item.isSelected
+            ? (item.selectedImagePath ??
+                item.imagePath)
+            : item.imagePath;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          item.isSelected =
+              !item.isSelected;
+        });
+      },
+      child: AnimatedContainer(
+        duration:
+            const Duration(milliseconds: 200),
+
+        // Borda externa azul
+        decoration: BoxDecoration(
+          color: item.isSelected
+              ? const Color(0xFF033B63)
+              : const Color(0xFFF6F6F6),
+          borderRadius:
+              BorderRadius.circular(16),
+          border: Border.all(
+            color:
+                const Color(0xFF033B63),
+            width: 1,
+          ),
+        ),
+
+        child: item.isSelected
+            ? Container(
+                // ==================================================
+                // CONTORNO BRANCO INTERNO
+                // ==================================================
+                margin:
+                    const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  borderRadius:
+                      BorderRadius.circular(
+                          11),
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 3,
+                  ),
+                ),
+                child: _buildInterestContent(
+                  item,
+                  activeImagePath,
+                ),
+              )
+            : _buildInterestContent(
+                item,
+                activeImagePath,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildInterestContent(
+    InterestItem item,
+    String? activeImagePath,
+  ) {
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 5,
+        vertical: 5,
+      ),
+      child: Column(
+        mainAxisAlignment:
+            MainAxisAlignment.center,
+        children: [
+          if (activeImagePath != null)
+            Image.asset(
+              activeImagePath,
+              height: 36,
+              width: 36,
+              fit: BoxFit.contain,
+              errorBuilder:
+                  (context, error, stackTrace) {
+                return Icon(
+                  Icons.extension_outlined,
+                  size: 34,
+                  color: item.isSelected
+                      ? Colors.white
+                      : const Color(
+                          0xFF033B63,
+                        ),
+                );
+              },
+            )
+          else
+            Icon(
+              Icons.star_border_rounded,
+              size: 34,
+              color: item.isSelected
+                  ? Colors.white
+                  : const Color(
+                      0xFF033B63,
+                    ),
+            ),
+
+          const SizedBox(height: 5),
+
+          Flexible(
+            child: Text(
+              item.label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow:
+                  TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Raleway',
+                fontWeight:
+                    FontWeight.w600,
+                fontSize: 12.5,
+                height: 1.1,
+                color: item.isSelected
+                    ? Colors.white
+                    : const Color(
+                        0xFF033B63,
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<InterestItem> activeInterests = widget.interests ?? [];
-
     if (widget.flow == SignupFlow.idoso) {
       switch (widget.step) {
         case 0:
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               _input(
                 label: 'Nome completo',
-                hint: 'Digite seu nome completo',
-                controller: widget.nameController,
+                hint:
+                    'Digite seu nome completo',
+                controller:
+                    widget.nameController,
               ),
+
               const SizedBox(height: 8),
+
               _input(
                 label: 'E-mail',
                 hint: 'Digite seu e-mail',
-                controller: widget.emailController,
-                keyboardType: TextInputType.emailAddress,
+                controller:
+                    widget.emailController,
+                keyboardType:
+                    TextInputType
+                        .emailAddress,
               ),
+
               const SizedBox(height: 8),
+
               _input(
                 label: 'Senha',
                 hint: 'Digite sua senha',
-                controller: widget.passwordController,
-                obscureText: _obscurePassword,
-                onChanged: (val) => setState(() {}),
-                suffixIcon: IconButton(
+                controller:
+                    widget.passwordController,
+                obscureText:
+                    _obscurePassword,
+                onChanged: (val) {
+                  setState(() {});
+                },
+                suffixIcon:
+                    IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: const Color(0xFF033B63),
+                    _obscurePassword
+                        ? Icons
+                            .visibility_off
+                        : Icons.visibility,
+                    color:
+                        const Color(
+                            0xFF033B63),
                   ),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword =
+                          !_obscurePassword;
+                    });
+                  },
                 ),
               ),
-              _buildPasswordStrengthIndicator(widget.passwordController.text),
+
+              _buildPasswordStrengthIndicator(
+                widget.passwordController
+                    .text,
+              ),
             ],
           );
+
         case 1:
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               _input(
-                label: 'Data de nascimento',
+                label:
+                    'Data de nascimento',
                 hint: 'DD/MM/AAAA',
-                controller: widget.dateController,
-                keyboardType: TextInputType.number,
+                controller:
+                    widget.dateController,
+                keyboardType:
+                    TextInputType.number,
                 inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
+                  FilteringTextInputFormatter
+                      .digitsOnly,
                   DateInputFormatter(),
                 ],
-                suffixIcon: IconButton(
+                suffixIcon:
+                    IconButton(
                   icon: const Icon(
-                    Icons.calendar_month_outlined,
-                    color: Color(0xFF033B63),
+                    Icons
+                        .calendar_month_outlined,
+                    color:
+                        Color(0xFF033B63),
                   ),
-                  onPressed: widget.onCalendarTap,
+                  onPressed:
+                      widget.onCalendarTap,
                 ),
               ),
+
               const SizedBox(height: 16),
+
               const Text(
                 'Cidade:',
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF033B63),
+                  fontWeight:
+                      FontWeight.w600,
+                  color:
+                      Color(0xFF033B63),
                 ),
               ),
+
               const SizedBox(height: 8),
+
               LayoutBuilder(
-                builder: (context, constraints) {
-                  return DropdownMenu<String>(
-                    width: constraints.maxWidth,
-                    hintText: 'Selecione sua cidade',
-                    initialSelection: widget.selectedCity,
+                builder:
+                    (context, constraints) {
+                  return DropdownMenu<
+                      String>(
+                    width:
+                        constraints.maxWidth,
+                    hintText:
+                        'Selecione sua cidade',
+                    initialSelection:
+                        widget.selectedCity,
                     menuHeight: 250,
-                    trailingIcon: const RotatedBox(
+                    trailingIcon:
+                        const RotatedBox(
                       quarterTurns: 1,
                       child: Icon(
-                        Icons.arrow_forward_ios,
+                        Icons
+                            .arrow_forward_ios,
                         size: 18,
-                        color: Color(0xFF949494),
+                        color:
+                            Color(
+                                0xFF949494),
                       ),
                     ),
-                    selectedTrailingIcon: const RotatedBox(
+                    selectedTrailingIcon:
+                        const RotatedBox(
                       quarterTurns: 3,
                       child: Icon(
-                        Icons.arrow_forward_ios,
+                        Icons
+                            .arrow_forward_ios,
                         size: 18,
-                        color: Color(0xFF949494),
+                        color:
+                            Color(
+                                0xFF949494),
                       ),
                     ),
-                    inputDecorationTheme: InputDecorationTheme(
+                    inputDecorationTheme:
+                        InputDecorationTheme(
                       filled: true,
-                      fillColor: const Color(0xFFF6F6F6),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF888888)),
+                      fillColor:
+                          const Color(
+                              0xFFF6F6F6),
+                      contentPadding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF033B63), width: 2),
+                      enabledBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                                    12),
+                        borderSide:
+                            const BorderSide(
+                          color:
+                              Color(
+                                  0xFF888888),
+                        ),
+                      ),
+                      focusedBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                                    12),
+                        borderSide:
+                            const BorderSide(
+                          color:
+                              Color(
+                                  0xFF033B63),
+                          width: 2,
+                        ),
                       ),
                     ),
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(value: 'Americana', label: 'Americana'),
-                      DropdownMenuEntry(value: 'Campinas', label: 'Campinas'),
-                      DropdownMenuEntry(value: 'Limeira', label: 'Limeira'),
+                    dropdownMenuEntries:
+                        const [
                       DropdownMenuEntry(
-                        value: 'Santa Bárbara d\'Oeste',
-                        label: 'Santa Bárbara d\'Oeste',
+                        value:
+                            'Americana',
+                        label:
+                            'Americana',
                       ),
-                      DropdownMenuEntry(value: 'Sumaré', label: 'Sumaré'),
+                      DropdownMenuEntry(
+                        value:
+                            'Campinas',
+                        label:
+                            'Campinas',
+                      ),
+                      DropdownMenuEntry(
+                        value:
+                            'Limeira',
+                        label:
+                            'Limeira',
+                      ),
+                      DropdownMenuEntry(
+                        value:
+                            'Santa Bárbara d\'Oeste',
+                        label:
+                            'Santa Bárbara d\'Oeste',
+                      ),
+                      DropdownMenuEntry(
+                        value:
+                            'Sumaré',
+                        label:
+                            'Sumaré',
+                      ),
                     ],
-                    onSelected: widget.onCityChanged,
+                    onSelected:
+                        widget
+                            .onCityChanged,
                   );
                 },
               ),
-              // const SizedBox(height: 16),
-              // _input(
-              //   label: 'E-mail do familiar (opcional)',
-              //   hint: 'Digite o e-mail',
-              //   controller: widget.elderEmailController,
-              //   keyboardType: TextInputType.emailAddress,
-              // ),
+
               const SizedBox(height: 18),
+
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment:
+                    CrossAxisAlignment
+                        .center,
                 children: [
                   Checkbox(
-                    value: widget.termsAccepted,
-                    shape: const CircleBorder(),
-                    side: const BorderSide(
-                      color: Color(0xFF02394E),
+                    value:
+                        widget
+                            .termsAccepted,
+                    shape:
+                        const CircleBorder(),
+                    side:
+                        const BorderSide(
+                      color:
+                          Color(
+                              0xFF02394E),
                       width: 2,
                     ),
-                    checkColor: Colors.white,
-                    fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                      if (states.contains(MaterialState.selected)) {
-                        return const Color(0xFF02394E);
-                      }
-                      return Colors.transparent;
-                    }),
-                    onChanged: widget.onTermsChanged,
+                    checkColor:
+                        Colors.white,
+                    fillColor:
+                        MaterialStateProperty
+                            .resolveWith<
+                                Color>(
+                      (states) {
+                        if (states.contains(
+                          MaterialState
+                              .selected,
+                        )) {
+                          return const Color(
+                              0xFF02394E);
+                        }
+
+                        return Colors
+                            .transparent;
+                      },
+                    ),
+                    onChanged:
+                        widget
+                            .onTermsChanged,
                   ),
+
                   Expanded(
-                    child: GestureDetector(
-                      onTap: widget.onOpenTerms,
+                    child:
+                        GestureDetector(
+                      onTap:
+                          widget
+                              .onOpenTerms,
                       child: RichText(
-                        text: const TextSpan(
+                        text:
+                            const TextSpan(
                           children: [
                             TextSpan(
-                              text: 'Concordo com os ',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                color: Color(0xFF828282),
+                              text:
+                                  'Concordo com os ',
+                              style:
+                                  TextStyle(
+                                fontFamily:
+                                    'Raleway',
+                                color:
+                                    Color(
+                                        0xFF828282),
                               ),
                             ),
                             TextSpan(
-                              text: 'Termos de uso',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                color: Color(0xFF02394E),
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
+                              text:
+                                  'Termos de uso',
+                              style:
+                                  TextStyle(
+                                fontFamily:
+                                    'Raleway',
+                                color:
+                                    Color(
+                                        0xFF02394E),
+                                fontWeight:
+                                    FontWeight
+                                        .bold,
+                                decoration:
+                                    TextDecoration
+                                        .underline,
                               ),
                             ),
                           ],
@@ -995,127 +1551,95 @@ class _StepContentState extends State<_StepContent> {
 
         case 2:
         default:
+          final activeInterests =
+              widget.interests ?? [];
+
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               const Text(
                 'Interesses:',
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontWeight: FontWeight.bold,
+                  fontWeight:
+                      FontWeight.bold,
                   fontSize: 18,
-                  color: Color(0xFF033B63),
+                  color:
+                      Color(0xFF033B63),
                 ),
               ),
+
               const SizedBox(height: 4),
+
               const Text(
                 'Selecione suas atividades favoritas',
                 style: TextStyle(
                   fontFamily: 'Raleway',
                   fontSize: 14,
-                  color: Color(0xFF828282),
+                  color:
+                      Color(0xFF828282),
                 ),
               ),
+
               const SizedBox(height: 16),
+
+              // ==========================================================
+              // GRID
+              // childAspectRatio: 1.0 = CARDS QUADRADOS
+              // ==========================================================
               GridView.count(
                 crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                childAspectRatio: 1.1,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: activeInterests.map((item) {
-                  final String? activeImagePath = item.isSelected
-                      ? (item.selectedImagePath ?? item.imagePath)
-                      : item.imagePath;
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
 
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        item.isSelected = !item.isSelected;
-                      });
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      decoration: BoxDecoration(
-                        color: item.isSelected
-                            ? const Color(0xFF033B63)
-                            : const Color(0xFFF6F6F6),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFF033B63),
-                          width: 2,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (activeImagePath != null)
-                              Image.asset(
-                                activeImagePath,
-                                height: 42,
-                                width: 42,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.extension_outlined,
-                                    size: 38,
-                                    color: item.isSelected
-                                        ? Colors.white
-                                        : const Color(0xFF033B63),
-                                  );
-                                },
-                              )
-                            else
-                              Icon(
-                                Icons.star_border_rounded,
-                                size: 38,
-                                color: item.isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF033B63),
-                              ),
-                            const SizedBox(height: 10),
-                            Text(
-                              item.label,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: item.isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF033B63),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                // LARGURA = ALTURA
+                childAspectRatio: 1.0,
+
+                shrinkWrap: true,
+                physics:
+                    const NeverScrollableScrollPhysics(),
+
+                children:
+                    activeInterests.map(
+                  (item) {
+                    return _buildInterestCard(
+                      item,
+                    );
+                  },
+                ).toList(),
               ),
-              const SizedBox(height: 16),
+
+              const SizedBox(height: 12),
+
               Center(
                 child: TextButton(
-                  onPressed: _showAddOtherDialog,
+                  onPressed:
+                      _showAddOtherDialog,
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize:
+                        MainAxisSize.min,
                     children: const [
                       Text(
                         'Outras ',
                         style: TextStyle(
-                          fontFamily: 'Raleway',
-                          fontWeight: FontWeight.bold,
+                          fontFamily:
+                              'Raleway',
+                          fontWeight:
+                              FontWeight.bold,
                           fontSize: 16,
-                          color: Color(0xFF033B63),
+                          color:
+                              Color(
+                                  0xFF033B63),
                         ),
                       ),
                       Icon(
-                        Icons.arrow_forward_ios,
+                        Icons
+                            .arrow_forward_ios,
                         size: 14,
-                        color: Color(0xFF033B63),
+                        color:
+                            Color(
+                                0xFF033B63),
                       ),
                     ],
                   ),
@@ -1128,146 +1652,293 @@ class _StepContentState extends State<_StepContent> {
       switch (widget.step) {
         case 0:
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               _input(
                 label: 'Nome completo',
-                hint: 'Digite seu nome completo',
-                controller: widget.nameController,
+                hint:
+                    'Digite seu nome completo',
+                controller:
+                    widget.nameController,
               ),
+
               const SizedBox(height: 8),
+
               _input(
                 label: 'E-mail',
                 hint: 'Digite seu e-mail',
-                controller: widget.emailController,
-                keyboardType: TextInputType.emailAddress,
+                controller:
+                    widget.emailController,
+                keyboardType:
+                    TextInputType
+                        .emailAddress,
               ),
+
               const SizedBox(height: 8),
+
               _input(
                 label: 'Senha',
                 hint: 'Digite sua senha',
-                controller: widget.passwordController,
-                obscureText: _obscurePassword,
-                onChanged: (val) => setState(() {}),
-                suffixIcon: IconButton(
+                controller:
+                    widget.passwordController,
+                obscureText:
+                    _obscurePassword,
+                onChanged: (val) {
+                  setState(() {});
+                },
+                suffixIcon:
+                    IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: const Color(0xFF033B63),
+                    _obscurePassword
+                        ? Icons
+                            .visibility_off
+                        : Icons.visibility,
+                    color:
+                        const Color(
+                            0xFF033B63),
                   ),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword =
+                          !_obscurePassword;
+                    });
+                  },
                 ),
               ),
-              _buildPasswordStrengthIndicator(widget.passwordController.text),
+
+              _buildPasswordStrengthIndicator(
+                widget.passwordController
+                    .text,
+              ),
             ],
           );
+
         case 1:
         default:
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               const Text(
                 'Grau de parentesco:',
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF033B63),
+                  fontWeight:
+                      FontWeight.w600,
+                  color:
+                      Color(0xFF033B63),
                 ),
               ),
+
               const SizedBox(height: 8),
+
               LayoutBuilder(
-                builder: (context, constraints) {
-                  return DropdownMenu<String>(
-                    width: constraints.maxWidth,
-                    hintText: 'Selecione o parentesco',
-                    initialSelection: widget.selectedRelationship,
+                builder:
+                    (context, constraints) {
+                  return DropdownMenu<
+                      String>(
+                    width:
+                        constraints.maxWidth,
+                    hintText:
+                        'Selecione o parentesco',
+                    initialSelection:
+                        widget
+                            .selectedRelationship,
                     menuHeight: 250,
-                    trailingIcon: const RotatedBox(
+                    trailingIcon:
+                        const RotatedBox(
                       quarterTurns: 1,
                       child: Icon(
-                        Icons.arrow_forward_ios,
+                        Icons
+                            .arrow_forward_ios,
                         size: 18,
-                        color: Color(0xFF949494),
+                        color:
+                            Color(
+                                0xFF949494),
                       ),
                     ),
-                    selectedTrailingIcon: const RotatedBox(
+                    selectedTrailingIcon:
+                        const RotatedBox(
                       quarterTurns: 3,
                       child: Icon(
-                        Icons.arrow_forward_ios,
+                        Icons
+                            .arrow_forward_ios,
                         size: 18,
-                        color: Color(0xFF949494),
+                        color:
+                            Color(
+                                0xFF949494),
                       ),
                     ),
-                    inputDecorationTheme: InputDecorationTheme(
+                    inputDecorationTheme:
+                        InputDecorationTheme(
                       filled: true,
-                      fillColor: const Color(0xFFF6F6F6),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF888888)),
+                      fillColor:
+                          const Color(
+                              0xFFF6F6F6),
+                      contentPadding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF033B63), width: 2),
+                      enabledBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                                    12),
+                        borderSide:
+                            const BorderSide(
+                          color:
+                              Color(
+                                  0xFF888888),
+                        ),
+                      ),
+                      focusedBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                                    12),
+                        borderSide:
+                            const BorderSide(
+                          color:
+                              Color(
+                                  0xFF033B63),
+                          width: 2,
+                        ),
                       ),
                     ),
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(value: 'Filho(a)', label: 'Filho(a)'),
-                      DropdownMenuEntry(value: 'Neto(a)', label: 'Neto(a)'),
-                      DropdownMenuEntry(value: 'Cuidador(a)', label: 'Cuidador(a)'),
-                      DropdownMenuEntry(value: 'Amigo(a)', label: 'Amigo(a)'),
-                      DropdownMenuEntry(value: 'Outro', label: 'Outro'),
+                    dropdownMenuEntries:
+                        const [
+                      DropdownMenuEntry(
+                        value: 'Filho(a)',
+                        label: 'Filho(a)',
+                      ),
+                      DropdownMenuEntry(
+                        value: 'Neto(a)',
+                        label: 'Neto(a)',
+                      ),
+                      DropdownMenuEntry(
+                        value:
+                            'Cuidador(a)',
+                        label:
+                            'Cuidador(a)',
+                      ),
+                      DropdownMenuEntry(
+                        value: 'Amigo(a)',
+                        label: 'Amigo(a)',
+                      ),
+                      DropdownMenuEntry(
+                        value: 'Outro',
+                        label: 'Outro',
+                      ),
                     ],
-                    onSelected: widget.onRelationshipChanged,
+                    onSelected:
+                        widget
+                            .onRelationshipChanged,
                   );
                 },
               ),
+
               const SizedBox(height: 16),
+
               _input(
-                label: 'Vincular usuário:',
-                hint: 'Digite o e-mail de seu familiar',
-                controller: widget.elderEmailController,
-                keyboardType: TextInputType.emailAddress,
+                label:
+                    'Vincular usuário:',
+                hint:
+                    'Digite o e-mail de seu familiar',
+                controller:
+                    widget
+                        .elderEmailController,
+                keyboardType:
+                    TextInputType
+                        .emailAddress,
               ),
+
               const SizedBox(height: 18),
+
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment:
+                    CrossAxisAlignment
+                        .center,
                 children: [
                   Checkbox(
-                    value: widget.termsAccepted,
-                    shape: const CircleBorder(),
-                    side: const BorderSide(
-                      color: Color(0xFF02394E),
+                    value:
+                        widget
+                            .termsAccepted,
+                    shape:
+                        const CircleBorder(),
+                    side:
+                        const BorderSide(
+                      color:
+                          Color(
+                              0xFF02394E),
                       width: 2,
                     ),
-                    checkColor: Colors.white,
-                    fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-                      if (states.contains(MaterialState.selected)) {
-                        return const Color(0xFF02394E);
-                      }
-                      return Colors.transparent;
-                    }),
-                    onChanged: widget.onTermsChanged,
+                    checkColor:
+                        Colors.white,
+                    fillColor:
+                        MaterialStateProperty
+                            .resolveWith<
+                                Color>(
+                      (states) {
+                        if (states.contains(
+                          MaterialState
+                              .selected,
+                        )) {
+                          return const Color(
+                              0xFF02394E);
+                        }
+
+                        return Colors
+                            .transparent;
+                      },
+                    ),
+                    onChanged:
+                        widget
+                            .onTermsChanged,
                   ),
+
                   Expanded(
-                    child: GestureDetector(
-                      onTap: widget.onOpenTerms,
+                    child:
+                        GestureDetector(
+                      onTap:
+                          widget
+                              .onOpenTerms,
                       child: RichText(
-                        text: const TextSpan(
+                        text:
+                            const TextSpan(
                           children: [
                             TextSpan(
-                              text: 'Concordo com os ',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                color: Color(0xFF828282),
+                              text:
+                                  'Concordo com os ',
+                              style:
+                                  TextStyle(
+                                fontFamily:
+                                    'Raleway',
+                                color:
+                                    Color(
+                                        0xFF828282),
                               ),
                             ),
                             TextSpan(
-                              text: 'Termos de uso',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                color: Color(0xFF02394E),
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
+                              text:
+                                  'Termos de uso',
+                              style:
+                                  TextStyle(
+                                fontFamily:
+                                    'Raleway',
+                                color:
+                                    Color(
+                                        0xFF02394E),
+                                fontWeight:
+                                    FontWeight
+                                        .bold,
+                                decoration:
+                                    TextDecoration
+                                        .underline,
                               ),
                             ),
                           ],

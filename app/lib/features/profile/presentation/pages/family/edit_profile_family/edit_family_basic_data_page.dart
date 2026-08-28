@@ -23,24 +23,14 @@ class EditFamilyBasicDataPage extends StatefulWidget {
 
 class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
   // =============================================================
-  // CONTROLLERS
+  // CONTROLLERS E VARIÁVEIS
   // =============================================================
 
   late TextEditingController _nameController;
-  late TextEditingController _passwordController;
-
-  // =============================================================
-  // VARIÁVEIS
-  // =============================================================
 
   String? _selectedRelationship;
   bool _isLoading = false;
-
-  // Controla se a senha está escondida
-  bool _obscurePassword = true;
-
-  // Indica que os pontinhos são apenas uma representação da senha
-  bool _isPasswordPlaceholder = true;
+  bool _isSendingResetEmail = false;
 
   // Lista de graus de parentesco conforme o cadastro
   final List<String> _relationshipOptions = [
@@ -63,11 +53,6 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
       text: widget.initialData['name']?.toString() ?? '',
     );
 
-    // Começa mostrando pontinhos para representar que existe uma senha cadastrada.
-    _passwordController = TextEditingController(
-      text: '••••••••',
-    );
-
     final String? savedRelationship = widget.initialData['relationship']?.toString() ??
         widget.initialData['relationshipDegree']?.toString();
 
@@ -86,87 +71,65 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _passwordController.dispose();
-
     super.dispose();
   }
 
   // =============================================================
-  // INDICADOR DE FORÇA DA SENHA
+  // ENVIAR E-MAIL DE REDEFINIÇÃO DE SENHA
   // =============================================================
 
-  Widget _buildPasswordStrengthIndicator(String password) {
-    if (password.isEmpty) {
-      return const SizedBox.shrink();
+  Future<void> _sendPasswordResetEmail(String email) async {
+    if (email.isEmpty) {
+      _showError('E-mail não encontrado para envio da redefinição.');
+      return;
     }
 
-    int score = 0;
+    setState(() {
+      _isSendingResetEmail = true;
+    });
 
-    if (password.length >= 6) {
-      score++;
-    }
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
 
-    if (password.length >= 8) {
-      score++;
-    }
+      if (!mounted) return;
 
-    if (RegExp(r'[A-Z]').hasMatch(password)) {
-      score++;
-    }
-
-    if (RegExp(r'[0-9]').hasMatch(password)) {
-      score++;
-    }
-
-    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) {
-      score++;
-    }
-
-    Color color = Colors.red;
-    String label = 'Fraca';
-    double flexValue = 0.33;
-
-    if (score >= 4) {
-      color = Colors.green;
-      label = 'Forte';
-      flexValue = 1.0;
-    } else if (score >= 2) {
-      color = Colors.orange;
-      label = 'Média';
-      flexValue = 0.66;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: flexValue,
-                  color: color,
-                  backgroundColor: Colors.grey.shade300,
-                  minHeight: 6,
-                ),
-              ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'E-mail de redefinição enviado para $email!',
+            style: const TextStyle(
+              fontFamily: 'Raleway',
             ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Raleway',
-                fontWeight: FontWeight.bold,
-                color: color,
-                fontSize: 12,
-              ),
-            ),
-          ],
+          ),
+          backgroundColor: const Color(0xFF033B63),
         ),
-      ],
-    );
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'Usuário não encontrado.';
+          break;
+        case 'invalid-email':
+          message = 'E-mail inválido.';
+          break;
+        default:
+          message = 'Erro ao enviar e-mail de redefinição.';
+      }
+
+      _showError(message);
+    } catch (_) {
+      if (!mounted) return;
+      _showError('Erro ao enviar e-mail. Tente novamente mais tarde.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSendingResetEmail = false;
+        });
+      }
+    }
   }
 
   // =============================================================
@@ -199,15 +162,7 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
       firestoreUpdates['relationship'] = currentRelationship;
     }
 
-    final newPassword =
-        _isPasswordPlaceholder ? '' : _passwordController.text.trim();
-
-    if (newPassword.isNotEmpty && newPassword.length < 6) {
-      _showError('A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-
-    if (firestoreUpdates.isEmpty && newPassword.isEmpty) {
+    if (firestoreUpdates.isEmpty) {
       _showError('Nenhuma alteração foi realizada.');
       return;
     }
@@ -219,25 +174,10 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
     FocusScope.of(context).unfocus();
 
     try {
-      if (firestoreUpdates.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('familiares')
-            .doc(widget.uid)
-            .update(firestoreUpdates);
-      }
-
-      if (newPassword.isNotEmpty) {
-        final User? currentUser = FirebaseAuth.instance.currentUser;
-
-        if (currentUser == null) {
-          throw FirebaseAuthException(
-            code: 'user-not-found',
-            message: 'Usuário não autenticado.',
-          );
-        }
-
-        await currentUser.updatePassword(newPassword);
-      }
+      await FirebaseFirestore.instance
+          .collection('familiares')
+          .doc(widget.uid)
+          .update(firestoreUpdates);
 
       if (!mounted) return;
 
@@ -254,33 +194,8 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
       );
 
       Navigator.pop(context, true);
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
-      String message;
-
-      switch (e.code) {
-        case 'weak-password':
-          message = 'A senha deve ter pelo menos 6 caracteres.';
-          break;
-        case 'requires-recent-login':
-          message =
-              'Por segurança, faça login novamente antes de alterar sua senha.';
-          break;
-        case 'user-not-found':
-          message = 'Usuário não encontrado.';
-          break;
-        case 'network-request-failed':
-          message = 'Falha de rede. Verifique sua conexão.';
-          break;
-        default:
-          message = 'Erro ao atualizar a senha. Tente novamente mais tarde.';
-      }
-
-      _showError(message);
     } catch (_) {
       if (!mounted) return;
-
       _showError('Erro ao atualizar os dados. Tente novamente mais tarde.');
     } finally {
       if (mounted) {
@@ -413,16 +328,10 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
                           _nameController,
                         ),
 
-                        // =================================================
                         // VÍNCULO FAMILIAR (E-MAIL DO IDOSO)
-                        // =================================================
-
                         _buildElderEmailDisplay(elderEmail),
 
-                        // =================================================
                         // GRAU DE PARENTESCO
-                        // =================================================
-
                         _buildRelationshipField(),
                       ],
                     ),
@@ -437,27 +346,11 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
                       title: 'Acesso',
                       icon: Icons.lock,
                       children: [
-                        // =================================================
                         // E-MAIL
-                        // =================================================
-
                         _buildEmailDisplay(email),
 
-                        // =================================================
-                        // SENHA
-                        // =================================================
-
-                        _buildPasswordField(),
-
-                        // =================================================
-                        // FORÇA DA SENHA
-                        // =================================================
-
-                        _buildPasswordStrengthIndicator(
-                          _isPasswordPlaceholder
-                              ? ''
-                              : _passwordController.text,
-                        ),
+                        // SENHA (REDEFINIÇÃO POR E-MAIL)
+                        _buildResetPasswordSection(email),
                       ],
                     ),
 
@@ -535,7 +428,6 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // CABEÇALHO DO CARD
           Padding(
             padding: const EdgeInsets.fromLTRB(
               16,
@@ -571,15 +463,11 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
               ],
             ),
           ),
-
-          // DIVISOR
           const Divider(
             height: 1,
             thickness: 0.8,
             color: Color(0xFF999999),
           ),
-
-          // CAMPOS
           Padding(
             padding: const EdgeInsets.fromLTRB(
               18,
@@ -667,7 +555,7 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
   }
 
   // =============================================================
-  // VÍNCULO FAMILIAR (E-MAIL DO IDOSO VINCULADO - DESABILITADO)
+  // VÍNCULO FAMILIAR (E-MAIL DO IDOSO VINCULADO)
   // =============================================================
 
   Widget _buildElderEmailDisplay(String elderEmail) {
@@ -848,10 +736,10 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
   }
 
   // =============================================================
-  // SENHA
+  // SENHA (ENVIAR E-MAIL DE REDEFINIÇÃO)
   // =============================================================
 
-  Widget _buildPasswordField() {
+  Widget _buildResetPasswordSection(String email) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -868,70 +756,45 @@ class _EditFamilyBasicDataPageState extends State<EditFamilyBasicDataPage> {
           ),
           const SizedBox(height: 7),
           SizedBox(
+            width: double.infinity,
             height: 52,
-            child: TextField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              onChanged: (value) {
-                if (_isPasswordPlaceholder) {
-                  setState(() {
-                    _isPasswordPlaceholder = false;
-                  });
-                }
-              },
-              onTap: () {
-                if (_isPasswordPlaceholder) {
-                  _passwordController.clear();
-                  setState(() {
-                    _isPasswordPlaceholder = false;
-                  });
-                }
-              },
-              style: const TextStyle(
-                fontFamily: 'Raleway',
-                fontSize: 16,
-                color: Color(0xFF666666),
+            child: OutlinedButton.icon(
+              onPressed: _isSendingResetEmail
+                  ? null
+                  : () => _sendPasswordResetEmail(email),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.white,
+                side: const BorderSide(
+                  color: Color(0xFF033B63),
+                  width: 1.5,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: const Color(0xFF033B63),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF888888),
-                    width: 1,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF888888),
-                    width: 1,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF033B63),
-                    width: 1.5,
-                  ),
+              icon: _isSendingResetEmail
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF033B63),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.mail_outline_rounded,
+                      color: Color(0xFF033B63),
+                    ),
+              label: Text(
+                _isSendingResetEmail
+                    ? 'Enviando e-mail...'
+                    : 'Alterar senha\npor e-mail',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Raleway',
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF033B63),
                 ),
               ),
             ),

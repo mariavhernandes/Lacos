@@ -57,13 +57,13 @@ class CustomFooter extends StatelessWidget {
           ),
 
           // =====================================================
-          // LOCALIZAÇÃO
+          // LOCALIZAÇÃO / LUGARES
           // =====================================================
 
           _FooterItem(
             asset:
                 'assets/icons/icons_footer/footer_location_icon.png',
-            label: 'Lugares',
+            label: isFamilyRoute ? 'Localização' : 'Lugares',
             selected: currentIndex == 1,
             onTap: () {
               if (currentRoute != '/places') {
