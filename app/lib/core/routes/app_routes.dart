@@ -26,6 +26,11 @@ import '../../features/discovery/presentation/screens/discovery_screen.dart';
 import '../../features/discovery/presentation/screens/detail_screen.dart';
 import '../../features/discovery/domain/models/place_activity.dart';
 
+// ============================================================
+// CHAT
+// ============================================================
+import '../../features/chat/screens/chat_list_screen.dart';
+
 class AppRoutes {
   // ============================================================
   // ROTAS
@@ -43,6 +48,7 @@ class AppRoutes {
   static const String familyProfile = '/family-profile';
   static const String notifications = '/notifications';
   static const String help = '/help';
+  static const String chat = '/chat';
 
   // ============================================================
   // EDITAR PERFIL DO IDOSO
@@ -174,6 +180,11 @@ class AppRoutes {
           place: place,
         );
       },
+
+      // ----------------------------------------------------------
+      // CHAT
+      // ----------------------------------------------------------
+      chat: (context) => const ChatListScreen(),
     };
   }
 }
