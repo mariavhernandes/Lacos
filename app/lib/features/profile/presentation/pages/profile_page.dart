@@ -161,7 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       fontFamily: 'Quicksand',
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF333333),
+                      color: Color(0xFF555555),
                     ),
                   ),
                   const SizedBox(height: 16),

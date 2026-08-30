@@ -32,16 +32,17 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/*
-    - assets/logos/*
-    - assets/icons/*
-    - assets/icons/navigation/*
-    - assets/images/commun/*
-    - assets/images/elderly/*
-    - assets/images/family/*
-    - assets/avatars/*
-    - assets/icons/icons_footer/*
-    - assets/icons/notifications/*
+    - assets/
+    - assets/logos/
+    - assets/icons/
+    - assets/icons/navigation/
+    - assets/images/
+    - assets/images/commun/
+    - assets/images/elderly/
+    - assets/images/family/
+    - assets/avatars/
+    - assets/icons/icons_footer/
+    - assets/icons/notifications/
 
   fonts:
     - family: Quicksand

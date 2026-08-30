@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/custom_footer.dart';
 import '../../domain/models/place_activity.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -17,7 +18,7 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   late PageController _imageController;
   int _currentImageIndex = 0;
-  final int _totalImages = 3; // Quantidade total de fotos
+  final int _totalImages = 3;
 
   @override
   void initState() {
@@ -34,7 +35,7 @@ class _DetailScreenState extends State<DetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: Colors.white,
       body: Column(
         children: [
           Expanded(
@@ -42,9 +43,11 @@ class _DetailScreenState extends State<DetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // ==================================================
+                  // FOTOS
+                  // ==================================================
                   Stack(
                     children: [
-                      // Área das Fotos
                       SizedBox(
                         height: 350,
                         width: double.infinity,
@@ -57,69 +60,108 @@ class _DetailScreenState extends State<DetailScreen> {
                           },
                           children: [
                             _buildImagePlaceholder(
-                              color: const Color.fromARGB(255, 217, 128, 183),
+                              color: const Color.fromARGB(
+                                255,
+                                217,
+                                128,
+                                183,
+                              ),
                               text: 'Foto 1',
                             ),
                             _buildImagePlaceholder(
-                              color: const Color.fromARGB(255, 144, 30, 205),
+                              color: const Color.fromARGB(
+                                255,
+                                144,
+                                30,
+                                205,
+                              ),
                               text: 'Foto 2',
                             ),
                             _buildImagePlaceholder(
-                              color: const Color.fromARGB(255, 174, 133, 221),
+                              color: const Color.fromARGB(
+                                255,
+                                174,
+                                133,
+                                221,
+                              ),
                               text: 'Foto 3',
                             ),
                           ],
                         ),
                       ),
 
-                      // Ícone "Voltar"
-                  Positioned(
-                    top: 54, // Ajuste conforme necessário
-                    left: 24, // Ajuste conforme necessário
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      // Exibe apenas a imagem pura. Como o PNG é transparente,
-                      // o fundo azul das fotos aparecerá atrás dele.
-                      child: Image.asset(
-                        'assets/icons/navigation/back_icon.png',
-                        width: 38, // Tamanho da imagem
-                        height: 38,
-                        fit: BoxFit
-                            .contain, // Garante que a imagem não seja cortada
-                      ),
-                    ),
-                  ),
-
-                  // Contador de Imagem (ex: 1/3)
-                  Positioned(
-                    bottom: 16,
-                    right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${_currentImageIndex + 1}/$_totalImages',
-                        style: const TextStyle(
-                          fontFamily: 'Raleway',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                      // ==================================================
+                      // BOTÃO VOLTAR
+                      // ==================================================
+                      Positioned(
+                        top: 16,
+                        left: 20,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
+                          child: Image.asset(
+                            'assets/icons/navigation/back_icon.png',
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.contain,
+                            errorBuilder: (
+                              context,
+                              error,
+                              stackTrace,
+                            ) {
+                              return Container(
+                                width: 40,
+                                height: 40,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFDCEAF5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_back_ios_new,
+                                  size: 18,
+                                  color: Color(0xFF033B63),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ),
+
+                      // ==================================================
+                      // CONTADOR DE FOTOS
+                      // ==================================================
+                      Positioned(
+                        bottom: 16,
+                        right: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${_currentImageIndex + 1}/$_totalImages',
+                            style: const TextStyle(
+                              fontFamily: 'Raleway',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
 
                   const SizedBox(height: 18),
 
-                  // Rating Card
+                  // ==================================================
+                  // CARD DE AVALIAÇÃO
+                  // ==================================================
                   Container(
                     width: 335,
                     height: 74,
@@ -134,7 +176,8 @@ class _DetailScreenState extends State<DetailScreen> {
                       children: [
                         Expanded(
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment:
+                                MainAxisAlignment.center,
                             children: [
                               Text(
                                 '${widget.place.rating}',
@@ -160,7 +203,8 @@ class _DetailScreenState extends State<DetailScreen> {
                         ),
                         Expanded(
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment:
+                                MainAxisAlignment.center,
                             children: const [
                               Text(
                                 'Melhor',
@@ -190,7 +234,8 @@ class _DetailScreenState extends State<DetailScreen> {
                         ),
                         Expanded(
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment:
+                                MainAxisAlignment.center,
                             children: [
                               Text(
                                 '${widget.place.reviewCount}',
@@ -220,7 +265,9 @@ class _DetailScreenState extends State<DetailScreen> {
 
                   const SizedBox(height: 18),
 
-                  // Information Card
+                  // ==================================================
+                  // CARD DE INFORMAÇÕES
+                  // ==================================================
                   Container(
                     width: 335,
                     decoration: BoxDecoration(
@@ -236,8 +283,10 @@ class _DetailScreenState extends State<DetailScreen> {
                         vertical: 20,
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
                         children: [
+                          // NOME
                           Text(
                             widget.place.name,
                             style: const TextStyle(
@@ -247,7 +296,10 @@ class _DetailScreenState extends State<DetailScreen> {
                               color: Colors.black87,
                             ),
                           ),
+
                           const SizedBox(height: 10),
+
+                          // DESCRIÇÃO
                           Text(
                             widget.place.description,
                             style: const TextStyle(
@@ -257,7 +309,10 @@ class _DetailScreenState extends State<DetailScreen> {
                               color: Colors.black87,
                             ),
                           ),
+
                           const SizedBox(height: 22),
+
+                          // HORÁRIO
                           const Text(
                             'Horário de Funcionamento:',
                             style: TextStyle(
@@ -267,7 +322,9 @@ class _DetailScreenState extends State<DetailScreen> {
                               color: Colors.black87,
                             ),
                           ),
+
                           const SizedBox(height: 8),
+
                           Row(
                             children: [
                               Image.asset(
@@ -287,7 +344,10 @@ class _DetailScreenState extends State<DetailScreen> {
                               ),
                             ],
                           ),
+
                           const SizedBox(height: 20),
+
+                          // ENDEREÇO
                           const Text(
                             'Endereço:',
                             style: TextStyle(
@@ -297,9 +357,12 @@ class _DetailScreenState extends State<DetailScreen> {
                               color: Colors.black87,
                             ),
                           ),
+
                           const SizedBox(height: 8),
+
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
                             children: [
                               Image.asset(
                                 'assets/images/elderly/location.png',
@@ -326,13 +389,15 @@ class _DetailScreenState extends State<DetailScreen> {
 
                   const SizedBox(height: 26),
 
-                  // View on map button
+                  // ==================================================
+                  // BOTÃO VER NO MAPA
+                  // ==================================================
                   SizedBox(
                     width: 170,
                     height: 46,
                     child: ElevatedButton(
                       onPressed: () {
-                        // TODO: Implement map navigation
+                        // TODO: Implementar navegação para o mapa.
                       },
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
@@ -359,44 +424,20 @@ class _DetailScreenState extends State<DetailScreen> {
             ),
           ),
 
-          // Footer Navigation
-          Container(
-            height: 70,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-            ),
-            child: SafeArea(
-              top: false,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _FooterItem(
-                    asset: 'assets/icons/icons_footer/footer_home_icon.png',
-                    label: 'Início',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  _FooterItem(
-                    asset: 'assets/icons/icons_footer/footer_location_icon.png',
-                    label: 'Lugares',
-                    selected: true,
-                  ),
-                  _FooterItem(
-                    asset: 'assets/icons/icons_footer/footer_chat_icon.png',
-                    label: 'Conversas',
-                  ),
-                  _FooterItem(
-                    asset: 'assets/icons/icons_footer/footer_profile_icon.png',
-                    label: 'Perfil',
-                  ),
-                ],
-              ),
-            ),
+          // ==========================================================
+          // RODAPÉ PADRÃO
+          // ==========================================================
+          const CustomFooter(
+            currentIndex: 1,
           ),
         ],
       ),
     );
   }
 
+  // ================================================================
+  // PLACEHOLDER DAS IMAGENS
+  // ================================================================
   Widget _buildImagePlaceholder({
     required Color color,
     required String text,
@@ -411,62 +452,6 @@ class _DetailScreenState extends State<DetailScreen> {
           fontSize: 20,
           fontWeight: FontWeight.w700,
           color: Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-class _FooterItem extends StatelessWidget {
-  const _FooterItem({
-    required this.asset,
-    required this.label,
-    this.selected = false,
-    this.onTap,
-  });
-
-  final String asset;
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 58,
-              height: 42,
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFFDCEEFF)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Center(
-                child: Image.asset(
-                  asset,
-                  width: 26,
-                  height: 26,
-                ),
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              style: const TextStyle(
-                fontFamily: 'Raleway',
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
-            ),
-          ],
         ),
       ),
     );

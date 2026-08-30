@@ -49,10 +49,12 @@ class CustomFooter extends StatelessWidget {
                   ? '/family-home'
                   : '/elderly-home';
 
-              Navigator.pushReplacementNamed(
-                context,
-                homeRoute,
-              );
+              if (currentRoute != homeRoute) {
+                Navigator.pushReplacementNamed(
+                  context,
+                  homeRoute,
+                );
+              }
             },
           ),
 
@@ -65,14 +67,19 @@ class CustomFooter extends StatelessWidget {
                 'assets/icons/icons_footer/footer_location_icon.png',
             label: isFamilyRoute ? 'Localização' : 'Lugares',
             selected: currentIndex == 1,
-            onTap: () {
-              if (currentRoute != '/places') {
-                Navigator.pushReplacementNamed(
-                  context,
-                  '/places',
-                );
-              }
-            },
+
+            // Para familiar: não faz nada.
+            // Para usuário idoso: continua abrindo Lugares.
+            onTap: isFamilyRoute
+                ? () {}
+                : () {
+                    if (currentRoute != '/discovery') {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/discovery',
+                      );
+                    }
+                  },
           ),
 
           // =====================================================
@@ -84,14 +91,19 @@ class CustomFooter extends StatelessWidget {
                 'assets/icons/icons_footer/footer_chat_icon.png',
             label: 'Conversas',
             selected: currentIndex == 2,
-            onTap: () {
-              if (currentRoute != '/chat') {
-                Navigator.pushReplacementNamed(
-                  context,
-                  '/chat',
-                );
-              }
-            },
+
+            // Para familiar: não faz nada.
+            // Para usuário idoso: continua abrindo o chat.
+            onTap: isFamilyRoute
+                ? () {}
+                : () {
+                    if (currentRoute != '/chat') {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/chat',
+                      );
+                    }
+                  },
           ),
 
           // =====================================================
@@ -108,10 +120,12 @@ class CustomFooter extends StatelessWidget {
                   ? '/family-profile'
                   : '/profile';
 
-              Navigator.pushReplacementNamed(
-                context,
-                targetProfile,
-              );
+              if (currentRoute != targetProfile) {
+                Navigator.pushReplacementNamed(
+                  context,
+                  targetProfile,
+                );
+              }
             },
           ),
         ],

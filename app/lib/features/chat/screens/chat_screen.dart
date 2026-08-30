@@ -52,9 +52,9 @@ class _ChatScreenState extends State<ChatScreen> {
             });
           },
           icon: Image.asset(
-            'assets/icons/navigation/back_icon.png',
-            width: 20,
-            height: 20,
+            'assets/icons/navigation/arrow_left.png',
+            // width: 20,
+            // height: 20,
           ),
           color: AppColors.textPrimary,
           splashRadius: 24,
@@ -145,9 +145,9 @@ class _ChatScreenState extends State<ChatScreen> {
             Navigator.pop(context);
           },
           icon: Image.asset(
-            'assets/icons/navigation/back_icon.png',
-            width: 20,
-            height: 20,
+            'assets/icons/navigation/arrow_left.png',
+            // width: 20,
+            // height: 20,
           ),
           color: AppColors.textPrimary,
           splashRadius: 24,
