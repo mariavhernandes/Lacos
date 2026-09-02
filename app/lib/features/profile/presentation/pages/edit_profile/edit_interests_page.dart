@@ -74,6 +74,9 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
   bool _isLoading = true;
   bool _isSaving = false;
 
+  // Controller para adicionar interesse personalizado
+  late TextEditingController _customInterestController;
+
   // ===============================================================
   // INIT
   // ===============================================================
@@ -81,7 +84,14 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
   @override
   void initState() {
     super.initState();
+    _customInterestController = TextEditingController();
     _loadInterests();
+  }
+
+  @override
+  void dispose() {
+    _customInterestController.dispose();
+    super.dispose();
   }
 
   // ===============================================================
@@ -136,18 +146,6 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
         'Não foi possível carregar seus interesses.',
       );
     }
-  }
-
-  // ===============================================================
-  // INTERESSES PRÉ-DEFINIDOS SELECIONADOS
-  // ===============================================================
-
-  List<String> get _selectedPredefinedInterests {
-    return _allInterests
-        .where(
-          (interest) => _predefinedInterests.contains(interest),
-        )
-        .toList();
   }
 
   // ===============================================================
@@ -228,6 +226,53 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  // ===============================================================
+  // TOGGLE INTERESSE PRÉ-DEFINIDO
+  // ===============================================================
+
+  void _togglePredefinedInterest(String interest) {
+    setState(() {
+      if (_allInterests.contains(interest)) {
+        _allInterests.remove(interest);
+      } else {
+        _allInterests.add(interest);
+      }
+    });
+  }
+
+  // ===============================================================
+  // ADICIONAR INTERESSE PERSONALIZADO
+  // ===============================================================
+
+  void _addCustomInterest() {
+    final interestText = _customInterestController.text.trim();
+
+    if (interestText.isEmpty) {
+      _showError('Digite um interesse antes de adicionar.');
+      return;
+    }
+
+    if (_allInterests.contains(interestText)) {
+      _showError('Este interesse já foi adicionado.');
+      return;
+    }
+
+    setState(() {
+      _allInterests.add(interestText);
+      _customInterestController.clear();
+    });
+  }
+
+  // ===============================================================
+  // REMOVER INTERESSE
+  // ===============================================================
+
+  void _removeInterest(String interest) {
+    setState(() {
+      _allInterests.remove(interest);
+    });
   }
 
   // ===============================================================
@@ -391,6 +436,9 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
   // ===============================================================
 
   Widget _buildSelectedInterestsSection() {
+    // Todos os interesses predefinidos, ordenados
+    final sortedPredefined = _predefinedInterests.toList()..sort();
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -447,7 +495,7 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
           ),
 
           // =============================================================
-          // CARDS DOS INTERESSES E BOTÃO ADICIONAR
+          // CARDS DOS INTERESSES
           // =============================================================
 
           Padding(
@@ -455,7 +503,7 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _selectedPredefinedInterests.length + 1,
+              itemCount: sortedPredefined.length,
               gridDelegate:
                   const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -464,38 +512,22 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
                 childAspectRatio: 0.95,
               ),
               itemBuilder: (context, index) {
-                if (index == _selectedPredefinedInterests.length) {
-                  return _buildAddButtonCard(onTap: () {});
-                }
-
-                final interest = _selectedPredefinedInterests[index];
+                final interest = sortedPredefined[index];
+                final isSelected = _allInterests.contains(interest);
                 final imagePath = _interestIcons[interest];
 
-                return _buildInterestCardWithIcon(
-                  interest,
-                  imagePath,
+                return GestureDetector(
+                  onTap: () => _togglePredefinedInterest(interest),
+                  child: _buildInterestCardWithIcon(
+                    interest,
+                    imagePath,
+                    isSelected: isSelected,
+                  ),
                 );
               },
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ===============================================================
-  // BOTÃO DE ADICIONAR EM FORMATO DE CARD (GRID)
-  // ===============================================================
-
-  Widget _buildAddButtonCard({VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: const Center(
-        child: Icon(
-          Icons.add_circle,
-          size: 52,
-          color: Color(0xFF033B63),
-        ),
       ),
     );
   }
@@ -507,72 +539,95 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
 
   Widget _buildInterestCardWithIcon(
     String title,
-    String? imagePath,
-  ) {
+    String? imagePath, {
+    bool isSelected = false,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 6,
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F7),
+        color: isSelected ? const Color(0xFFDCEAF5) : const Color(0xFFF7F7F7),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF0D3B66),
-          width: 1.8,
+          color: isSelected ? const Color(0xFF0D3B66) : const Color(0xFF0D3B66),
+          width: isSelected ? 2.5 : 1.8,
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          // ===========================================================
-          // ÍCONE
-          // ===========================================================
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ===========================================================
+              // ÍCONE
+              // ===========================================================
 
-          if (imagePath != null)
-            Image.asset(
-              imagePath,
-              height: 36,
-              width: 36,
-              fit: BoxFit.contain,
-              errorBuilder: (
-                context,
-                error,
-                stackTrace,
-              ) {
-                return const Icon(
-                  Icons.extension,
+              if (imagePath != null)
+                Image.asset(
+                  imagePath,
+                  height: 36,
+                  width: 36,
+                  fit: BoxFit.contain,
+                  errorBuilder: (
+                    context,
+                    error,
+                    stackTrace,
+                  ) {
+                    return const Icon(
+                      Icons.extension,
+                      size: 32,
+                      color: Color(0xFF0D3B66),
+                    );
+                  },
+                )
+              else
+                const Icon(
+                  Icons.star,
                   size: 32,
                   color: Color(0xFF0D3B66),
-                );
-              },
-            )
-          else
-            const Icon(
-              Icons.star,
-              size: 32,
-              color: Color(0xFF0D3B66),
-            ),
+                ),
 
-          const SizedBox(height: 4),
+              const SizedBox(height: 4),
 
-          // ===========================================================
-          // NOME
-          // ===========================================================
+              // ===========================================================
+              // NOME
+              // ===========================================================
 
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontFamily: 'Raleway',
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              height: 1.1,
-              color: Color(0xFF0D3B66),
-            ),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Raleway',
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  height: 1.1,
+                  color: Color(0xFF0D3B66),
+                ),
+              ),
+            ],
           ),
+          // Checkmark quando selecionado
+          if (isSelected)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0D3B66),
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(2),
+                child: const Icon(
+                  Icons.check,
+                  size: 12,
+                  color: Colors.white,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -639,63 +694,123 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
           ),
 
           // =============================================================
-          // INTERESSES E BOTÃO ADICIONAR LADO A LADO
+          // CAMPO DE ENTRADA
           // =============================================================
 
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
               children: [
-                ..._addedInterests.map((interest) {
-                  return _buildAddedInterestChip(
-                    interest,
-                  );
-                }),
+                Expanded(
+                  child: TextField(
+                    controller: _customInterestController,
+                    decoration: InputDecoration(
+                      hintText: 'Digite um novo interesse...',
+                      hintStyle: const TextStyle(
+                        fontFamily: 'Raleway',
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFCCCCCC),
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                    style: const TextStyle(
+                      fontFamily: 'Raleway',
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                    onSubmitted: (_) => _addCustomInterest(),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () {},
-                  child: const Icon(
-                    Icons.add_circle,
-                    size: 42,
-                    color: Color(0xFF033B63),
+                  onTap: _addCustomInterest,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF033B63),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(10),
+                    child: const Icon(
+                      Icons.add,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
+
+          // =============================================================
+          // INTERESSES ADICIONADOS COM OPÇÃO DE REMOVER
+          // =============================================================
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: _addedInterests.isEmpty
+                ? const Text(
+                    'Nenhum interesse adicionado ainda. Digite um interesse acima para adicionar.',
+                    style: TextStyle(
+                      fontFamily: 'Raleway',
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                      fontSize: 13,
+                    ),
+                  )
+                : Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _addedInterests.map((interest) {
+                      return GestureDetector(
+                        onTap: () => _removeInterest(interest),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7F7F7),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF0D3B66),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                interest,
+                                style: const TextStyle(
+                                  fontFamily: 'Raleway',
+                                  color: Color(0xFF0D3B66),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Color(0xFFD32F2F),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ),
         ],
-      ),
-    );
-  }
-
-  // ===============================================================
-  // CHIP DOS INTERESSES ADICIONADOS
-  // ===============================================================
-
-  Widget _buildAddedInterestChip(String interest) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F7),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF0D3B66),
-          width: 1.5,
-        ),
-      ),
-      child: Text(
-        interest,
-        style: const TextStyle(
-          fontFamily: 'Raleway',
-          color: Color(0xFF0D3B66),
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
       ),
     );
   }
