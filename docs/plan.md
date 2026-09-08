@@ -39,7 +39,7 @@ A arquitetura proposta é uma abordagem híbrida entre:
    - Controle de sessão e perfis.
 
 3. Camada de dados
-   - Cloud Firestore para armazenamento dos dados estruturados do sistema, como usuários, perfis, amizades, grupos, chats e notificações. Os dados de locais e atividades serão obtidos por meio de uma API externa;
+   - Cloud Firestore para armazenamento dos dados estruturados do sistema;
    - Regras de segurança para controle de acesso;
    - Recursos estáticos, como imagens da interface e avatares, incorporados ao aplicativo.
 
@@ -267,9 +267,23 @@ Campos principais:
 - createdAt
 - isRead
 
-#### descoberta de locais e atividades
+#### locations
 
-Os dados de locais e atividades não serão armazenados no Firestore. Essas informações serão obtidas em tempo real por meio de uma API externa, responsável por fornecer dados como nome, categoria, endereço, horário de funcionamento, imagens, avaliações e demais informações disponíveis.
+Catálogo de locais e atividades.
+
+Campos principais:
+
+- id
+- name
+- category
+- description
+- address
+- city
+- state
+- openingHours
+- coordinates
+- imageReference
+- createdAt
 
 #### alerts
 
@@ -353,7 +367,6 @@ Responsável por armazenar dados transacionais do sistema, como perfis, amizades
 
 As imagens da interface, ícones e avatares serão incorporados ao aplicativo como recursos locais (assets) do Flutter, eliminando a necessidade de um serviço de armazenamento de arquivos no MVP.
 
-Os locais e atividades poderão utilizar imagens disponibilizadas pela API de mapas utilizada, sem necessidade de armazenamento próprio.
 
 ### 7.4 Firebase Cloud Messaging
 
@@ -370,7 +383,7 @@ A infraestrutura também será preparada para, em versões futuras, permitir o e
 
 ### 7.5 Serviço de mapas
 
-Serviço responsável pela exibição da localização dos locais e atividades. Os dados exibidos serão fornecidos por uma API externa, podendo utilizar geolocalização do usuário para cálculo de distância e exibição dos resultados.
+Para exibição de locais de lazer e atividades, o sistema poderá integrar um provedor de mapas com base em localização e geolocalização opcional.
 
 ### 7.6 Observabilidade
 
