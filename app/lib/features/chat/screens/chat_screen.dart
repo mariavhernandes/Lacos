@@ -359,7 +359,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                           text: message.text,
                                           time: message.time,
                                           isCurrentUser: message.isCurrentUser,
-                                          status: message.status,
+                                          status: message.status, // <--- ADICIONE ESTA PROPRIEDADE AQUI
                                         ),
                                       ),
                                     ],

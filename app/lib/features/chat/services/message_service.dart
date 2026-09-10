@@ -50,7 +50,6 @@ class MessageService {
     try {
       final chatReference = _firestore.collection('chats').doc(chatId);
 
-      // Adiciona a mensagem com o status inicial 'sent'
       await chatReference.collection('messages').add({
         'text': normalizedText,
         'senderId': userId,
@@ -58,7 +57,6 @@ class MessageService {
         'status': 'sent',
       });
 
-      // Atualiza os dados de preview na lista de conversas
       await chatReference.update({
         'lastMessage': normalizedText,
         'lastMessageTime': FieldValue.serverTimestamp(),
@@ -68,29 +66,34 @@ class MessageService {
     }
   }
 
-  /// Marca todas as mensagens enviadas pelo outro usuário nesta conversa como 'read'
-  Future<void> markMessagesAsRead(String chatId) async {
+    Future<void> markMessagesAsRead(String chatId) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
     try {
-      final unreadDocs = await _firestore
+      final snapshot = await _firestore
           .collection('chats')
           .doc(chatId)
           .collection('messages')
-          .where('senderId', isNotEqualTo: userId)
-          .where('status', isNotEqualTo: 'read')
           .get();
 
-      if (unreadDocs.docs.isEmpty) return;
-
       final batch = _firestore.batch();
-      for (final doc in unreadDocs.docs) {
-        batch.update(doc.reference, {'status': 'read'});
+      bool hasUpdates = false;
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        // Atualiza para 'read' as mensagens que vieram de VOCÊ (O6xd...)
+        if (data['senderId'] != userId && data['status'] != 'read') {
+          batch.update(doc.reference, {'status': 'read'});
+          hasUpdates = true;
+        }
       }
-      await batch.commit();
-    } catch (_) {
-      // Ignora falhas em background para não interromper a UI
+
+      if (hasUpdates) {
+        await batch.commit();
+      }
+    } catch (e) {
+      print('Erro ao marcar mensagens como lidas: $e');
     }
   }
 }

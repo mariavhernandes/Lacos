@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/theme/app_colors.dart';
 
-/// Widget reutilizável responsável por exibir uma mensagem da conversa.
 class MessageBubble extends StatelessWidget {
   final String text;
   final String time;
@@ -47,8 +45,6 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Define a cor do balão apenas no nível do widget para manter
-    // a paleta global intacta em outras telas do app.
     final backgroundColor = isCurrentUser
         ? AppColors.card
         : const Color(0xFFCFDBEF);
@@ -71,7 +67,6 @@ class MessageBubble extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       constraints: BoxConstraints(
-        // Keep bubble within a comfortable reading width.
         maxWidth: MediaQuery.of(context).size.width * 0.75,
       ),
       child: Material(
