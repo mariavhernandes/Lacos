@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 /// Representa uma conversa privada entre dois participantes.
@@ -110,6 +111,10 @@ class Chat {
 
     if (value is DateTime) {
       return value;
+    }
+
+    if (value is Timestamp) {
+      return value.toDate();
     }
 
     if (value is String) {

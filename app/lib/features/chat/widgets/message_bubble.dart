@@ -7,13 +7,43 @@ class MessageBubble extends StatelessWidget {
   final String text;
   final String time;
   final bool isCurrentUser;
+  final String status;
 
   const MessageBubble({
     super.key,
     required this.text,
     required this.time,
     required this.isCurrentUser,
+    this.status = 'sent',
   });
+
+  Widget _buildStatusIcon() {
+    if (!isCurrentUser) return const SizedBox.shrink();
+
+    IconData icon;
+    Color color;
+
+    switch (status) {
+      case 'read':
+        icon = Icons.done_all;
+        color = const Color(0xFF0288D1); // Azul
+        break;
+      case 'delivered':
+        icon = Icons.done_all;
+        color = const Color(0xFF8A8A8A); // Cinza
+        break;
+      case 'sent':
+      default:
+        icon = Icons.check;
+        color = const Color(0xFF8A8A8A); // Cinza
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Icon(icon, size: 15, color: color),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,14 +105,20 @@ class MessageBubble extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                time,
-                style: const TextStyle(
-                  color: Color(0xFF8A8A8A),
-                  fontSize: 12,
-                  fontFamily: 'Quicksand',
-                  fontWeight: FontWeight.w400,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    time,
+                    style: const TextStyle(
+                      color: Color(0xFF8A8A8A),
+                      fontSize: 12,
+                      fontFamily: 'Quicksand',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  _buildStatusIcon(),
+                ],
               ),
             ],
           ),

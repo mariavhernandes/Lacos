@@ -1,88 +1,96 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/message_model.dart';
 
-/// Serviço local responsável por fornecer mensagens mockadas para cada conversa.
 class MessageService {
-  const MessageService._();
+  MessageService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
-  static List<MessageModel> getMessages(String chatId) {
-    switch (chatId) {
-      case 'chat-1':
-        return const [
-          MessageModel(
-            id: 'm1',
-            text: 'Oi Maria! Tudo bem?',
-            time: '10:50',
-            isCurrentUser: true,
-          ),
-          MessageModel(
-            id: 'm2',
-            text: 'Oi! Tudo sim 😊',
-            time: '10:54',
-            isCurrentUser: false,
-          ),
-          MessageModel(
-            id: 'm3',
-            text: 'Hoje teremos um encontro no parque às 16h.',
-            time: '11:40',
-            isCurrentUser: false,
-          ),
-          MessageModel(
-            id: 'm4',
-            text: 'Vai ser muito legal rever o pessoal!',
-            time: '11:50',
-            isCurrentUser: false,
-          ),
-          MessageModel(
-            id: 'm5',
-            text: 'Você vai participar do encontro de hoje?',
-            time: '11:59',
-            isCurrentUser: false,
-          ),
-        ];
-      case 'chat-2':
-        return const [
-          MessageModel(
-            id: 'm1',
-            text: 'Conseguiu alterar a foto do perfil?',
-            time: '09:05',
-            isCurrentUser: true,
-          ),
-          MessageModel(
-            id: 'm2',
-            text: 'Sim! Ficou perfeita.',
-            time: '09:10',
-            isCurrentUser: false,
-          ),
-          MessageModel(
-            id: 'm3',
-            text: 'Obrigada pela ajuda com a foto.',
-            time: '09:15',
-            isCurrentUser: false,
-          ),
-        ];
-      case 'chat-3':
-        return const [
-          MessageModel(
-            id: 'm1',
-            text: 'Conseguiu receber a imagem?',
-            time: '11:55',
-            isCurrentUser: true,
-          ),
-          MessageModel(
-            id: 'm2',
-            text: 'A sua mensagem chegou bem.',
-            time: '11:59',
-            isCurrentUser: false,
-          ),
-          MessageModel(
-            id: 'm3',
-            text: 'Perfeito! Qualquer coisa me avise.',
-            time: '12:01',
-            isCurrentUser: true,
-          ),
-        ];
-      default:
-        return const [];
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+
+  Stream<List<MessageModel>> getMessagesStream(String chatId) {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return Stream<List<MessageModel>>.value(const <MessageModel>[]);
+    }
+
+    return _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((document) {
+        return MessageModel.fromMap(
+          <String, dynamic>{...document.data(), 'id': document.id},
+          userId,
+        );
+      }).toList();
+    });
+  }
+
+  Future<void> sendMessage({
+    required String chatId,
+    required String text,
+  }) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      throw StateError('É necessário estar autenticado para enviar mensagens.');
+    }
+
+    final normalizedText = text.trim();
+    if (normalizedText.isEmpty) {
+      return;
+    }
+
+    try {
+      final chatReference = _firestore.collection('chats').doc(chatId);
+
+      // Adiciona a mensagem com o status inicial 'sent'
+      await chatReference.collection('messages').add({
+        'text': normalizedText,
+        'senderId': userId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'sent',
+      });
+
+      // Atualiza os dados de preview na lista de conversas
+      await chatReference.update({
+        'lastMessage': normalizedText,
+        'lastMessageTime': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (error) {
+      throw Exception('Não foi possível enviar a mensagem: ${error.message}');
+    }
+  }
+
+  /// Marca todas as mensagens enviadas pelo outro usuário nesta conversa como 'read'
+  Future<void> markMessagesAsRead(String chatId) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    try {
+      final unreadDocs = await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .where('senderId', isNotEqualTo: userId)
+          .where('status', isNotEqualTo: 'read')
+          .get();
+
+      if (unreadDocs.docs.isEmpty) return;
+
+      final batch = _firestore.batch();
+      for (final doc in unreadDocs.docs) {
+        batch.update(doc.reference, {'status': 'read'});
+      }
+      await batch.commit();
+    } catch (_) {
+      // Ignora falhas em background para não interromper a UI
     }
   }
 }

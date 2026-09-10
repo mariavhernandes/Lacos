@@ -13,29 +13,26 @@ class ConversationInfoScreen extends StatefulWidget {
   final Chat chat;
 
   @override
-  State<ConversationInfoScreen> createState() =>
-      _ConversationInfoScreenState();
+  State<ConversationInfoScreen> createState() => _ConversationInfoScreenState();
 }
 
 class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
   late bool isBlocked;
+  final ChatService _chatService = ChatService();
 
   @override
   void initState() {
     super.initState();
 
-    final currentChat = ChatService.getChat(widget.chat.id!);
-    isBlocked = currentChat?.isBlocked ?? widget.chat.isBlocked;
+    isBlocked = widget.chat.isBlocked;
   }
 
   @override
   Widget build(BuildContext context) {
-    final participantName =
-        widget.chat.participantName ?? 'Participante';
+    final participantName = widget.chat.participantName ?? 'Participante';
 
     return Scaffold(
       backgroundColor: AppColors.background,
-
       body: SafeArea(
         child: Column(
           children: [
@@ -86,7 +83,6 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                   // -------------------------------------------------
                   // TÍTULO
                   // -------------------------------------------------
-                  
 
                   // -------------------------------------------------
                   // ESPAÇO PARA CENTRALIZAR O TÍTULO
@@ -176,12 +172,10 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                   color: AppColors.primary,
                                   width: 2,
                                 ),
-                                borderRadius:
-                                    BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.search,
@@ -241,9 +235,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: Icon(
-                          isBlocked
-                              ? Icons.lock_open
-                              : Icons.block,
+                          isBlocked ? Icons.lock_open : Icons.block,
                           color: AppColors.primary,
                         ),
                         title: Text(
@@ -259,8 +251,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                         ),
                         onTap: () async {
                           if (isBlocked) {
-                            final shouldUnblock =
-                                await showDialog<bool>(
+                            final shouldUnblock = await showDialog<bool>(
                               context: context,
                               builder: (dialogContext) {
                                 return AlertDialog(
@@ -292,11 +283,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                       child: const Text(
                                         'Cancelar',
                                         style: TextStyle(
-                                          color:
-                                              AppColors.primary,
+                                          color: AppColors.primary,
                                           fontFamily: 'Quicksand',
-                                          fontWeight:
-                                              FontWeight.w600,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
@@ -310,11 +299,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                       child: const Text(
                                         'Desbloquear',
                                         style: TextStyle(
-                                          color:
-                                              AppColors.primary,
+                                          color: AppColors.primary,
                                           fontFamily: 'Quicksand',
-                                          fontWeight:
-                                              FontWeight.w700,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                     ),
@@ -324,9 +311,16 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                             );
 
                             if (shouldUnblock == true) {
-                              ChatService.unblockChat(
-                                widget.chat.id!,
-                              );
+                              try {
+                                await _chatService.unblockChat(widget.chat.id!);
+                              } catch (error) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(error.toString())),
+                                  );
+                                }
+                                return;
+                              }
 
                               if (context.mounted) {
                                 Navigator.pop(
@@ -339,8 +333,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                             return;
                           }
 
-                          final shouldBlock =
-                              await showDialog<bool>(
+                          final shouldBlock = await showDialog<bool>(
                             context: context,
                             builder: (dialogContext) {
                               return AlertDialog(
@@ -373,11 +366,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                     child: const Text(
                                       'Cancelar',
                                       style: TextStyle(
-                                        color:
-                                            AppColors.primary,
+                                        color: AppColors.primary,
                                         fontFamily: 'Quicksand',
-                                        fontWeight:
-                                            FontWeight.w600,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
@@ -391,11 +382,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                     child: const Text(
                                       'Bloquear',
                                       style: TextStyle(
-                                        color:
-                                            AppColors.primary,
+                                        color: AppColors.primary,
                                         fontFamily: 'Quicksand',
-                                        fontWeight:
-                                            FontWeight.w700,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                   ),
@@ -405,9 +394,16 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                           );
 
                           if (shouldBlock == true) {
-                            ChatService.blockChat(
-                              widget.chat.id!,
-                            );
+                            try {
+                              await _chatService.blockChat(widget.chat.id!);
+                            } catch (error) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                              }
+                              return;
+                            }
 
                             if (context.mounted) {
                               Navigator.pop(
@@ -433,8 +429,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
   // AVATAR
   // ===============================================================
   Widget _buildAvatar() {
-    final hasAvatar =
-        (widget.chat.participantAvatar ?? '').trim().isNotEmpty;
+    final hasAvatar = (widget.chat.participantAvatar ?? '').trim().isNotEmpty;
 
     if (hasAvatar) {
       return ClipOval(

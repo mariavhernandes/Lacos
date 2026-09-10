@@ -17,6 +17,7 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ChatService _chatService = ChatService();
 
   @override
   void dispose() {
@@ -26,8 +27,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chats = ChatService.fakeChats();
-
     return Scaffold(
       backgroundColor: AppColors.background,
 
@@ -41,7 +40,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         surfaceTintColor: Colors.transparent,
         backgroundColor: AppColors.background,
         centerTitle: true,
-        title: Text(
+        title: const Text(
           'Conversas',
           style: TextStyle(
             color: Color(0xFF555555),
@@ -76,17 +75,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
               child: CustomSearchBar(
                 hintText: 'Pesquisar conversas',
                 controller: _searchController,
-
-                // A lógica da pesquisa pode ser implementada aqui
-                onChanged: (value) {
-                  // Futuramente:
-                  // filtrar as conversas conforme o texto digitado.
-                },
-
-                onSubmitted: (value) {
-                  // Futuramente:
-                  // executar uma pesquisa ao pressionar "buscar".
-                },
+                onChanged: (value) {},
+                onSubmitted: (value) {},
               ),
             ),
 
@@ -95,41 +85,87 @@ class _ChatListScreenState extends State<ChatListScreen> {
             // ========================================================
 
             Expanded(
-              child: ListView.separated(
-                itemCount: chats.length,
-
-                separatorBuilder: (context, index) {
-                  return const Divider(
-                    height: 1,
-                    thickness: 0.8,
-                    color: Color(0xFFE5E5E5),
-                  );
-                },
-
-                itemBuilder: (context, index) {
-                  final chat = chats[index];
-
-                  return ChatTile(
-                    chat: chat,
-                    onTap: () async {
-                      final blocked = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            chat: chat,
+              child: StreamBuilder(
+                stream: _chatService.getChatsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'Erro ao carregar chats:\n${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                            fontFamily: 'Quicksand',
                           ),
                         ),
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final chats = snapshot.data!;
+
+                  if (chats.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Nenhuma conversa encontrada.',
+                        style: TextStyle(
+                          color: Color(0xFF8A8A8A),
+                          fontSize: 15,
+                          fontFamily: 'Quicksand',
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    itemCount: chats.length,
+                    separatorBuilder: (context, index) {
+                      return const Divider(
+                        height: 1,
+                        thickness: 0.8,
+                        color: Color(0xFFE5E5E5),
                       );
+                    },
+                    itemBuilder: (context, index) {
+                      final chat = chats[index];
 
-                      // Marca a conversa como lida ao voltar
-                      ChatService.markAsRead(chat.id!);
+                      return ChatTile(
+                        chat: chat,
+                        onTap: () async {
+                          final blocked = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                chat: chat,
+                              ),
+                            ),
+                          );
 
-                      // Se a conversa foi bloqueada
-                      if (blocked == true) {
-                        ChatService.blockChat(chat.id!);
-                      }
+                          if (chat.id == null) {
+                            return;
+                          }
 
-                      setState(() {});
+                          try {
+                            await _chatService.markAsRead(chat.id!);
+                            if (blocked == true) {
+                              await _chatService.blockChat(chat.id!);
+                            }
+                          } catch (error) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            }
+                          }
+                        },
+                      );
                     },
                   );
                 },
