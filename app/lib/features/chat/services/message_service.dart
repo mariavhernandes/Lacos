@@ -66,7 +66,7 @@ class MessageService {
     }
   }
 
-    Future<void> markMessagesAsRead(String chatId) async {
+  Future<void> markMessagesAsRead(String chatId) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
@@ -95,5 +95,37 @@ class MessageService {
     } catch (e) {
       print('Erro ao marcar mensagens como lidas: $e');
     }
+  }
+
+  /// Retorna um Stream com a contagem de mensagens não lidas para o usuário atual.
+  ///
+  /// Uma mensagem é considerada não lida se:
+  /// - Não foi enviada pelo usuário atual (senderId != userId)
+  /// - Ainda não foi marcada como 'read' (status != 'read')
+  Stream<int> getUnreadMessageCount(String chatId) {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return Stream<int>.value(0);
+    }
+
+    return _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .snapshots()
+        .map((snapshot) {
+      int unreadCount = 0;
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final senderId = data['senderId'] as String? ?? '';
+        final status = data['status'] as String? ?? 'sent';
+
+        // Conta apenas mensagens recebidas que não foram lidas
+        if (senderId != userId && status != 'read') {
+          unreadCount++;
+        }
+      }
+      return unreadCount;
+    });
   }
 }

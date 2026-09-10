@@ -2,14 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/chat_model.dart';
+import 'message_service.dart';
 
 class ChatService {
   ChatService({FirebaseFirestore? firestore, FirebaseAuth? auth})
       : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+        _auth = auth ?? FirebaseAuth.instance,
+        _messageService = MessageService(firestore: firestore, auth: auth);
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  final MessageService _messageService;
 
   Stream<List<Chat>> getChatsStream() {
     final userId = _auth.currentUser?.uid;
@@ -35,16 +38,23 @@ class ChatService {
         );
 
         String name = data['participantName'] ?? 'Usuário';
-        String avatar = data['participantAvatar'] ?? 'assets/avatars/avatar_1.png';
+        String avatar =
+            data['participantAvatar'] ?? 'assets/avatars/avatar_1.png';
 
         // Tenta buscar as informações atualizadas do outro usuário no BD
         if (otherUserId.toString().isNotEmpty) {
           final userDoc = await _fetchUserProfile(otherUserId.toString());
           if (userDoc != null) {
             name = userDoc['nome'] ?? userDoc['name'] ?? name;
-            avatar = userDoc['foto'] ?? userDoc['avatar'] ?? userDoc['foto_url'] ?? avatar;
+            avatar = userDoc['foto'] ??
+                userDoc['avatar'] ??
+                userDoc['foto_url'] ??
+                avatar;
           }
         }
+
+        // Obtém a contagem de mensagens não lidas para este chat
+        final unreadCount = await _getUnreadMessageCount(document.id);
 
         chats.add(
           Chat.fromMap(<String, dynamic>{
@@ -53,12 +63,26 @@ class ChatService {
             'participantId': otherUserId,
             'participantName': name,
             'participantAvatar': avatar,
+            'unreadMessages': unreadCount,
           }),
         );
       }
 
       return chats;
     });
+  }
+
+  /// Obtém a contagem de mensagens não lidas para um chat específico.
+  /// Retorna um Future com o número de mensagens não lidas.
+  Future<int> _getUnreadMessageCount(String chatId) async {
+    try {
+      final unreadCountStream = _messageService.getUnreadMessageCount(chatId);
+      // Pega o primeiro valor do stream
+      return await unreadCountStream.first;
+    } catch (e) {
+      print('Erro ao obter contagem de mensagens não lidas: $e');
+      return 0;
+    }
   }
 
   /// Procura o perfil do participante nas coleções 'idosos' ou 'familiares'
@@ -69,7 +93,8 @@ class ChatService {
         return idosoDoc.data();
       }
 
-      final familiarDoc = await _firestore.collection('familiares').doc(uid).get();
+      final familiarDoc =
+          await _firestore.collection('familiares').doc(uid).get();
       if (familiarDoc.exists && familiarDoc.data() != null) {
         return familiarDoc.data();
       }

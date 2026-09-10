@@ -24,6 +24,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final MessageService _messageService = MessageService();
+  final FocusNode _messageFocusNode = FocusNode();
 
   String searchQuery = '';
 
@@ -38,12 +39,43 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _searchController.dispose();
     _messageController.dispose();
+    _messageFocusNode.dispose();
     super.dispose();
   }
 
   void _markMessagesAsRead() {
     if (widget.chat.id != null) {
       _messageService.markMessagesAsRead(widget.chat.id!);
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    final messageText = _messageController.text;
+
+    // Não envia se estiver vazio ou contiver apenas espaços
+    if (messageText.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      await _messageService.sendMessage(
+        chatId: widget.chat.id!,
+        text: messageText,
+      );
+      _messageController.clear();
+
+      // Mantém o foco no campo de texto
+      if (mounted) {
+        FocusScope.of(context).requestFocus(_messageFocusNode);
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString()),
+          ),
+        );
+      }
     }
   }
 
@@ -77,7 +109,8 @@ class _ChatScreenState extends State<ChatScreen> {
               if (!familiarSnapshot.hasData || !familiarSnapshot.data!.exists) {
                 return const Text(
                   'Off-line',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 );
               }
               final familiarData =
@@ -240,7 +273,8 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 ClipOval(
                   child: Image.asset(
-                    widget.chat.participantAvatar ?? 'assets/avatars/avatar_1.png',
+                    widget.chat.participantAvatar ??
+                        'assets/avatars/avatar_1.png',
                     width: 40,
                     height: 40,
                     fit: BoxFit.cover,
@@ -303,7 +337,8 @@ class _ChatScreenState extends State<ChatScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5E5)),
+                const Divider(
+                    height: 1, thickness: 1, color: Color(0xFFE5E5E5)),
                 Expanded(
                   child: Column(
                     children: [
@@ -345,7 +380,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                               )
                             : ListView.separated(
-                                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                                padding:
+                                    const EdgeInsets.fromLTRB(20, 16, 20, 16),
                                 itemCount: filteredMessages.length,
                                 itemBuilder: (context, index) {
                                   final message = filteredMessages[index];
@@ -359,7 +395,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                           text: message.text,
                                           time: message.time,
                                           isCurrentUser: message.isCurrentUser,
-                                          status: message.status, // <--- ADICIONE ESTA PROPRIEDADE AQUI
+                                          status: message
+                                              .status, // <--- ADICIONE ESTA PROPRIEDADE AQUI
                                         ),
                                       ),
                                     ],
@@ -380,7 +417,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       Expanded(
                         child: TextField(
                           controller: _messageController,
+                          focusNode: _messageFocusNode,
                           enabled: !isBlocked,
+                          onSubmitted: isBlocked ? null : (_) => _sendMessage(),
                           cursorColor: const Color(0xFF8A8A8A),
                           style: const TextStyle(
                             color: Color(0xFF8A8A8A),
@@ -424,25 +463,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       const SizedBox(width: 12),
                       GestureDetector(
-                        onTap: isBlocked
-                            ? null
-                            : () async {
-                                try {
-                                  await _messageService.sendMessage(
-                                    chatId: widget.chat.id!,
-                                    text: _messageController.text,
-                                  );
-                                  _messageController.clear();
-                                } catch (error) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(error.toString()),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
+                        onTap: isBlocked ? null : _sendMessage,
                         child: Opacity(
                           opacity: isBlocked ? 0.4 : 1.0,
                           child: Image.asset(
