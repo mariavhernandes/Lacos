@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
 import '../services/message_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/message_bubble.dart';
 import 'conversation_info_screen.dart';
 
@@ -20,6 +21,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   bool isBlocked = false;
   bool isSearching = false;
+  bool _isChatScreenActive = false;
 
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
@@ -31,12 +33,24 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _isChatScreenActive = true;
     isBlocked = widget.chat.isBlocked;
+
+    // Registra que esta conversa está aberta
+    if (widget.chat.id != null) {
+      NotificationService().setActiveChatId(widget.chat.id!);
+    }
+
     _markMessagesAsRead();
   }
 
   @override
   void dispose() {
+    _isChatScreenActive = false;
+
+    // Desregistra que esta conversa foi fechada
+    NotificationService().clearActiveChatId();
+
     _searchController.dispose();
     _messageController.dispose();
     _messageFocusNode.dispose();
@@ -313,7 +327,7 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (context, snapshot) {
         final messages = snapshot.data ?? const <MessageModel>[];
 
-        if (snapshot.hasData && messages.isNotEmpty) {
+        if (_isChatScreenActive && snapshot.hasData && messages.isNotEmpty) {
           _markMessagesAsRead();
         }
 

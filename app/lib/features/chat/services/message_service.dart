@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/message_model.dart';
+import 'notification_service.dart';
 
 class MessageService {
   MessageService({FirebaseFirestore? firestore, FirebaseAuth? auth})
@@ -126,6 +127,52 @@ class MessageService {
         }
       }
       return unreadCount;
+    });
+  }
+
+  /// Monitora novas mensagens para uma conversa específica e dispara notificações.
+  ///
+  /// Esta função deve ser chamada uma vez por conversa para monitorar mensagens novas.
+  /// Dispara notificações apenas se:
+  /// - A mensagem foi recebida (não enviada pelo usuário atual)
+  /// - A conversa não está aberta (_isChatScreenActive = false)
+  /// - A mensagem ainda não está marcada como lida
+  void startListeningForNotifications(
+    String chatId,
+    String participantName,
+    String participantId,
+  ) {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isEmpty) return;
+
+      final doc = snapshot.docs.first;
+      final data = doc.data();
+      final senderId = data['senderId'] as String? ?? '';
+      final messageText = data['text'] as String? ?? '';
+      final status = data['status'] as String? ?? 'sent';
+
+      // Dispara notificação apenas se:
+      // 1. A mensagem foi recebida (senderId != userId)
+      // 2. Ainda não foi lida (status != 'read')
+      if (senderId != userId && status != 'read' && messageText.isNotEmpty) {
+        NotificationService().notifyIfNeeded(
+          chatId: chatId,
+          message: messageText,
+          senderName: participantName,
+          senderId: senderId,
+          currentUserId: userId,
+        );
+      }
     });
   }
 }

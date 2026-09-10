@@ -5,6 +5,8 @@ import '../../../core/widgets/custom_footer.dart';
 import '../../../core/widgets/custom_search_bar.dart';
 
 import '../services/chat_service.dart';
+import '../services/notification_service.dart';
+import '../services/message_service.dart';
 import '../widgets/chat_tile.dart';
 import '../screens/chat_screen.dart';
 
@@ -18,11 +20,84 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ChatService _chatService = ChatService();
+  final MessageService _messageService = MessageService();
+  final NotificationService _notificationService = NotificationService();
+  final Set<String> _initializedChats = {};
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Registra callback para receber notificações de novas mensagens
+    _notificationService.onNotificationRequired(_showMessageNotification);
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    
+    // Remove callback de notificações
+    _notificationService.removeNotificationCallback(_showMessageNotification);
+    
     super.dispose();
+  }
+
+  /// Exibe uma notificação de nova mensagem usando SnackBar.
+  void _showMessageNotification(String message, String senderName) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Mensagem de $senderName',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                fontFamily: 'Quicksand',
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontFamily: 'Quicksand',
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  /// Inicializa listeners de notificações para cada conversa.
+  /// 
+  /// Este método garante que o listener é iniciado apenas uma vez por conversa.
+  void _initializeNotificationListeners(List<dynamic> chats) {
+    for (final chat in chats) {
+      final chatId = chat.id as String?;
+      final participantName = chat.participantName as String? ?? 'Desconhecido';
+      final participantId = chat.participantId as String?;
+
+      if (chatId != null && participantId != null && !_initializedChats.contains(chatId)) {
+        _messageService.startListeningForNotifications(
+          chatId,
+          participantName,
+          participantId,
+        );
+        _initializedChats.add(chatId);
+      }
+    }
   }
 
   @override
@@ -123,6 +198,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       ),
                     );
                   }
+
+                  // Inicializa listeners de notificações para cada conversa
+                  _initializeNotificationListeners(chats);
 
                   return ListView.separated(
                     itemCount: chats.length,
