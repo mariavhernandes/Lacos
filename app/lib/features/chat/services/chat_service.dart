@@ -31,7 +31,6 @@ class ChatService {
         final data = document.data();
         final List<dynamic> participants = data['participants'] ?? [];
 
-        // Identifica o ID do outro usuário da conversa
         final otherUserId = participants.firstWhere(
           (id) => id != userId,
           orElse: () => '',
@@ -41,7 +40,6 @@ class ChatService {
         String avatar =
             data['participantAvatar'] ?? 'assets/avatars/avatar_1.png';
 
-        // Tenta buscar as informações atualizadas do outro usuário no BD
         if (otherUserId.toString().isNotEmpty) {
           final userDoc = await _fetchUserProfile(otherUserId.toString());
           if (userDoc != null) {
@@ -53,7 +51,6 @@ class ChatService {
           }
         }
 
-        // Obtém a contagem de mensagens não lidas para este chat
         final unreadCount = await _getUnreadMessageCount(document.id);
 
         chats.add(
@@ -72,20 +69,15 @@ class ChatService {
     });
   }
 
-  /// Obtém a contagem de mensagens não lidas para um chat específico.
-  /// Retorna um Future com o número de mensagens não lidas.
   Future<int> _getUnreadMessageCount(String chatId) async {
     try {
       final unreadCountStream = _messageService.getUnreadMessageCount(chatId);
-      // Pega o primeiro valor do stream
       return await unreadCountStream.first;
-    } catch (e) {
-      print('Erro ao obter contagem de mensagens não lidas: $e');
+    } catch (_) {
       return 0;
     }
   }
 
-  /// Procura o perfil do participante nas coleções 'idosos' ou 'familiares'
   Future<Map<String, dynamic>?> _fetchUserProfile(String uid) async {
     try {
       final idosoDoc = await _firestore.collection('idosos').doc(uid).get();
@@ -98,9 +90,7 @@ class ChatService {
       if (familiarDoc.exists && familiarDoc.data() != null) {
         return familiarDoc.data();
       }
-    } catch (_) {
-      // Caso ocorra erro de permissão ao ler perfil de terceiros, ignora e usa o valor salvo
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -109,10 +99,7 @@ class ChatService {
       await _firestore.collection('chats').doc(chatId).update({
         'unreadMessages': 0,
       });
-    } on FirebaseException catch (error) {
-      throw Exception(
-          'Não foi possível marcar a conversa como lida: ${error.message}');
-    }
+    } on FirebaseException catch (_) {}
   }
 
   Future<void> blockChat(String chatId) async {

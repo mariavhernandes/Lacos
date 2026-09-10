@@ -30,6 +30,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        _setUserPresence(isOnline: true);
+      }
+    });
+
     _setUserPresence(isOnline: true);
   }
 
@@ -44,7 +51,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _setUserPresence(isOnline: true);
     } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.inactive) {
       _setUserPresence(isOnline: false);
     }
   }
@@ -66,7 +74,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return;
       }
 
-      final familiarDoc = await firestore.collection('familiares').doc(userId).get();
+      final familiarDoc =
+          await firestore.collection('familiares').doc(userId).get();
       if (familiarDoc.exists) {
         await familiarDoc.reference.update(updates);
       }

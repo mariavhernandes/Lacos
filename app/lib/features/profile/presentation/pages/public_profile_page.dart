@@ -1,18 +1,20 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../../../../core/widgets/custom_footer.dart';
-import 'edit_profile/edit_profile_menu_page.dart';
+import 'package:flutter/material.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+class PublicProfilePage extends StatefulWidget {
+  final String? uid;
+
+  const PublicProfilePage({
+    super.key,
+    this.uid,
+  });
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<PublicProfilePage> createState() => _PublicProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
-  final _currentUser = FirebaseAuth.instance.currentUser;
+class _PublicProfilePageState extends State<PublicProfilePage> {
+  bool _isFollowing = false;
 
   final Set<String> _predefinedInterests = {
     'Jogos de tabuleiro',
@@ -38,128 +40,141 @@ class _ProfilePageState extends State<ProfilePage> {
     'Dominó': 'assets/images/commun/domino.png',
   };
 
-  String _calculateAge(String? birthDateStr) {
-    if (birthDateStr == null || birthDateStr.isEmpty) return '--';
-    try {
-      final parts = birthDateStr.split('/');
-      if (parts.length == 3) {
-        final day = int.parse(parts[0]);
-        final month = int.parse(parts[1]);
-        final year = int.parse(parts[2]);
-        final birthDate = DateTime(year, month, day);
-        final today = DateTime.now();
+  Future<Map<String, dynamic>?> _fetchUserData(String targetUid) async {
+    final idosoDoc = await FirebaseFirestore.instance
+        .collection('idosos')
+        .doc(targetUid)
+        .get();
 
-        int age = today.year - birthDate.year;
-        if (today.month < birthDate.month ||
-            (today.month == birthDate.month && today.day < birthDate.day)) {
-          age--;
-        }
-        return age.toString();
-      }
-    } catch (_) {}
-    return '--';
+    if (idosoDoc.exists && idosoDoc.data() != null) {
+      return idosoDoc.data();
+    }
+
+    final familiarDoc = await FirebaseFirestore.instance
+        .collection('familiares')
+        .doc(targetUid)
+        .get();
+
+    if (familiarDoc.exists && familiarDoc.data() != null) {
+      return familiarDoc.data();
+    }
+
+    return null;
   }
 
-  Future<void> _logout(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Sair da Conta',
-          style: TextStyle(
-            fontFamily: 'Raleway',
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0D3B66),
-          ),
-        ),
-        content: const Text(
-          'Tem certeza que deseja sair do aplicativo?',
-          style: TextStyle(fontFamily: 'Raleway'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD32F2F),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sair', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+  String _getAgeText(Map<String, dynamic> data) {
+    final dynamic rawBirth = data['birthDate'] ??
+        data['dataNascimento'] ??
+        data['data_nascimento'] ??
+        data['birth_date'] ??
+        data['nascimento'];
 
-    if (confirm == true && mounted) {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
+    DateTime? birthDate;
 
-      if (uid != null) {
-        // Atualiza o status no Firestore antes de deslogar
-        try {
-          await FirebaseFirestore.instance.collection('idosos').doc(uid).update({
-            'isOnline': false,
-            'lastSeen': FieldValue.serverTimestamp(),
-          });
-        } catch (_) {
-          // Caso o usuário seja da coleção familiares
-          try {
-            await FirebaseFirestore.instance.collection('familiares').doc(uid).update({
-              'isOnline': false,
-              'lastSeen': FieldValue.serverTimestamp(),
-            });
-          } catch (_) {}
+    if (rawBirth is Timestamp) {
+      birthDate = rawBirth.toDate();
+    } else if (rawBirth is String && rawBirth.trim().isNotEmpty) {
+      if (rawBirth.contains('/')) {
+        final parts = rawBirth.split('/');
+        if (parts.length == 3) {
+          final day = int.tryParse(parts[0]);
+          final month = int.tryParse(parts[1]);
+          final year = int.tryParse(parts[2]);
+          if (day != null && month != null && year != null) {
+            birthDate = DateTime(year, month, day);
+          }
         }
-      }
-
-      await FirebaseAuth.instance.signOut();
-      if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      } else {
+        birthDate = DateTime.tryParse(rawBirth);
       }
     }
+
+    int? age;
+
+    if (birthDate != null) {
+      final now = DateTime.now();
+      age = now.year - birthDate.year;
+      if (now.month < birthDate.month ||
+          (now.month == birthDate.month && now.day < birthDate.day)) {
+        age--;
+      }
+    } else {
+      final dynamic rawAge = data['idade'] ?? data['age'];
+      if (rawAge is int) {
+        age = rawAge;
+      } else if (rawAge is String) {
+        age = int.tryParse(rawAge);
+      }
+    }
+
+    if (age != null) {
+      return '$age anos';
+    }
+
+    return 'Não informado.';
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) {
+    final String? targetUid = widget.uid;
+
+    if (targetUid == null || targetUid.isEmpty) {
       return const Scaffold(
-        body: Center(child: Text('Usuário não autenticado.')),
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Text(
+            'Não foi possível carregar o perfil.',
+            style: TextStyle(
+              fontFamily: 'Raleway',
+              fontSize: 16,
+              color: Color(0xFF555555),
+            ),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('idosos')
-              .doc(_currentUser!.uid)
-              .snapshots(),
+        child: FutureBuilder<Map<String, dynamic>?>(
+          future: _fetchUserData(targetUid),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
             }
 
-            if (snapshot.hasError) {
-              return const Center(child: Text('Erro ao carregar dados do perfil.'));
+            if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+              return const Center(
+                child: Text(
+                  'Perfil não encontrado.',
+                  style: TextStyle(
+                    fontFamily: 'Raleway',
+                    fontSize: 16,
+                    color: Color(0xFF555555),
+                  ),
+                ),
+              );
             }
 
-            if (!snapshot.hasData || !snapshot.data!.exists) {
-              return const Center(child: Text('Dados não encontrados na coleção idosos.'));
-            }
+            final data = snapshot.data!;
 
-            final data = snapshot.data!.data() as Map<String, dynamic>;
+            final String name = data['name'] ?? data['nome'] ?? 'Usuário';
+            final String bio =
+                data['bio'] ?? data['biografia'] ?? data['sobre'] ?? '';
+            final String ageText = _getAgeText(data);
+            final String city = data['city'] ?? data['cidade'] ?? 'Não informada';
+            final bool isOnline = data['isOnline'] is bool ? data['isOnline'] as bool : false;
+            final String avatarPath =
+                data['avatarPath'] ?? data['foto'] ?? 'assets/avatars/default_profile_image.png';
 
-            final name = data['name'] ?? 'Nome não informado';
-            final bio = data['bio'] ?? '';
-            final city = data['city'] ?? 'Não informada';
-            final avatarPath = data['avatarPath'] ?? 'assets/avatars/default_profile_image.png';
-
-            final List<dynamic> allInterests = data['interests'] ?? [];
-            final age = _calculateAge(data['birthDate']);
+            final List<dynamic> allInterests = data['interests'] is List
+                ? data['interests'] as List
+                : (data['interesses'] is List
+                    ? data['interesses'] as List
+                    : []);
 
             final chosenInterests = allInterests
                 .where((item) => _predefinedInterests.contains(item.toString()))
@@ -169,22 +184,80 @@ class _ProfilePageState extends State<ProfilePage> {
                 .where((item) => !_predefinedInterests.contains(item.toString()))
                 .toList();
 
+            final int followersCount = data['followersCount'] is int
+                ? data['followersCount'] as int
+                : (data['seguidores'] is int ? data['seguidores'] as int : 0);
+
+            final int followingCount = data['followingCount'] is int
+                ? data['followingCount'] as int
+                : (data['seguindo'] is int ? data['seguindo'] as int : 0);
+
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    name,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'Quicksand',
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF555555),
-                    ),
+                  // ==================================================
+                  // CABEÇALHO COM NOME E STATUS ONLINE
+                  // ==================================================
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.maybePop(context);
+                        },
+                        child: Image.asset(
+                          'assets/icons/navigation/back_icon.png',
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.arrow_back_ios_new,
+                              size: 18,
+                              color: Color(0xFF033B63),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          name,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Quicksand',
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF555555),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isOnline ? 'Online' : 'Offline',
+                        style: TextStyle(
+                          fontFamily: 'Raleway',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isOnline
+                              ? const Color(0xFF6BBE66)
+                              : Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
+
                   const SizedBox(height: 16),
+
+                  // ==================================================
+                  // FOTO + SEGUIDORES
+                  // ==================================================
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -192,41 +265,85 @@ class _ProfilePageState extends State<ProfilePage> {
                         radius: 36,
                         backgroundColor: const Color(0xFFEEEEEE),
                         backgroundImage: AssetImage(avatarPath),
+                        child: avatarPath.isEmpty
+                            ? const Icon(
+                                Icons.person,
+                                size: 45,
+                                color: Colors.white,
+                              )
+                            : null,
                       ),
-                      _buildStatColumn('Seguidores', data['followersCount'] ?? 0),
-                      _buildStatColumn('Seguindo', data['followingCount'] ?? 0),
+                      _buildStatColumn('Seguidores', followersCount),
+                      _buildStatColumn('Seguindo', followingCount),
                     ],
                   ),
+
                   const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0D3B66),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const EditProfileMenuPage(),
+
+                  // ==================================================
+                  // BOTÕES
+                  // ==================================================
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0D3B66),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.edit, size: 16),
-                      label: const Text(
-                        'Editar perfil',
-                        style: TextStyle(fontFamily: 'Raleway', fontWeight: FontWeight.w600),
+                          onPressed: () {
+                            setState(() {
+                              _isFollowing = !_isFollowing;
+                            });
+                          },
+                          child: Text(
+                            _isFollowing ? 'Seguindo' : 'Seguir',
+                            style: const TextStyle(
+                              fontFamily: 'Raleway',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0D3B66),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: const Text(
+                            'Mensagens',
+                            style: TextStyle(
+                              fontFamily: 'Raleway',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+
                   const SizedBox(height: 20),
 
+                  // ==================================================
+                  // SOBRE MIM
+                  // ==================================================
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -248,7 +365,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          bio.isEmpty ? 'Toque em "Editar perfil" para adicionar uma biografia.' : bio,
+                          bio.isEmpty ? 'Nenhuma biografia adicionada.' : bio,
                           style: TextStyle(
                             fontFamily: 'Raleway',
                             fontSize: 14,
@@ -269,7 +386,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$age anos',
+                          ageText,
                           style: const TextStyle(
                             fontFamily: 'Raleway',
                             fontSize: 14,
@@ -298,56 +415,35 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 20),
 
+                  // ==================================================
+                  // INTERESSES ESCOLHIDOS
+                  // ==================================================
                   _buildChosenInterestsSection(
                     title: 'Interesses Escolhidos',
                     icon: Icons.check_circle,
                     items: chosenInterests,
                   ),
+
                   const SizedBox(height: 20),
 
+                  // ==================================================
+                  // INTERESSES ADICIONADOS
+                  // ==================================================
                   _buildAddedInterestsSection(
                     title: 'Interesses Adicionados',
                     icon: Icons.add_circle,
                     items: addedInterests,
                   ),
-                  const SizedBox(height: 24),
 
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFD32F2F),
-                        side: const BorderSide(color: Color(0xFFD32F2F), width: 1.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                      ),
-                      onPressed: () => _logout(context),
-                      icon: const Icon(Icons.logout, size: 18, color: Color(0xFFD32F2F)),
-                      label: const Text(
-                        'Sair do aplicativo',
-                        style: TextStyle(
-                          fontFamily: 'Raleway',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Color(0xFFD32F2F),
-                        ),
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 16),
                 ],
               ),
             );
           },
         ),
-      ),
-      bottomNavigationBar: const CustomFooter(
-        currentIndex: 3,
-        isFamily: false,
       ),
     );
   }

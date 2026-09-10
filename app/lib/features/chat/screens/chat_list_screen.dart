@@ -1,14 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/custom_footer.dart';
 import '../../../core/widgets/custom_search_bar.dart';
 
-import '../services/chat_service.dart';
-import '../services/notification_service.dart';
-import '../services/message_service.dart';
-import '../widgets/chat_tile.dart';
+import '../models/chat_model.dart';
 import '../screens/chat_screen.dart';
+import '../services/chat_service.dart';
+import '../services/message_service.dart';
+import '../services/notification_service.dart';
+import '../widgets/chat_tile.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -24,28 +26,24 @@ class _ChatListScreenState extends State<ChatListScreen> {
   final NotificationService _notificationService = NotificationService();
   final Set<String> _initializedChats = {};
 
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
-    
-    // Registra callback para receber notificações de novas mensagens
     _notificationService.onNotificationRequired(_showMessageNotification);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    
-    // Remove callback de notificações
     _notificationService.removeNotificationCallback(_showMessageNotification);
-    
     super.dispose();
   }
 
-  /// Exibe uma notificação de nova mensagem usando SnackBar.
   void _showMessageNotification(String message, String senderName) {
     if (!mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Column(
@@ -80,16 +78,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
-  /// Inicializa listeners de notificações para cada conversa.
-  /// 
-  /// Este método garante que o listener é iniciado apenas uma vez por conversa.
-  void _initializeNotificationListeners(List<dynamic> chats) {
+  void _initializeNotificationListeners(List<Chat> chats) {
     for (final chat in chats) {
-      final chatId = chat.id as String?;
-      final participantName = chat.participantName as String? ?? 'Desconhecido';
-      final participantId = chat.participantId as String?;
+      final chatId = chat.id;
+      final participantName = chat.participantName ?? 'Desconhecido';
+      final participantId = chat.participantId;
 
-      if (chatId != null && participantId != null && !_initializedChats.contains(chatId)) {
+      if (chatId != null &&
+          participantId != null &&
+          !_initializedChats.contains(chatId)) {
         _messageService.startListeningForNotifications(
           chatId,
           participantName,
@@ -100,15 +97,60 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
   }
 
+  Future<List<Chat>> _filterChats(List<Chat> chats, String query) async {
+    if (query.isEmpty) return chats;
+
+    final List<Chat> filtered = [];
+
+    for (final chat in chats) {
+      final participantId = chat.participantId;
+      String userName = (chat.participantName ?? '').toLowerCase();
+      String groupName = '';
+
+      if (participantId != null && participantId.isNotEmpty) {
+        final idosoDoc = await FirebaseFirestore.instance
+            .collection('idosos')
+            .doc(participantId)
+            .get();
+
+        if (idosoDoc.exists && idosoDoc.data() != null) {
+          final data = idosoDoc.data()!;
+          userName = (data['name'] ?? data['nome'] ?? userName)
+              .toString()
+              .toLowerCase();
+          groupName = (data['groupName'] ?? data['grupo'] ?? '')
+              .toString()
+              .toLowerCase();
+        } else {
+          final familiarDoc = await FirebaseFirestore.instance
+              .collection('familiares')
+              .doc(participantId)
+              .get();
+
+          if (familiarDoc.exists && familiarDoc.data() != null) {
+            final data = familiarDoc.data()!;
+            userName = (data['name'] ?? data['nome'] ?? userName)
+                .toString()
+                .toLowerCase();
+            groupName = (data['groupName'] ?? data['grupo'] ?? '')
+                .toString()
+                .toLowerCase();
+          }
+        }
+      }
+
+      if (userName.contains(query) || groupName.contains(query)) {
+        filtered.add(chat);
+      }
+    }
+
+    return filtered;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-
-      // ============================================================
-      // APP BAR
-      // ============================================================
-
       appBar: AppBar(
         automaticallyImplyLeading: false,
         elevation: 0,
@@ -125,42 +167,27 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ),
       ),
-
-      // ============================================================
-      // RODAPÉ PADRÃO DO APP
-      // ============================================================
-
       bottomNavigationBar: const CustomFooter(
         currentIndex: 2,
       ),
-
-      // ============================================================
-      // CONTEÚDO
-      // ============================================================
-
       body: SafeArea(
         child: Column(
           children: [
-            // ========================================================
-            // BARRA DE PESQUISA PADRÃO
-            // ========================================================
-
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: CustomSearchBar(
                 hintText: 'Pesquisar conversas',
                 controller: _searchController,
-                onChanged: (value) {},
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.trim().toLowerCase();
+                  });
+                },
                 onSubmitted: (value) {},
               ),
             ),
-
-            // ========================================================
-            // LISTA DE CONVERSAS
-            // ========================================================
-
             Expanded(
-              child: StreamBuilder(
+              child: StreamBuilder<List<Chat>>(
                 stream: _chatService.getChatsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
@@ -199,49 +226,84 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     );
                   }
 
-                  // Inicializa listeners de notificações para cada conversa
                   _initializeNotificationListeners(chats);
 
-                  return ListView.separated(
-                    itemCount: chats.length,
-                    separatorBuilder: (context, index) {
-                      return const Divider(
-                        height: 1,
-                        thickness: 0.8,
-                        color: Color(0xFFE5E5E5),
-                      );
-                    },
-                    itemBuilder: (context, index) {
-                      final chat = chats[index];
+                  return FutureBuilder<List<Chat>>(
+                    future: _filterChats(chats, _searchQuery),
+                    builder: (context, filterSnapshot) {
+                      if (filterSnapshot.connectionState ==
+                              ConnectionState.waiting &&
+                          _searchQuery.isNotEmpty) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
 
-                      return ChatTile(
-                        chat: chat,
-                        onTap: () async {
-                          final blocked = await Navigator.push<bool>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChatScreen(
-                                chat: chat,
-                              ),
+                      final displayChats = filterSnapshot.data ?? chats;
+
+                      if (displayChats.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'Nenhuma conversa encontrada.',
+                            style: TextStyle(
+                              color: Color(0xFF8A8A8A),
+                              fontSize: 15,
+                              fontFamily: 'Quicksand',
                             ),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        itemCount: displayChats.length,
+                        separatorBuilder: (context, index) {
+                          return const Divider(
+                            height: 1,
+                            thickness: 0.8,
+                            color: Color(0xFFE5E5E5),
                           );
+                        },
+                        itemBuilder: (context, index) {
+                          final chat = displayChats[index];
 
-                          if (chat.id == null) {
-                            return;
-                          }
+                          return ChatTile(
+                            chat: chat,
+                            onTap: () async {
+                              if (chat.id != null) {
+                                await _chatService.markAsRead(chat.id!);
+                              }
 
-                          try {
-                            await _chatService.markAsRead(chat.id!);
-                            if (blocked == true) {
-                              await _chatService.blockChat(chat.id!);
-                            }
-                          } catch (error) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(error.toString())),
+                              final blocked = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChatScreen(
+                                    chat: chat,
+                                  ),
+                                ),
                               );
-                            }
-                          }
+
+                              if (chat.id == null) {
+                                return;
+                              }
+
+                              try {
+                                await _chatService.markAsRead(chat.id!);
+                                if (mounted) {
+                                  setState(() {});
+                                }
+
+                                if (blocked == true) {
+                                  await _chatService.blockChat(chat.id!);
+                                }
+                              } catch (error) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(error.toString())),
+                                  );
+                                }
+                              }
+                            },
+                          );
                         },
                       );
                     },

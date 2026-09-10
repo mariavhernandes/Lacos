@@ -22,7 +22,7 @@ class MessageService {
         .collection('chats')
         .doc(chatId)
         .collection('messages')
-        .orderBy('createdAt', descending: false)
+        .orderBy('createdAt', descending: true) // <--- MUDADO PARA TRUE
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((document) {
