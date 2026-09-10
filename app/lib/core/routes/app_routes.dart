@@ -9,6 +9,7 @@ import '../../features/home/presentation/pages/splash_screen.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/help/presentation/pages/help_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/profile/presentation/pages/public_profile_page.dart';
 
 // ============================================================
 // PERFIL DO FAMILIAR E EDIÇÃO
@@ -45,6 +46,7 @@ class AppRoutes {
   static const String elderlyHome = '/elderly-home';
   static const String familyHome = '/family-home';
   static const String profile = '/profile';
+  static const String publicProfile = '/public-profile';
   static const String familyProfile = '/family-profile';
   static const String notifications = '/notifications';
   static const String help = '/help';
@@ -86,6 +88,15 @@ class AppRoutes {
       // PERFIL
       // ----------------------------------------------------------
       profile: (context) => const ProfilePage(),
+      publicProfile: (context) {
+        final arguments =
+            ModalRoute.of(context)?.settings.arguments
+                as Map<String, dynamic>?;
+
+        final uid = arguments?['uid'] as String? ?? '';
+
+        return PublicProfilePage(uid: uid);
+      },
       familyProfile: (context) => const FamilyProfilePage(),
 
       // ----------------------------------------------------------

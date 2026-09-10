@@ -30,6 +30,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
   final Map<String, String> _interestIcons = {
     'Jogos de tabuleiro': 'assets/images/commun/card_games.png',
+    'Jogo de cartas': 'assets/images/commun/card_games.png',
     'Jogos de carta': 'assets/images/commun/card_games.png',
     'Xadrez': 'assets/images/commun/chess.png',
     'Dança': 'assets/images/commun/dancing.png',
@@ -166,9 +167,11 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 data['bio'] ?? data['biografia'] ?? data['sobre'] ?? '';
             final String ageText = _getAgeText(data);
             final String city = data['city'] ?? data['cidade'] ?? 'Não informada';
-            final bool isOnline = data['isOnline'] is bool ? data['isOnline'] as bool : false;
-            final String avatarPath =
-                data['avatarPath'] ?? data['foto'] ?? 'assets/avatars/default_profile_image.png';
+            final bool isOnline =
+                data['isOnline'] is bool ? data['isOnline'] as bool : false;
+            final String avatarPath = data['avatarPath'] ??
+                data['foto'] ??
+                'assets/avatars/default_profile_image.png';
 
             final List<dynamic> allInterests = data['interests'] is List
                 ? data['interests'] as List
@@ -645,11 +648,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     runSpacing: 12,
                     children: items.map((item) {
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF7F7F7),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFF0D3B66), width: 1.5),
+                          border: Border.all(
+                              color: const Color(0xFF0D3B66), width: 1.5),
                         ),
                         child: Text(
                           item.toString(),
