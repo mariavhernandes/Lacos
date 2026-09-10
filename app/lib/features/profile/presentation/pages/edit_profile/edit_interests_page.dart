@@ -254,13 +254,24 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
       return;
     }
 
-    if (_allInterests.contains(interestText)) {
+    if (_allInterests.any(
+      (interest) =>
+          interest.trim().toLowerCase() == interestText.toLowerCase(),
+    )) {
       _showError('Este interesse já foi adicionado.');
       return;
     }
 
+    final normalizedInterest = interestText
+        .split(RegExp(r'\s+'))
+        .map(
+          (word) =>
+              '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+        )
+        .join(' ');
+
     setState(() {
-      _allInterests.add(interestText);
+      _allInterests.add(normalizedInterest);
       _customInterestController.clear();
     });
   }

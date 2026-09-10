@@ -5,7 +5,10 @@ import '../../../../core/widgets/custom_footer.dart';
 class PublicProfilePage extends StatefulWidget {
   final String? uid;
 
-  const PublicProfilePage({super.key, this.uid});
+  const PublicProfilePage({
+    super.key,
+    this.uid,
+  });
 
   @override
   State<PublicProfilePage> createState() => _PublicProfilePageState();
@@ -27,52 +30,32 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     'Dominó': 'assets/images/commun/domino.png',
   };
 
-  void _blockUser() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Bloquear Conta',
-          style: TextStyle(
-            fontFamily: 'Raleway',
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0D3B66),
-          ),
-        ),
-        content: const Text(
-          'Tem certeza de que deseja bloquear este usuário? Você não verá mais as publicações dele.',
-          style: TextStyle(fontFamily: 'Raleway'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5252),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Usuário bloqueado com sucesso.')),
-              );
-            },
-            child: const Text('Bloquear', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final String targetUid = widget.uid ?? '';
+    final String? targetUid = widget.uid;
+
+    if (targetUid == null || targetUid.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const Center(
+          child: Text(
+            'Não foi possível carregar o perfil.',
+            style: TextStyle(
+              fontFamily: 'Raleway',
+              fontSize: 16,
+              color: Color(0xFF555555),
+            ),
+          ),
+        ),
+        bottomNavigationBar: const CustomFooter(
+          currentIndex: 3,
+          isFamily: false,
+        ),
+      );
+    }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
@@ -81,85 +64,167 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
             }
 
-            final data = (snapshot.hasData && snapshot.data!.exists)
-                ? snapshot.data!.data() as Map<String, dynamic>
-                : <String, dynamic>{};
+            if (snapshot.hasError) {
+              return const Center(
+                child: Text(
+                  'Não foi possível carregar o perfil.',
+                  style: TextStyle(
+                    fontFamily: 'Raleway',
+                    fontSize: 16,
+                    color: Color(0xFF555555),
+                  ),
+                ),
+              );
+            }
 
-            final name = data['name'] ?? 'Éder Barros';
-            final bio = data['bio'] ??
-                'Gosto de conversar e estar com quem amo. Tenho filhos e netos e adoro compartilhar momentos em família.';
-            final ageRange = data['ageRange'] ?? '80 - 89';
-            final city = data['city'] ?? 'Americana';
-            final isOnline = data['isOnline'] ?? true;
-            final avatarPath = data['avatarPath'];
+            if (!snapshot.hasData || !snapshot.data!.exists) {
+              return const Center(
+                child: Text(
+                  'Perfil não encontrado.',
+                  style: TextStyle(
+                    fontFamily: 'Raleway',
+                    fontSize: 16,
+                    color: Color(0xFF555555),
+                  ),
+                ),
+              );
+            }
 
-            final List<dynamic> interests = data['interests'] ?? [
-              'Jogo de cartas',
-              'Jogos de tabuleiro',
-            ];
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+
+            final String name = data['name']?.toString() ?? '';
+            final String bio = data['bio']?.toString() ?? '';
+            final String ageRange = data['ageRange']?.toString() ?? '';
+            final String city = data['city']?.toString() ?? '';
+            final bool isOnline = data['isOnline'] == true;
+            final String? avatarPath = data['avatarPath']?.toString();
+
+            final List<dynamic> interests =
+                data['interests'] is List
+                    ? data['interests'] as List
+                    : [];
+
+            final int followersCount =
+                data['followersCount'] is int
+                    ? data['followersCount'] as int
+                    : 0;
+
+            final int followingCount =
+                data['followingCount'] is int
+                    ? data['followingCount'] as int
+                    : 0;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 12,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // ==================================================
+                  // CABEÇALHO
+                  // ==================================================
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () => Navigator.maybePop(context),
-                        icon: Image.asset(
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.maybePop(context);
+                        },
+                        child: Image.asset(
                           'assets/icons/navigation/back_icon.png',
-                          width: 24,
-                          height: 24,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.arrow_back_ios_new, size: 20),
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
+                          errorBuilder: (
+                            context,
+                            error,
+                            stackTrace,
+                          ) {
+                            return const Icon(
+                              Icons.arrow_back_ios_new,
+                              size: 18,
+                              color: Color(0xFF033B63),
+                            );
+                          },
                         ),
                       ),
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontFamily: 'Raleway',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF555555),
+                      Expanded(
+                        child: Text(
+                          name,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Raleway',
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF555555),
+                          ),
                         ),
                       ),
-                      Text(
-                        isOnline ? 'Online' : 'Offline',
-                        style: TextStyle(
-                          fontFamily: 'Raleway',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isOnline ? const Color(0xFF6BBE66) : Colors.grey,
+                      SizedBox(
+                        width: 50,
+                        child: Text(
+                          isOnline ? 'Online' : 'Offline',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontFamily: 'Raleway',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isOnline
+                                ? const Color(0xFF6BBE66)
+                                : Colors.grey,
+                          ),
                         ),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 20),
 
+                  // ==================================================
+                  // FOTO + SEGUIDORES
+                  // ==================================================
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       CircleAvatar(
                         radius: 40,
                         backgroundColor: const Color(0xFFE0E0E0),
-                        backgroundImage: avatarPath != null ? AssetImage(avatarPath) : null,
-                        child: avatarPath == null
-                            ? const Icon(Icons.person, size: 50, color: Colors.white)
+                        backgroundImage:
+                            avatarPath != null && avatarPath.isNotEmpty
+                                ? AssetImage(avatarPath)
+                                : null,
+                        child: avatarPath == null || avatarPath.isEmpty
+                            ? const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.white,
+                              )
                             : null,
                       ),
-                      _buildStatColumn('Seguidores', data['followersCount'] ?? 21),
-                      _buildStatColumn('Seguindo', data['followingCount'] ?? 13),
+                      _buildStatColumn(
+                        'Seguidores',
+                        followersCount,
+                      ),
+                      _buildStatColumn(
+                        'Seguindo',
+                        followingCount,
+                      ),
                     ],
                   ),
+
                   const SizedBox(height: 20),
 
+                  // ==================================================
+                  // BOTÕES
+                  // ==================================================
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -171,7 +236,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 10,
+                          ),
                         ),
                         onPressed: () {
                           setState(() {
@@ -196,7 +264,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 10,
+                          ),
                         ),
                         onPressed: () {},
                         child: const Text(
@@ -210,8 +281,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 24),
 
+                  // ==================================================
+                  // SOBRE MIM
+                  // ==================================================
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -233,7 +308,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          bio,
+                          bio.isNotEmpty ? bio : 'Não informado.',
                           style: const TextStyle(
                             fontFamily: 'Raleway',
                             fontSize: 14,
@@ -241,7 +316,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             color: Color(0xFF555555),
                           ),
                         ),
+
                         const SizedBox(height: 18),
+
                         const Text(
                           'Faixa Etária',
                           style: TextStyle(
@@ -253,14 +330,18 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          ageRange,
+                          ageRange.isNotEmpty
+                              ? ageRange
+                              : 'Não informado.',
                           style: const TextStyle(
                             fontFamily: 'Raleway',
                             fontSize: 14,
                             color: Color(0xFF555555),
                           ),
                         ),
+
                         const SizedBox(height: 18),
+
                         const Text(
                           'Cidade:',
                           style: TextStyle(
@@ -272,7 +353,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          city,
+                          city.isNotEmpty ? city : 'Não informado.',
                           style: const TextStyle(
                             fontFamily: 'Raleway',
                             fontSize: 14,
@@ -282,8 +363,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 20),
 
+                  // ==================================================
+                  // INTERESSES
+                  // ==================================================
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
@@ -294,7 +379,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Padding(
-                          padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+                          padding: EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 16,
+                            bottom: 12,
+                          ),
                           child: Text(
                             'Interesses',
                             style: TextStyle(
@@ -305,59 +395,54 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             ),
                           ),
                         ),
+
                         const Divider(
                           height: 1,
                           thickness: 0.8,
                           color: Color(0xFFD0D0D0),
                         ),
+
                         Padding(
                           padding: const EdgeInsets.all(16),
-                          child: GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: interests.length,
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 1.1,
-                            ),
-                            itemBuilder: (context, index) {
-                              final itemTitle = interests[index].toString();
-                              final iconPath = _interestIcons[itemTitle];
-                              return _buildInterestCard(itemTitle, iconPath);
-                            },
-                          ),
+                          child: interests.isEmpty
+                              ? const Text(
+                                  'Nenhum interesse informado.',
+                                  style: TextStyle(
+                                    fontFamily: 'Raleway',
+                                    fontSize: 14,
+                                    color: Color(0xFF555555),
+                                  ),
+                                )
+                              : GridView.builder(
+                                  shrinkWrap: true,
+                                  physics:
+                                      const NeverScrollableScrollPhysics(),
+                                  itemCount: interests.length,
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
+                                    childAspectRatio: 1.1,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final String itemTitle =
+                                        interests[index].toString();
+
+                                    final String? iconPath =
+                                        _interestIcons[itemTitle];
+
+                                    return _buildInterestCard(
+                                      itemTitle,
+                                      iconPath,
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
 
-                  SizedBox(
-                    width: 304,
-                    height: 77,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF5252),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      onPressed: _blockUser,
-                      child: const Text(
-                        'Bloquear conta',
-                        style: TextStyle(
-                          fontFamily: 'Raleway',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -365,6 +450,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           },
         ),
       ),
+
+      // ==============================================================
+      // RODAPÉ
+      // ==============================================================
       bottomNavigationBar: const CustomFooter(
         currentIndex: 3,
         isFamily: false,
@@ -372,7 +461,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     );
   }
 
-  Widget _buildStatColumn(String label, int number) {
+  // ================================================================
+  // ESTATÍSTICAS
+  // ================================================================
+  Widget _buildStatColumn(
+    String label,
+    int number,
+  ) {
     return Column(
       children: [
         Text(
@@ -398,13 +493,25 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     );
   }
 
-  Widget _buildInterestCard(String title, String? imagePath) {
+  // ================================================================
+  // CARD DE INTERESSE
+  // ================================================================
+  Widget _buildInterestCard(
+    String title,
+    String? imagePath,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 12,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFF7F7F7),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF0D3B66), width: 2),
+        border: Border.all(
+          color: const Color(0xFF0D3B66),
+          width: 2,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -415,11 +522,17 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               height: 36,
               width: 36,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                Icons.star,
-                size: 32,
-                color: Color(0xFF0D3B66),
-              ),
+              errorBuilder: (
+                context,
+                error,
+                stackTrace,
+              ) {
+                return const Icon(
+                  Icons.star,
+                  size: 32,
+                  color: Color(0xFF0D3B66),
+                );
+              },
             )
           else
             const Icon(
@@ -427,7 +540,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               size: 32,
               color: Color(0xFF0D3B66),
             ),
+
           const SizedBox(height: 8),
+
           Text(
             title,
             textAlign: TextAlign.center,
