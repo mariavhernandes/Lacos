@@ -1,73 +1,123 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/chat_model.dart';
+import 'message_service.dart';
 
 class ChatService {
-  const ChatService._();
+  ChatService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance,
+        _messageService = MessageService(firestore: firestore, auth: auth);
 
-  static final List<Chat> _chats = <Chat>[
-    Chat(
-      id: 'chat-1',
-      participantId: 'user-1',
-      participantName: 'Maria Silva',
-      participantAvatar: 'assets/avatars/avatar_3.png',
-      lastMessage: 'Você vai participar do encontro de hoje?',
-      lastMessageTime: DateTime(2026, 7, 24, 11, 59),
-      unreadMessages: 0,
-    ),
-    Chat(
-      id: 'chat-2',
-      participantId: 'user-2',
-      participantName: 'João Pereira',
-      participantAvatar: 'assets/avatars/avatar_4.png',
-      lastMessage: 'Obrigada pela ajuda com a foto.',
-      lastMessageTime: DateTime(2026, 7, 24, 9, 15),
-      unreadMessages: 1,
-    ),
-    Chat(
-      id: 'chat-3',
-      participantId: 'user-3',
-      participantName: 'Claudio Oliveira',
-      participantAvatar: 'assets/avatars/avatar_1.png',
-      lastMessage: 'A sua mensagem chegou bem.',
-      lastMessageTime: DateTime(2026, 7, 24, 11, 59),
-      unreadMessages: 0,
-    ),
-  ];
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final MessageService _messageService;
 
-  static List<Chat> fakeChats() {
-    return _chats;
-  }
-
-  static Chat? getChat(String chatId) {
-    final index = _chats.indexWhere((chat) => chat.id == chatId);
-
-    if (index == -1) {
-      return null;
+  Stream<List<Chat>> getChatsStream() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return Stream<List<Chat>>.value(const <Chat>[]);
     }
 
-    return _chats[index];
+    return _firestore
+        .collection('chats')
+        .where('participants', arrayContains: userId)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final List<Chat> chats = [];
+
+      for (final document in snapshot.docs) {
+        final data = document.data();
+        final List<dynamic> participants = data['participants'] ?? [];
+
+        final otherUserId = participants.firstWhere(
+          (id) => id != userId,
+          orElse: () => '',
+        );
+
+        String name = data['participantName'] ?? 'Usuário';
+        String avatar =
+            data['participantAvatar'] ?? 'assets/avatars/avatar_1.png';
+
+        if (otherUserId.toString().isNotEmpty) {
+          final userDoc = await _fetchUserProfile(otherUserId.toString());
+          if (userDoc != null) {
+            name = userDoc['nome'] ?? userDoc['name'] ?? name;
+            avatar = userDoc['foto'] ??
+                userDoc['avatar'] ??
+                userDoc['foto_url'] ??
+                avatar;
+          }
+        }
+
+        final unreadCount = await _getUnreadMessageCount(document.id);
+
+        chats.add(
+          Chat.fromMap(<String, dynamic>{
+            ...data,
+            'id': document.id,
+            'participantId': otherUserId,
+            'participantName': name,
+            'participantAvatar': avatar,
+            'unreadMessages': unreadCount,
+          }),
+        );
+      }
+
+      return chats;
+    });
   }
 
-  static void markAsRead(String chatId) {
-    final index = _chats.indexWhere((chat) => chat.id == chatId);
-
-    if (index != -1) {
-      _chats[index] = _chats[index].copyWith(unreadMessages: 0);
+  Future<int> _getUnreadMessageCount(String chatId) async {
+    try {
+      final unreadCountStream = _messageService.getUnreadMessageCount(chatId);
+      return await unreadCountStream.first;
+    } catch (_) {
+      return 0;
     }
   }
 
-  static void blockChat(String chatId) {
-    final index = _chats.indexWhere((chat) => chat.id == chatId);
+  Future<Map<String, dynamic>?> _fetchUserProfile(String uid) async {
+    try {
+      final idosoDoc = await _firestore.collection('idosos').doc(uid).get();
+      if (idosoDoc.exists && idosoDoc.data() != null) {
+        return idosoDoc.data();
+      }
 
-    if (index != -1) {
-      _chats[index] = _chats[index].copyWith(isBlocked: true);
-    }
+      final familiarDoc =
+          await _firestore.collection('familiares').doc(uid).get();
+      if (familiarDoc.exists && familiarDoc.data() != null) {
+        return familiarDoc.data();
+      }
+    } catch (_) {}
+    return null;
   }
 
-  static void unblockChat(String chatId) {
-    final index = _chats.indexWhere((chat) => chat.id == chatId);
+  Future<void> markAsRead(String chatId) async {
+    try {
+      await _firestore.collection('chats').doc(chatId).update({
+        'unreadMessages': 0,
+      });
+    } on FirebaseException catch (_) {}
+  }
 
-    if (index != -1) {
-      _chats[index] = _chats[index].copyWith(isBlocked: false);
+  Future<void> blockChat(String chatId) async {
+    await _setBlocked(chatId, true);
+  }
+
+  Future<void> unblockChat(String chatId) async {
+    await _setBlocked(chatId, false);
+  }
+
+  Future<void> _setBlocked(String chatId, bool isBlocked) async {
+    try {
+      await _firestore.collection('chats').doc(chatId).update({
+        'isBlocked': isBlocked,
+      });
+    } on FirebaseException catch (error) {
+      throw Exception(
+          'Não foi possível atualizar o bloqueio da conversa: ${error.message}');
     }
   }
 }

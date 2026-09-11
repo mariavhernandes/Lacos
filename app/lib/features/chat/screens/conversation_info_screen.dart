@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../profile/presentation/pages/public_profile_page.dart';
 import '../models/chat_model.dart';
 import '../services/chat_service.dart';
 
@@ -18,30 +20,83 @@ class ConversationInfoScreen extends StatefulWidget {
 }
 
 class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
-  late bool isBlocked;
-
-  @override
-  void initState() {
-    super.initState();
-
-    final currentChat = ChatService.getChat(widget.chat.id!);
-    isBlocked = currentChat?.isBlocked ?? widget.chat.isBlocked;
-  }
+  final ChatService _chatService = ChatService();
 
   @override
   Widget build(BuildContext context) {
-    final participantName =
-        widget.chat.participantName ?? 'Participante';
+    final participantId = widget.chat.participantId;
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chat.id)
+          .snapshots(),
+      builder: (context, chatSnapshot) {
+        bool isBlocked = widget.chat.isBlocked;
+        Map<String, dynamic>? chatData;
+        if (chatSnapshot.hasData && chatSnapshot.data!.exists) {
+          chatData = chatSnapshot.data!.data() as Map<String, dynamic>?;
+          if (chatData != null && chatData.containsKey('isBlocked')) {
+            isBlocked = chatData['isBlocked'] as bool? ?? false;
+          }
+        }
+
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('idosos')
+              .doc(participantId)
+              .snapshots(),
+          builder: (context, userSnapshot) {
+            Map<String, dynamic>? userData;
+            if (userSnapshot.hasData && userSnapshot.data!.exists) {
+              userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+            }
+
+            if (userData == null) {
+              return StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('familiares')
+                    .doc(participantId)
+                    .snapshots(),
+                builder: (context, familiarSnapshot) {
+                  if (familiarSnapshot.hasData &&
+                      familiarSnapshot.data!.exists) {
+                    userData = familiarSnapshot.data!.data()
+                        as Map<String, dynamic>?;
+                  }
+                  return _buildScaffold(context, userData, chatData, isBlocked);
+                },
+              );
+            }
+
+            return _buildScaffold(context, userData, chatData, isBlocked);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildScaffold(
+    BuildContext context,
+    Map<String, dynamic>? userData,
+    Map<String, dynamic>? chatData,
+    bool isBlocked,
+  ) {
+    final participantName = userData?['name'] ??
+        userData?['nome'] ??
+        widget.chat.participantName ??
+        'Participante';
+
+    final avatarPath = userData?['avatarPath'] ??
+        userData?['foto'] ??
+        userData?['avatar'] ??
+        widget.chat.participantAvatar;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-
       body: SafeArea(
         child: Column(
           children: [
-            // =========================================================
-            // CABEÇALHO
-            // =========================================================
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 20,
@@ -49,9 +104,6 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
               ),
               child: Row(
                 children: [
-                  // -------------------------------------------------
-                  // SETA
-                  // -------------------------------------------------
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
@@ -61,11 +113,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                       width: 40,
                       height: 40,
                       fit: BoxFit.contain,
-                      errorBuilder: (
-                        context,
-                        error,
-                        stackTrace,
-                      ) {
+                      errorBuilder: (context, error, stackTrace) {
                         return Container(
                           width: 40,
                           height: 40,
@@ -82,40 +130,20 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                       },
                     ),
                   ),
-
-                  // -------------------------------------------------
-                  // TÍTULO
-                  // -------------------------------------------------
-                  
-
-                  // -------------------------------------------------
-                  // ESPAÇO PARA CENTRALIZAR O TÍTULO
-                  // -------------------------------------------------
-                  const SizedBox(
-                    width: 40,
-                  ),
+                  const SizedBox(width: 40),
                 ],
               ),
             ),
-
-            // =========================================================
-            // CONTEÚDO
-            // =========================================================
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const SizedBox(height: 18),
-
-                      _buildAvatar(),
-
+                      _buildAvatar(avatarPath),
                       const SizedBox(height: 18),
-
                       Text(
                         participantName,
                         textAlign: TextAlign.center,
@@ -126,39 +154,12 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                           fontFamily: 'Raleway',
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
-                      Column(
-                        children: [
-                          const Text(
-                            'Você participa do mesmo grupo:',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 14,
-                              fontFamily: 'Quicksand',
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Dia de Parque',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Color(0xFF8A8A8A),
-                              fontSize: 14,
-                              fontFamily: 'Quicksand',
-                            ),
-                          ),
-                        ],
-                      ),
+                      
+                      // INFORMAÇÃO DO GRUPO DINÂMICA
+                      _buildGroupInfo(userData, chatData),
 
                       const SizedBox(height: 22),
-                      const SizedBox(height: 20),
-
-                      // =================================================
-                      // PESQUISAR
-                      // =================================================
                       Center(
                         child: Material(
                           color: Colors.white,
@@ -176,12 +177,10 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                   color: AppColors.primary,
                                   width: 2,
                                 ),
-                                borderRadius:
-                                    BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.search,
@@ -204,19 +203,12 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       const Divider(
                         color: AppColors.divider,
                         thickness: 1,
                       ),
-
                       const SizedBox(height: 8),
-
-                      // =================================================
-                      // VER PERFIL
-                      // =================================================
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(
@@ -232,18 +224,21 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PublicProfilePage(
+                                uid: widget.chat.participantId,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-
-                      // =================================================
-                      // BLOQUEAR / DESBLOQUEAR
-                      // =================================================
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: Icon(
-                          isBlocked
-                              ? Icons.lock_open
-                              : Icons.block,
+                          isBlocked ? Icons.lock_open : Icons.block,
                           color: AppColors.primary,
                         ),
                         title: Text(
@@ -258,94 +253,14 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                           ),
                         ),
                         onTap: () async {
-                          if (isBlocked) {
-                            final shouldUnblock =
-                                await showDialog<bool>(
-                              context: context,
-                              builder: (dialogContext) {
-                                return AlertDialog(
-                                  title: Text(
-                                    'Deseja desbloquear "$participantName"?',
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontFamily: 'Raleway',
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                  content: const Text(
-                                    'Você poderá voltar a enviar e receber mensagens dessa pessoa.',
-                                    style: TextStyle(
-                                      color: Color(0xFF8A8A8A),
-                                      fontFamily: 'Quicksand',
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(
-                                          dialogContext,
-                                          false,
-                                        );
-                                      },
-                                      child: const Text(
-                                        'Cancelar',
-                                        style: TextStyle(
-                                          color:
-                                              AppColors.primary,
-                                          fontFamily: 'Quicksand',
-                                          fontWeight:
-                                              FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(
-                                          dialogContext,
-                                          true,
-                                        );
-                                      },
-                                      child: const Text(
-                                        'Desbloquear',
-                                        style: TextStyle(
-                                          color:
-                                              AppColors.primary,
-                                          fontFamily: 'Quicksand',
-                                          fontWeight:
-                                              FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-
-                            if (shouldUnblock == true) {
-                              ChatService.unblockChat(
-                                widget.chat.id!,
-                              );
-
-                              if (context.mounted) {
-                                Navigator.pop(
-                                  context,
-                                  'unblocked',
-                                );
-                              }
-                            }
-
-                            return;
-                          }
-
-                          final shouldBlock =
-                              await showDialog<bool>(
+                          final confirm = await showDialog<bool>(
                             context: context,
                             builder: (dialogContext) {
                               return AlertDialog(
                                 title: Text(
-                                  'Deseja bloquear "$participantName"?',
+                                  isBlocked
+                                      ? 'Deseja desbloquear "$participantName"?'
+                                      : 'Deseja bloquear "$participantName"?',
                                   style: const TextStyle(
                                     color: Colors.black,
                                     fontFamily: 'Raleway',
@@ -353,10 +268,11 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                     fontSize: 20,
                                   ),
                                 ),
-                                content: const Text(
-                                  'A pessoa não poderá mais enviar mensagens para você. '
-                                  'Ela não saberá que foi bloqueada.',
-                                  style: TextStyle(
+                                content: Text(
+                                  isBlocked
+                                      ? 'Você poderá voltar a enviar e receber mensagens dessa pessoa.'
+                                      : 'A pessoa não poderá mais enviar mensagens para você. Ela não saberá que foi bloqueada.',
+                                  style: const TextStyle(
                                     color: Color(0xFF8A8A8A),
                                     fontFamily: 'Quicksand',
                                     fontSize: 14,
@@ -365,37 +281,27 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                 actions: [
                                   TextButton(
                                     onPressed: () {
-                                      Navigator.pop(
-                                        dialogContext,
-                                        false,
-                                      );
+                                      Navigator.pop(dialogContext, false);
                                     },
                                     child: const Text(
                                       'Cancelar',
                                       style: TextStyle(
-                                        color:
-                                            AppColors.primary,
+                                        color: AppColors.primary,
                                         fontFamily: 'Quicksand',
-                                        fontWeight:
-                                            FontWeight.w600,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
                                   TextButton(
                                     onPressed: () {
-                                      Navigator.pop(
-                                        dialogContext,
-                                        true,
-                                      );
+                                      Navigator.pop(dialogContext, true);
                                     },
-                                    child: const Text(
-                                      'Bloquear',
-                                      style: TextStyle(
-                                        color:
-                                            AppColors.primary,
+                                    child: Text(
+                                      isBlocked ? 'Desbloquear' : 'Bloquear',
+                                      style: const TextStyle(
+                                        color: AppColors.primary,
                                         fontFamily: 'Quicksand',
-                                        fontWeight:
-                                            FontWeight.w700,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                   ),
@@ -404,16 +310,20 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                             },
                           );
 
-                          if (shouldBlock == true) {
-                            ChatService.blockChat(
-                              widget.chat.id!,
-                            );
-
-                            if (context.mounted) {
-                              Navigator.pop(
-                                context,
-                                'blocked',
-                              );
+                          if (confirm == true && widget.chat.id != null) {
+                            try {
+                              if (isBlocked) {
+                                await _chatService
+                                    .unblockChat(widget.chat.id!);
+                              } else {
+                                await _chatService.blockChat(widget.chat.id!);
+                              }
+                            } catch (error) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                              }
                             }
                           }
                         },
@@ -429,32 +339,90 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     );
   }
 
-  // ===============================================================
-  // AVATAR
-  // ===============================================================
-  Widget _buildAvatar() {
-    final hasAvatar =
-        (widget.chat.participantAvatar ?? '').trim().isNotEmpty;
+  Widget _buildGroupInfo(
+    Map<String, dynamic>? userData,
+    Map<String, dynamic>? chatData,
+  ) {
+    final String? groupName =
+        chatData?['groupName'] ?? userData?['groupName'] ?? userData?['grupo'];
 
-    if (hasAvatar) {
-      return ClipOval(
-        child: Image.asset(
-          widget.chat.participantAvatar!,
-          width: 120,
-          height: 120,
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.high,
+    if (groupName == null || groupName.trim().isEmpty) {
+      return const Text(
+        'Nenhum grupo em comum',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Color(0xFF8A8A8A),
+          fontSize: 14,
+          fontFamily: 'Quicksand',
+          fontStyle: FontStyle.italic,
         ),
       );
     }
 
-    return CircleAvatar(
-      radius: 40,
+    return Column(
+      children: [
+        const Text(
+          'Você participa do mesmo grupo:',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            fontFamily: 'Quicksand',
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          groupName,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFF8A8A8A),
+            fontSize: 14,
+            fontFamily: 'Quicksand',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvatar(String? avatarPath) {
+    final hasAvatar = (avatarPath ?? '').trim().isNotEmpty;
+
+    if (hasAvatar) {
+      return ClipOval(
+        child: avatarPath!.startsWith('assets/')
+            ? Image.asset(
+                avatarPath,
+                width: 120,
+                height: 120,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+              )
+            : Image.network(
+                avatarPath,
+                width: 120,
+                height: 120,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) => const CircleAvatar(
+                  radius: 60,
+                  backgroundColor: AppColors.secondary,
+                  child: Icon(
+                    Icons.person,
+                    color: AppColors.primary,
+                    size: 50,
+                  ),
+                ),
+              ),
+      );
+    }
+
+    return const CircleAvatar(
+      radius: 60,
       backgroundColor: AppColors.secondary,
-      child: const Icon(
+      child: Icon(
         Icons.person,
         color: AppColors.primary,
-        size: 38,
+        size: 50,
       ),
     );
   }

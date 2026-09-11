@@ -95,6 +95,26 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (confirm == true && mounted) {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+
+      if (uid != null) {
+        // Atualiza o status no Firestore antes de deslogar
+        try {
+          await FirebaseFirestore.instance.collection('idosos').doc(uid).update({
+            'isOnline': false,
+            'lastSeen': FieldValue.serverTimestamp(),
+          });
+        } catch (_) {
+          // Caso o usuário seja da coleção familiares
+          try {
+            await FirebaseFirestore.instance.collection('familiares').doc(uid).update({
+              'isOnline': false,
+              'lastSeen': FieldValue.serverTimestamp(),
+            });
+          } catch (_) {}
+        }
+      }
+
       await FirebaseAuth.instance.signOut();
       if (mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);

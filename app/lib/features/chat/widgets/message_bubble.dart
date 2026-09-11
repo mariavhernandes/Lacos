@@ -1,24 +1,45 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/theme/app_colors.dart';
 
-/// Widget reutilizável responsável por exibir uma mensagem da conversa.
 class MessageBubble extends StatelessWidget {
   final String text;
   final String time;
   final bool isCurrentUser;
+  final String status;
 
   const MessageBubble({
     super.key,
     required this.text,
     required this.time,
     required this.isCurrentUser,
+    this.status = 'sent',
   });
+
+  Widget _buildStatusIcon() {
+    if (!isCurrentUser) return const SizedBox.shrink();
+
+    IconData icon = Icons.done_all; // ✓✓
+    Color color;
+
+    switch (status) {
+      case 'read':
+        color = const Color(0xFF0288D1); // Lida
+        break;
+      case 'delivered':
+      case 'sent':
+      default:
+        color = const Color(0xFF8A8A8A); // Não lida)
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Icon(icon, size: 15, color: color),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Define a cor do balão apenas no nível do widget para manter
-    // a paleta global intacta em outras telas do app.
     final backgroundColor = isCurrentUser
         ? AppColors.card
         : const Color(0xFFCFDBEF);
@@ -41,7 +62,6 @@ class MessageBubble extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       constraints: BoxConstraints(
-        // Keep bubble within a comfortable reading width.
         maxWidth: MediaQuery.of(context).size.width * 0.75,
       ),
       child: Material(
@@ -75,14 +95,20 @@ class MessageBubble extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                time,
-                style: const TextStyle(
-                  color: Color(0xFF8A8A8A),
-                  fontSize: 12,
-                  fontFamily: 'Quicksand',
-                  fontWeight: FontWeight.w400,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    time,
+                    style: const TextStyle(
+                      color: Color(0xFF8A8A8A),
+                      fontSize: 12,
+                      fontFamily: 'Quicksand',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  _buildStatusIcon(),
+                ],
               ),
             ],
           ),
