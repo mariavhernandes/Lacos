@@ -23,15 +23,14 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
   // ===============================================================
 
   final Set<String> _predefinedInterests = {
-    'Jogos de tabuleiro',
-    'Jogos de carta',
-    'Xadrez',
-    'Dança',
-    'Jardinagem',
-    'Tricô/Crochê',
-    'Artesanato',
-    'Caminhada',
     'Dominó',
+    'Jogos de carta',
+    'Jogos de tabuleiro',
+    'Tricô/Crochê',
+    'Caminhada',
+    'Dança',
+    'Artesanato',
+    'Jardinagem',
   };
 
   // ===============================================================
@@ -40,32 +39,30 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
   // ===============================================================
 
   final Map<String, String> _interestIcons = {
-    'Jogos de tabuleiro':
-        'assets/images/commun/chess.png',
+    'Dominó':
+        'assets/images/commun/domino.png',
 
     'Jogos de carta':
         'assets/images/commun/card_games.png',
 
-    'Xadrez':
+    'Jogos de tabuleiro':
         'assets/images/commun/chess.png',
-
-    'Dança':
-        'assets/images/commun/dancing.png',
-
-    'Jardinagem':
-        'assets/images/commun/gardening.png',
 
     'Tricô/Crochê':
         'assets/images/commun/knitting.png',
 
-    'Artesanato':
-        'assets/images/commun/sewing.png',
-
     'Caminhada':
         'assets/images/commun/walking.png',
 
-    'Dominó':
-        'assets/images/commun/domino.png',
+    'Dança':
+        'assets/images/commun/dancing.png',
+
+    'Artesanato':
+        'assets/images/commun/sewing.png',
+
+    'Jardinagem':
+        'assets/images/commun/gardening.png',
+    
   };
 
   // Todos os interesses vindos do Firestore
@@ -448,7 +445,7 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
 
   Widget _buildSelectedInterestsSection() {
     // Todos os interesses predefinidos, ordenados
-    final sortedPredefined = _predefinedInterests.toList()..sort();
+    final sortedPredefined = _predefinedInterests.toList();
 
     return Container(
       width: double.infinity,
@@ -555,83 +552,75 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: 6,
-        vertical: 8,
+        horizontal: 8,
+        vertical: 10,
       ),
       decoration: BoxDecoration(
         color: isSelected ? const Color(0xFFDCEAF5) : const Color(0xFFF7F7F7),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? const Color(0xFF0D3B66) : const Color(0xFF0D3B66),
+          color: const Color(0xFF0D3B66),
           width: isSelected ? 2.5 : 1.8,
         ),
       ),
       child: Stack(
         children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // ===========================================================
-              // ÍCONE
-              // ===========================================================
-
-              if (imagePath != null)
-                Image.asset(
-                  imagePath,
-                  height: 36,
-                  width: 36,
-                  fit: BoxFit.contain,
-                  errorBuilder: (
-                    context,
-                    error,
-                    stackTrace,
-                  ) {
-                    return const Icon(
-                      Icons.extension,
-                      size: 32,
-                      color: Color(0xFF0D3B66),
-                    );
-                  },
-                )
-              else
-                const Icon(
-                  Icons.star,
-                  size: 32,
-                  color: Color(0xFF0D3B66),
+          // CONTEÚDO CENTRALIZADO (ÍCONE + TEXTO)
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (imagePath != null)
+                  Image.asset(
+                    imagePath,
+                    height: 36,
+                    width: 36,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.extension,
+                        size: 32,
+                        color: Color(0xFF0D3B66),
+                      );
+                    },
+                  )
+                else
+                  const Icon(
+                    Icons.star,
+                    size: 32,
+                    color: Color(0xFF0D3B66),
+                  ),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Raleway',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                    color: Color(0xFF0D3B66),
+                  ),
                 ),
-
-              const SizedBox(height: 4),
-
-              // ===========================================================
-              // NOME
-              // ===========================================================
-
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Raleway',
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  height: 1.1,
-                  color: Color(0xFF0D3B66),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          // Checkmark quando selecionado
+
+          // CHECKMARK FIXADO NO CANTO SUPERIOR DIREITO
           if (isSelected)
             Positioned(
-              top: 4,
-              right: 4,
+              top: 0,
+              right: 0,
               child: Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFF0D3B66),
                   shape: BoxShape.circle,
                 ),
-                padding: const EdgeInsets.all(2),
+                padding: const EdgeInsets.all(3),
                 child: const Icon(
                   Icons.check,
                   size: 12,
