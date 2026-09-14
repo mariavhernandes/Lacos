@@ -1,221 +1,233 @@
-# Constitution do Projeto La�os
+# Constitution do Projeto Laços
 
-## Vis�o Geral
+## Visão Geral
 
-O La�os � uma plataforma composta por um aplicativo mobile e uma aplica��o web desenvolvidos em Flutter, destinada a combater o isolamento social entre pessoas idosas. A plataforma promove socializa��o, bem-estar e qualidade de vida, permitindo que idosos encontrem pessoas com interesses em comum, participem de grupos, conversem por chat e descubram locais de lazer adequados �s suas prefer�ncias.
+O Laços é uma plataforma composta por um aplicativo mobile e uma aplicação web desenvolvidos em Flutter, destinada a combater o isolamento social entre pessoas idosas. A plataforma promove socialização, bem-estar e qualidade de vida, permitindo que idosos encontrem pessoas com interesses em comum, participem de grupos, conversem por chat e descubram locais de lazer adequados às suas preferências.
 
-O sistema tamb�m oferece uma �rea para familiares ou respons�veis, permitindo o acompanhamento das informa��es autorizadas pelo idoso, melhorando a seguran�a e a tranquilidade da fam�lia.
+O sistema também oferece uma área para familiares ou responsáveis, permitindo o acompanhamento das informações autorizadas pelo idoso, melhorando a segurança e a tranquilidade da família.
 
 ## Objetivo
 
-A Constitution define as regras, o escopo e os princ�pios que reger�o o desenvolvimento da primeira vers�o do La�os, com foco no MVP, no p�blico idoso e nos familiares ou respons�veis.
+A Constitution define as regras, o escopo e os princípios que regerão o desenvolvimento da primeira versão do Laços, com foco no MVP, no público idoso e nos familiares ou responsáveis.
 
-## P�blico-Alvo
+## Público-Alvo
 
-- P�blico principal: pessoas da terceira idade que desejam ampliar seu c�rculo social e participar de atividades presenciais.
-- P�blico secund�rio: familiares e respons�veis que desejam acompanhar e apoiar o uso da plataforma de forma segura.
+* Público principal: pessoas da terceira idade que desejam ampliar seu círculo social e participar de atividades presenciais.
+* Público secundário: familiares e responsáveis que desejam acompanhar e apoiar o uso da plataforma de forma segura.
 
-## Escopo da Primeira Vers�o
+## Escopo da Primeira Versão
 
-A primeira vers�o do La�os dever� priorizar as funcionalidades essenciais que promovam socializa��o e acompanhamento seguro, entregues de forma simples, acess�vel e segura.
+A primeira versão do Laços deverá priorizar as funcionalidades essenciais que promovam socialização e acompanhamento seguro, entregues de forma simples, acessível e segura.
 
 ### Funcionalidades para idosos
 
-- Cadastro e login de usu�rios.
-- Recupera��o de senha.
-- Cria��o e edi��o de perfil com informa��es pessoais e interesses.
-- Pesquisa de locais de lazer e atividades voltadas � terceira idade, com filtros por categoria e localiza��o.
-- Visualiza��o de informa��es detalhadas dos locais de lazer (descri��o, endere�o, hor�rio de funcionamento e avalia��es).
-- Sistema de sugest�es de amizades baseado em interesses em comum.
-- Chat privado por mensagens de texto entre usuários amigos.
-- Cria��o e participa��o em grupos de interesse.
-- Sistema de notifica��es.
-- Central de ajuda.
+* Cadastro e login de usuários.
+* Recuperação de senha.
+* Criação e edição de perfil com informações pessoais e interesses.
+* Pesquisa de locais de lazer e atividades voltadas à terceira idade, com filtros por categoria e localização.
+* Visualização de informações detalhadas dos locais de lazer (descrição, endereço, horário de funcionamento e avaliações).
+* Sistema de sugestões de amizades baseado em interesses em comum.
+* Chat privado por mensagens de texto entre usuários amigos.
+* Criação e participação em grupos de interesse.
+* Sistema de notificações.
+* Central de ajuda.
 
-### Funcionalidades para familiares ou respons�veis
+### Funcionalidades para familiares ou responsáveis
 
-- Cadastro e login.
-- Associa��o ao perfil do idoso mediante autoriza��o expl�cita.
-- Visualiza��o das informa��es autorizadas pelo idoso.
-- Gerenciamento de contatos.
-- Recebimento de notifica��es relacionadas � seguran�a.
-- Configura��o de prefer�ncias de acompanhamento.
+* Cadastro e login.
+* Vinculação a um perfil de idoso existente por meio do e-mail informado no campo `linkedElderEmail`.
+* Visualização das informações disponibilizadas para familiares ou responsáveis.
+* Gerenciamento do vínculo com o idoso.
+* Recebimento de notificações relacionadas à segurança.
+* Configuração de preferências de acompanhamento, quando aplicável.
 
-## Regras de Privacidade e Autoriza��o
+## Regras de Privacidade e Autorização
 
-- O idoso � o propriet�rio de seus dados e controla a vincula��o de familiares ou respons�veis � sua conta.
-- O v�nculo somente ser� estabelecido mediante autoriza��o expl�cita do idoso, que poder� aceitar ou recusar a solicita��o.
-- Ap�s aprova��o, o familiar ter� acesso �s informa��es e funcionalidades padronizadas pelo sistema para seu perfil.
-- As informa��es dispon�veis ao familiar ser�o somente aquelas necess�rias para promover seguran�a e acompanhamento, respeitando a LGPD.
-- Dados sens�veis como senha, credenciais de acesso e demais informa��es restritas permanecer�o inacess�veis a outros usu�rios.
+* O idoso é o proprietário de seus dados e possui controle sobre a permanência de familiares ou responsáveis vinculados à sua conta.
+* A vinculação entre familiar ou responsável e idoso será estabelecida automaticamente quando o familiar informar um `linkedElderEmail` válido correspondente a uma conta de idoso existente.
+* O estabelecimento do vínculo não dependerá de uma solicitação que aguarde aprovação ou recusa do idoso.
+* Após a criação do vínculo, o idoso receberá uma notificação informando que o familiar ou responsável passou a supervisioná-lo.
+* O idoso poderá bloquear o familiar ou responsável caso não queira mais permitir a supervisão.
+* O bloqueio deverá impedir a continuidade do acesso do familiar às informações e funcionalidades relacionadas ao acompanhamento daquele idoso.
+* As informações disponíveis ao familiar serão somente aquelas necessárias para promover segurança e acompanhamento, respeitando a LGPD.
+* Dados sensíveis como senha, credenciais de acesso e demais informações restritas permanecerão inacessíveis a outros usuários.
+* A estrutura de vinculação existente deverá ser reutilizada sempre que possível, priorizando o uso do campo `linkedElderEmail` e evitando a criação de estruturas ou fluxos duplicados.
 
-## Tecnologias e Integra��es
+## Tecnologias e Integrações
 
-- Plataforma mobile: Flutter para Android e iOS.
-- Aplica��o web responsiva: Flutter Web.
-- Linguagem: Dart.
-- Backend e banco de dados: Firebase Authentication e Cloud Firestore.
-- Integra��es: servi�o de mapas para exibi��o de locais de lazer e atividades; notifica��es push para avisos, solicita��es de v�nculo, mensagens e atualiza��es.
-- IDE: Visual Studio Code.
-- Versionamento: GitHub.
-- Assistente de desenvolvimento: GitHub Copilot.
-- Metodologia: Spec-Driven Development (SDD).
-- Recursos gráficos da aplicação (ícones, ilustrações e avatares) serão incluídos como assets do Flutter.
+* Plataforma mobile: Flutter para Android e iOS.
+* Aplicação web responsiva: Flutter Web.
+* Linguagem: Dart.
+* Backend e banco de dados: Firebase Authentication e Cloud Firestore.
+* Integrações: serviço de mapas para exibição de locais de lazer e atividades; notificações push para avisos, vinculações familiares, mensagens e atualizações.
+* IDE: Visual Studio Code.
+* Versionamento: GitHub.
+* Assistente de desenvolvimento: GitHub Copilot.
+* Metodologia: Spec-Driven Development (SDD).
+* Recursos gráficos da aplicação (ícones, ilustrações e avatares) serão incluídos como assets do Flutter.
 
-## Qualidade de Experi�ncia
+## Qualidade de Experiência
 
 ### Usabilidade
 
-- Interface simples, intuitiva e consistente.
-- Navega��o com poucos passos para a��es importantes.
-- Bot�es grandes e f�ceis de selecionar.
-- Linguagem clara e objetiva, sem termos t�cnicos.
-- Feedback visual para todas as a��es (confirma��es, erros e carregamentos).
-- Fidelidade ao prot�tipo no Figma.
+* Interface simples, intuitiva e consistente.
+* Navegação com poucos passos para ações importantes.
+* Botões grandes e fáceis de selecionar.
+* Linguagem clara e objetiva, sem termos técnicos.
+* Feedback visual para todas as ações (confirmações, erros e carregamentos).
+* Fidelidade ao protótipo no Figma.
 
 ### Acessibilidade
 
-- Fontes leg�veis com possibilidade de amplia��o.
-- Alto contraste entre textos e elementos.
-- �cones acompanhados de textos explicativos sempre que poss�vel.
-- �reas de toque amplas.
-- Compatibilidade com recursos de acessibilidade de Android, iOS e navegadores.
+* Fontes legíveis com possibilidade de ampliação.
+* Alto contraste entre textos e elementos.
+* Ícones acompanhados de textos explicativos sempre que possível.
+* Áreas de toque amplas.
+* Compatibilidade com recursos de acessibilidade de Android, iOS e navegadores.
 
 ### Desempenho
 
-- Tempo de carregamento reduzido para telas principais.
-- Navega��o fluida entre telas.
-- Consultas ao banco de dados otimizadas.
-- Recursos gráficos locais (assets) para reduzir dependência de serviços externos.
-- Funcionalidade responsiva na web.
+* Tempo de carregamento reduzido para telas principais.
+* Navegação fluida entre telas.
+* Consultas ao banco de dados otimizadas.
+* Recursos gráficos locais (assets) para reduzir dependência de serviços externos.
+* Funcionalidade responsiva na web.
 
-## Exclus�es do MVP
+## Exclusões do MVP
 
-Ficam fora do escopo da primeira vers�o do La�os:
+Ficam fora do escopo da primeira versão do Laços:
 
-- Chamadas de �udio e v�deo entre usu�rios.
-- Chat de ajuda baseado em intelig�ncia artificial.
-- Compartilhamento de localiza��o em tempo real.
+* Chamadas de áudio e vídeo entre usuários.
+* Chat de ajuda baseado em inteligência artificial.
+* Compartilhamento de localização em tempo real.
 
 ## Regras de Relacionamento Social
 
-- A conex�o entre idosos ser� baseada em solicita��o e aceita��o de amizade.
-- Um usu�rio pode enviar solicita��o de amizade para outro.
-- O destinat�rio pode aceitar ou recusar a solicita��o.
-- Apenas amigos confirmados podem trocar mensagens privadas.
-- Usu�rios podem participar de grupos de interesse para conhecer novas pessoas.
-- O sistema sugere amizades com base em interesses, faixa et�ria semelhante, cidade/regi�o e participa��o em grupos ou atividades em comum.
-- Usu�rios podem bloquear outros usu�rios. Ap�s o bloqueio:
-  - N�o � poss�vel enviar novas solicita��es de amizade.
-  - N�o � poss�vel trocar mensagens pelo chat.
-  - O usu�rio bloqueado n�o pode visualizar determinadas intera��es privadas.
+* A conexão entre idosos será baseada em solicitação e aceitação de amizade.
+* Um usuário pode enviar solicitação de amizade para outro.
+* O destinatário pode aceitar ou recusar a solicitação.
+* Apenas amigos confirmados podem trocar mensagens privadas.
+* Usuários podem participar de grupos de interesse para conhecer novas pessoas.
+* O sistema sugere amizades com base em interesses, faixa etária semelhante, cidade/região e participação em grupos ou atividades em comum.
+* Usuários podem bloquear outros usuários. Após o bloqueio:
 
-## Notifica��es
+  * Não é possível enviar novas solicitações de amizade.
+  * Não é possível trocar mensagens pelo chat.
+  * O usuário bloqueado não pode visualizar determinadas interações privadas.
+* O bloqueio do vínculo familiar é independente das regras de amizade e deve impedir o familiar ou responsável de continuar supervisionando o idoso.
 
-As notifica��es devem ser utilizadas apenas para eventos importantes, evitando excesso de alertas.
+## Notificações
+
+As notificações devem ser utilizadas apenas para eventos importantes, evitando excesso de alertas.
 
 ### Para idosos
 
-- Recebimento de solicita��o de amizade.
-- Aceita��o de solicita��o de amizade.
-- Novas mensagens no chat.
-- Convites ou atualiza��es de grupos.
-- Solicita��es de v�nculo enviadas por familiares ou respons�veis.
-- Avisos importantes da plataforma.
+* Recebimento de solicitação de amizade.
+* Aceitação de solicitação de amizade.
+* Novas mensagens no chat.
+* Convites ou atualizações de grupos.
+* Notificação informando que um familiar ou responsável passou a supervisioná-lo.
+* Avisos importantes da plataforma.
 
-### Para familiares ou respons�veis
+### Para familiares ou responsáveis
 
-- Aprova��o ou recusa da solicita��o de v�nculo pelo idoso.
-- Alertas de seguran�a do sistema.
-- Avisos importantes relacionados ao perfil do idoso.
-- Comunicados da plataforma.
+* Confirmação de que o vínculo com um idoso foi estabelecido.
+* Alertas de segurança do sistema.
+* Avisos importantes relacionados ao perfil do idoso.
+* Comunicados da plataforma.
 
 ### Diretrizes de envio
 
-- Enviar apenas notifica��es relevantes.
-- Agrupar notifica��es repetidas sempre que poss�vel.
-- Exibir mensagens claras e objetivas.
+* Enviar apenas notificações relevantes.
+* Agrupar notificações repetidas sempre que possível.
+* Exibir mensagens claras e objetivas.
 
-## Crit�rios de Aceita��o
+## Critérios de Aceitação
 
-Uma funcionalidade ser� considerada conclu�da quando:
+Uma funcionalidade será considerada concluída quando:
 
-- Estiver implementada conforme a especifica��o da etapa Specify.
-- Atender aos requisitos funcionais e n�o funcionais.
-- Seguir fielmente o prot�tipo do Figma.
-- Estiver integrada corretamente ao Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging quando necessário.
-- Funcionar corretamente em Flutter Mobile e Flutter Web.
-- Apresentar interface acess�vel e intuitiva.
-- N�o apresentar erros de execu��o ou falhas cr�ticas.
-- Seguir os padr�es de c�digo e arquitetura da equipe.
-- For revisada por outro integrante antes da integra��o � branch principal.
-- For aprovada na Checklist do SDD antes da implementa��o final.
+* Estiver implementada conforme a especificação da etapa Specify.
+* Atender aos requisitos funcionais e não funcionais.
+* Seguir fielmente o protótipo do Figma.
+* Estiver integrada corretamente ao Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging quando necessário.
+* Funcionar corretamente em Flutter Mobile e Flutter Web.
+* Apresentar interface acessível e intuitiva.
+* Não apresentar erros de execução ou falhas críticas.
+* Seguir os padrões de código e arquitetura da equipe.
+* For revisada por outro integrante antes da integração à branch principal.
+* For aprovada na Checklist do SDD antes da implementação final.
 
 ### Indicadores de sucesso
 
-- Implementa��o de todas as funcionalidades previstas para o MVP.
-- Compatibilidade entre mobile e web.
-- Interface fiel ao prot�tipo.
-- Navega��o simples e intuitiva.
-- Integração completa com Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging.
-- C�digo organizado, reutiliz�vel e documentado.
-- Desenvolvimento seguindo as etapas do Spec-Driven Development.
+* Implementação de todas as funcionalidades previstas para o MVP.
+* Compatibilidade entre mobile e web.
+* Interface fiel ao protótipo.
+* Navegação simples e intuitiva.
+* Integração completa com Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging.
+* Código organizado, reutilizável e documentado.
+* Desenvolvimento seguindo as etapas do Spec-Driven Development.
 
 ## Processo de Acesso
 
 ### Cadastro
 
-- O usu�rio escolhe entre criar conta como Idoso ou Familiar/Respons�vel.
-- O cadastro solicita apenas as informa��es necess�rias: nome, data de nascimento, e-mail, senha e dados do perfil.
-- Durante o cadastro do idoso, � poss�vel informar interesses.
-- Ap�s concluir o cadastro, o usu�rio acessa imediatamente a plataforma.
+* O usuário escolhe entre criar conta como Idoso ou Familiar/Responsável.
+* O cadastro solicita apenas as informações necessárias: nome, data de nascimento, e-mail, senha e dados do perfil.
+* Durante o cadastro do idoso, é possível informar interesses.
+* Após concluir o cadastro, o usuário acessa imediatamente a plataforma.
 
 ### Login
 
-- Acesso com e-mail e senha via Firebase Authentication.
+* Acesso com e-mail e senha via Firebase Authentication.
 
-### Recupera��o de senha
+### Recuperação de senha
 
-- O usu�rio pede recupera��o informando o e-mail cadastrado.
-- Ser� enviado um link de redefini��o de senha por e-mail.
+* O usuário pede recuperação informando o e-mail cadastrado.
+* Será enviado um link de redefinição de senha por e-mail.
 
 ### Primeiro acesso
 
-- O usu�rio recebe uma breve introdu��o sobre as funcionalidades.
-- Em seguida, � direcionado para a tela inicial.
+* O usuário recebe uma breve introdução sobre as funcionalidades.
+* Em seguida, é direcionado para a tela inicial.
 
-### Vincula��o idoso-familiar
+### Vinculação idoso-familiar
 
-- O familiar envia solicita��o de v�nculo ao idoso.
-- O idoso aceita ou recusa.
-- Ap�s aprova��o, o v�nculo � estabelecido e o familiar recebe acesso �s funcionalidades previstas.
+* O familiar ou responsável informa o e-mail de um idoso no campo `linkedElderEmail`.
+* O sistema verifica se o e-mail informado corresponde a uma conta de idoso válida.
+* Quando o e-mail for válido, o vínculo entre o familiar ou responsável e o idoso será criado automaticamente.
+* Após o estabelecimento do vínculo, o idoso receberá uma notificação informando que aquele familiar ou responsável passou a supervisioná-lo.
+* O idoso poderá bloquear o familiar ou responsável posteriormente caso não queira mais permitir a supervisão.
+* O sistema deverá reutilizar a estrutura de vinculação existente, especialmente o `linkedElderEmail`, evitando a criação de um fluxo de solicitação, aprovação ou recusa separado.
 
-## Seguran�a e Modera��o
+## Segurança e Moderação
 
-- Usu�rios podem bloquear outros para impedir intera��es, solicita��es de amizade e mensagens.
-- Apenas amigos confirmados podem enviar mensagens privadas.
-- Solicita��es de amizade podem ser aceitas ou recusadas.
-- O sistema limita o envio excessivo de solicita��es em curto per�odo para reduzir spam.
-- Links suspeitos ou n�o autorizados podem ser bloqueados pelo sistema.
-- Familiares t�m acesso apenas �s funcionalidades previstas para o seu perfil.
-- Todas as intera��es devem respeitar as pol�ticas de uso da plataforma e a LGPD.
-- Modera��o autom�tica avan�ada e sistemas complexos de den�ncias s�o previstos para vers�es futuras.
+* Usuários podem bloquear outros para impedir interações, solicitações de amizade e mensagens.
+* Apenas amigos confirmados podem enviar mensagens privadas.
+* Solicitações de amizade podem ser aceitas ou recusadas.
+* O sistema limita o envio excessivo de solicitações em curto período para reduzir spam.
+* Links suspeitos ou não autorizados podem ser bloqueados pelo sistema.
+* Familiares têm acesso apenas às funcionalidades previstas para o seu perfil.
+* O idoso pode bloquear um familiar ou responsável vinculado, interrompendo a supervisão e o acesso correspondente.
+* O sistema deve validar o `linkedElderEmail` antes de estabelecer qualquer vínculo.
+* Todas as interações devem respeitar as políticas de uso da plataforma e a LGPD.
+* Moderação automática avançada e sistemas complexos de denúncias são previstos para versões futuras.
 
-## Pr�ticas de Desenvolvimento
+## Práticas de Desenvolvimento
 
-- O desenvolvimento segue a metodologia SDD: Constitution, Specify, Clarify, Plan, Tasks, Analyze, Checklist e Implement.
-- Nenhuma funcionalidade ser� implementada antes da aprova��o de sua especifica��o.
-- O desenvolvimento ser� incremental, priorizando o MVP.
-- GitHub ser� usado para versionamento.
-- Cada funcionalidade ser� desenvolvida em branch pr�pria (`feature/nome-da-funcionalidade`).
-- Altera��es diretas na branch `main` s�o proibidas.
-- Integra��o por Pull Requests revisados por pelo menos um integrante.
-- C�digo deve seguir padr�es definidos pela equipe e ser organizado, leg�vel e reutiliz�vel.
-- Mobile e web devem compartilhar o m�ximo de c�digo poss�vel.
-- Regras de neg�cio centralizadas para evitar comportamentos diferentes entre plataformas.
-- Integração com Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging testada antes do merge.
-- Documenta��o atualizada sempre que houver altera��es relevantes.
+* O desenvolvimento segue a metodologia SDD: Constitution, Specify, Clarify, Plan, Tasks, Analyze, Checklist e Implement.
+* Nenhuma funcionalidade será implementada antes da aprovação de sua especificação.
+* O desenvolvimento será incremental, priorizando o MVP.
+* GitHub será usado para versionamento.
+* Cada funcionalidade será desenvolvida em branch própria (`feature/nome-da-funcionalidade`).
+* Alterações diretas na branch `main` são proibidas.
+* Integração por Pull Requests revisados por pelo menos um integrante.
+* Código deve seguir padrões definidos pela equipe e ser organizado, legível e reutilizável.
+* Mobile e web devem compartilhar o máximo de código possível.
+* Regras de negócio centralizadas para evitar comportamentos diferentes entre plataformas.
+* Integração com Firebase Authentication, Cloud Firestore e Firebase Cloud Messaging testada antes do merge.
+* Documentação atualizada sempre que houver alterações relevantes.
+* Estruturas e funcionalidades existentes devem ser reutilizadas sempre que atenderem aos novos requisitos, evitando duplicação desnecessária de dados, fluxos e componentes.
 
 ## Idioma
 
-- O MVP ser� lan�ado apenas em portugu�s.
+* O MVP será lançado apenas em português.
