@@ -1,46 +1,61 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/models/place_activity.dart';
 
 class DiscoveryRepository {
   const DiscoveryRepository();
 
-  List<PlaceActivity> getPlaces() {
-    return const [
-      PlaceActivity(
-        name: 'La Boca Empanadas - Americana',
-        category: 'Lazer',
-        description:
-            'O La Boca Empanadas oferece empanadas argentinas artesanais em um ambiente acolhedor. Com sabores tradicionais e opções diferenciadas.',
-        location: '10 km de distância',
-        distanceKm: 10,
-        rating: 4.97,
-        reviewCount: 100,
-        operatingHours: 'Ter-Dom: 18h30 às 23h',
-        address: 'Rua Hermann Müller Carioba, 165',
-      ),
-      PlaceActivity(
-        name: 'Academia para Idosos',
-        category: 'Esporte',
-        description:
-            'Atividades físicas acompanhadas e adaptadas para pessoas idosas. Equipamentos modernos e instrutores especializados.',
-        location: '4 km de distância',
-        distanceKm: 4,
-        rating: 4.5,
-        reviewCount: 45,
-        operatingHours: 'Seg-Sex: 08h às 18h',
-        address: 'Av. Paulista, 1000',
-      ),
-      PlaceActivity(
-        name: 'Jardim das Flores',
-        category: 'Lazer',
-        description:
-            'Espaço tranquilo para caminhadas, encontros e atividades ao ar livre. Com bancos para descanso e áreas com sombra.',
-        location: '7 km de distância',
-        distanceKm: 7,
-        rating: 4.8,
-        reviewCount: 67,
-        operatingHours: 'Todos os dias: 06h às 18h',
-        address: 'Rua das Flores, 500',
-      ),
-    ];
+  Future<List<PlaceActivity>> getPlaces() async {
+    final snapshot =
+        await FirebaseFirestore.instance.collection('locais').get();
+
+    final places = <PlaceActivity>[];
+
+    for (final doc in snapshot.docs) {
+      try {
+        places.add(_placeFromDoc(doc));
+      } catch (e) {
+        // Não derruba a lista inteira: avisa qual documento tem
+        // problema (id + dados brutos) e pula pro próximo.
+        debugPrint('⚠️ Documento com erro (id: ${doc.id}): $e');
+        debugPrint('   Dados do documento: ${doc.data()}');
+      }
+    }
+
+    return places;
+  }
+
+  PlaceActivity _placeFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+
+    final name = data['nome'] as String? ?? 'Sem nome';
+    final city = data['cidade'] as String? ?? '';
+    final category = data['categoria'] as String? ?? '';
+
+    // ID único gerado pelo Firebase
+    final docId = doc.id;
+
+    // Gera automaticamente os 4 caminhos das imagens.
+    // Exemplo:
+    // G8UHXn3eDB7jN1ElaXng_1.jpg
+    // G8UHXn3eDB7jN1ElaXng_2.jpg
+    // G8UHXn3eDB7jN1ElaXng_3.jpg
+    // G8UHXn3eDB7jN1ElaXng_4.jpg
+    final generatedImages = List.generate(4, (index) {
+      final imageNumber = index + 1;
+      return 'assets/Lugares/$city/$category/${docId}_$imageNumber.jpg';
+    });
+
+    return PlaceActivity(
+      name: name,
+      category: category,
+      description: data['descricao'] as String? ?? '',
+      city: city,
+      address: data['endereco'] as String? ?? '',
+      operatingHours: data['horario'] as String? ?? '',
+      rating: (data['avaliacao'] as num?)?.toDouble() ?? 0.0,
+      mapsLink: data['linkMaps'] as String? ?? '',
+      imageAssetsOverride: generatedImages,
+    );
   }
 }

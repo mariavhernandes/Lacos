@@ -10,9 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
   cupertino_icons: ^1.0.8
   firebase_core: ^4.11.0
+  cloud_firestore: ^6.0.2
 
 dev_dependencies:
   flutter_test:
@@ -28,6 +28,27 @@ flutter:
     - assets/images/elderly/
     - assets/icons/icons_footer/
     - assets/icons/navigation/
+    
+    - assets/Lugares/Americana/Cafeterias/
+    - assets/Lugares/Americana/Lazer/
+    - assets/Lugares/Americana/Restaurantes/
+
+    - assets/Lugares/Campinas/Cafeterias/
+    - assets/Lugares/Campinas/Lazer/
+    - assets/Lugares/Campinas/Restaurantes/
+
+    - assets/Lugares/Limeira/Cafeterias/
+    - assets/Lugares/Limeira/Lazer/
+    - assets/Lugares/Limeira/Restaurantes/
+
+    - assets/Lugares/SantaBarbara/Cafeterias/
+    - assets/Lugares/SantaBarbara/Lazer/
+    - assets/Lugares/SantaBarbara/Restaurantes/
+
+    - assets/Lugares/Sumare/Cafeterias/
+    - assets/Lugares/Sumare/Lazer/
+    - assets/Lugares/Sumare/Restaurantes/
+    
 
   fonts:
     - family: Quicksand

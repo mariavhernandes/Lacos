@@ -16,18 +16,33 @@ class DiscoveryScreen extends StatefulWidget {
   State<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
 
+// Mapeia o valor técnico salvo/usado internamente (sem acento, sem espaço,
+// igual ao nome da pasta em assets/Lugares/ e ao campo `cidade` do Firestore)
+// para o nome bonito exibido pro usuário.
+const Map<String, String> _cityDisplayNames = {
+  'Americana': 'Americana',
+  'Campinas': 'Campinas',
+  'Limeira': 'Limeira',
+  'SantaBarbara': 'Santa Bárbara',
+  'Sumare': 'Sumaré',
+};
+
 class _DiscoveryScreenState extends State<DiscoveryScreen> {
-  late final List<PlaceActivity> _places;
+  List<PlaceActivity> _places = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
   final TextEditingController _searchController = TextEditingController();
 
   String? _selectedCategory;
-  String? _selectedLocation;
+  String? _selectedCity;
 
   @override
   void initState() {
     super.initState();
-    _places = widget.repository.getPlaces();
+
     _searchController.addListener(_updateResults);
+    _loadPlaces();
   }
 
   @override
@@ -35,7 +50,31 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     _searchController
       ..removeListener(_updateResults)
       ..dispose();
+
     super.dispose();
+  }
+
+  Future<void> _loadPlaces() async {
+    try {
+      final places = await widget.repository.getPlaces();
+
+      if (!mounted) return;
+
+      setState(() {
+        _places = places;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      debugPrint('Erro ao carregar locais: $e');
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Não foi possível carregar os locais.';
+      });
+    }
   }
 
   void _updateResults() {
@@ -44,22 +83,23 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   List<PlaceActivity> get _filteredPlaces {
     final query = _searchController.text.trim().toLowerCase();
+
     return _places.where((place) {
-      final matchesQuery = query.isEmpty ||
+      final matchesQuery =
+          query.isEmpty ||
           place.name.toLowerCase().contains(query) ||
           place.description.toLowerCase().contains(query) ||
           place.category.toLowerCase().contains(query);
 
-      final matchesCategory = _selectedCategory == null ||
+      final matchesCategory =
+          _selectedCategory == null ||
           place.category == _selectedCategory;
 
-      final matchesLocation = switch (_selectedLocation) {
-        'Até 5 km' => place.distanceKm <= 5,
-        'Até 10 km' => place.distanceKm <= 10,
-        _ => true,
-      };
+      final matchesCity =
+          _selectedCity == null ||
+          place.city == _selectedCity;
 
-      return matchesQuery && matchesCategory && matchesLocation;
+      return matchesQuery && matchesCategory && matchesCity;
     }).toList();
   }
 
@@ -77,17 +117,37 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSearchField(),
+
                     const SizedBox(height: 16),
+
                     _buildFilters(),
+
                     const SizedBox(height: 18),
-                    ..._filteredPlaces.map(
-                      (place) => PlaceActivityCard(place: place),
-                    ),
-                    if (_filteredPlaces.isEmpty) _buildEmptyState(),
+
+                    if (_isLoading)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (_errorMessage != null)
+                      _buildErrorState()
+                    else ...[
+                      ..._filteredPlaces.map(
+                        (place) => PlaceActivityCard(
+                          place: place,
+                        ),
+                      ),
+
+                      if (_filteredPlaces.isEmpty)
+                        _buildEmptyState(),
+                    ],
                   ],
                 ),
               ),
             ),
+
             _buildFooter(),
           ],
         ),
@@ -160,22 +220,29 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          // Botão Filtrar no lado esquerdo
           _buildAddFilterButton(),
 
-          // Pílulas dos filtros ativos no lado direito
           if (_selectedCategory != null) ...[
             const SizedBox(width: 8),
             _buildActiveFilterChip(
               label: _selectedCategory!,
-              onRemove: () => setState(() => _selectedCategory = null),
+              onRemove: () {
+                setState(() {
+                  _selectedCategory = null;
+                });
+              },
             ),
           ],
-          if (_selectedLocation != null) ...[
+
+          if (_selectedCity != null) ...[
             const SizedBox(width: 8),
             _buildActiveFilterChip(
-              label: _selectedLocation!,
-              onRemove: () => setState(() => _selectedLocation = null),
+              label: _cityDisplayNames[_selectedCity] ?? _selectedCity!,
+              onRemove: () {
+                setState(() {
+                  _selectedCity = null;
+                });
+              },
             ),
           ],
         ],
@@ -183,7 +250,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     );
   }
 
-  // Botão de "Filtrar" no formato de pílula branca simples
   Widget _buildAddFilterButton() {
     return Container(
       decoration: BoxDecoration(
@@ -201,7 +267,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         borderRadius: BorderRadius.circular(30),
         onTap: _openFilterMenu,
         child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 10,
+          ),
           child: Text(
             'Filtrar',
             style: TextStyle(
@@ -216,7 +285,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     );
   }
 
-  // Pílula com o estilo azul e borda dupla conforme a imagem
   Widget _buildActiveFilterChip({
     required String label,
     required VoidCallback onRemove,
@@ -226,7 +294,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFF033B63), width: 2),
+        border: Border.all(
+          color: const Color(0xFF033B63),
+          width: 2,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x1A000000),
@@ -236,7 +307,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         ],
       ),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 6,
+        ),
         decoration: BoxDecoration(
           color: const Color(0xFF033B63),
           borderRadius: BorderRadius.circular(28),
@@ -271,70 +345,167 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   Future<void> _openFilterMenu() async {
     await showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'Categorias',
-                  style: TextStyle(
-                    fontFamily: 'Raleway',
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF033B63),
+          padding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 8,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Categorias',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF033B63),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              ListTile(
-                title: const Text('Lazer', style: TextStyle(fontFamily: 'Raleway')),
-                onTap: () {
-                  setState(() => _selectedCategory = 'Lazer');
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                title: const Text('Esporte', style: TextStyle(fontFamily: 'Raleway')),
-                onTap: () {
-                  setState(() => _selectedCategory = 'Esporte');
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'Distância',
-                  style: TextStyle(
-                    fontFamily: 'Raleway',
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF033B63),
+
+                  ListTile(
+                    title: const Text(
+                      'Cafeterias',
+                      style: TextStyle(fontFamily: 'Raleway'),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = 'Cafeterias';
+                      });
+                      Navigator.pop(context);
+                    },
                   ),
-                ),
+
+                  ListTile(
+                    title: const Text(
+                      'Lazer',
+                      style: TextStyle(fontFamily: 'Raleway'),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = 'Lazer';
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                  ListTile(
+                    title: const Text(
+                      'Restaurantes',
+                      style: TextStyle(fontFamily: 'Raleway'),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = 'Restaurantes';
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                  const Divider(),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Cidade',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF033B63),
+                      ),
+                    ),
+                  ),
+
+                  ListTile(
+                    title: const Text(
+                      'Americana',
+                      style: TextStyle(fontFamily: 'Raleway'),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedCity = 'Americana';
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                  ListTile(
+                    title: const Text(
+                      'Campinas',
+                      style: TextStyle(fontFamily: 'Raleway'),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedCity = 'Campinas';
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                  ListTile(
+                    title: const Text(
+                      'Limeira',
+                      style: TextStyle(fontFamily: 'Raleway'),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedCity = 'Limeira';
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                  ListTile(
+                    title: const Text(
+                      'Santa Bárbara',
+                      style: TextStyle(fontFamily: 'Raleway'),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedCity = 'SantaBarbara';
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                  ListTile(
+                    title: const Text(
+                      'Sumaré',
+                      style: TextStyle(fontFamily: 'Raleway'),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedCity = 'Sumare';
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
               ),
-              ListTile(
-                title: const Text('Até 5 km', style: TextStyle(fontFamily: 'Raleway')),
-                onTap: () {
-                  setState(() => _selectedLocation = 'Até 5 km');
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                title: const Text('Até 10 km', style: TextStyle(fontFamily: 'Raleway')),
-                onTap: () {
-                  setState(() => _selectedLocation = 'Até 10 km');
-                  Navigator.pop(context);
-                },
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -352,6 +523,23 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             fontSize: 14,
             color: Color(0xFF033B63),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: Text(
+          _errorMessage!,
+          style: const TextStyle(
+            fontFamily: 'Raleway',
+            fontSize: 14,
+            color: Color(0xFF033B63),
+          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
@@ -419,7 +607,9 @@ class _FooterItem extends StatelessWidget {
             height: 32,
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: selected ? const Color(0xFFD9EEFF) : Colors.transparent,
+              color: selected
+                  ? const Color(0xFFD9EEFF)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Image.asset(asset),
