@@ -238,7 +238,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                 MainAxisAlignment.center,
                             children: [
                               Text(
-                                '${widget.place.reviewCount}',
+                                '${widget.place.reviewsCount}',
                                 style: const TextStyle(
                                   fontFamily: 'Raleway',
                                   fontSize: 20,

@@ -10,6 +10,12 @@ final class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Retorna o usuário atualmente autenticado
+  static User? get currentUser => _auth.currentUser;
+
+  // ============================================================
+  // CADASTRO DE IDOSO
+  // ============================================================
   static Future<void> signUpElderly({
     required String name,
     required String email,
@@ -42,7 +48,9 @@ final class AuthService {
         'role': 'idoso',
         'birthDate': birthDate,
         'city': city,
-        'linkedElderEmail': (trimmedLinkedEmail?.isNotEmpty ?? false) ? trimmedLinkedEmail : null,
+        'linkedElderEmail': (trimmedLinkedEmail?.isNotEmpty ?? false)
+            ? trimmedLinkedEmail
+            : null,
         'interests': interests,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -52,6 +60,9 @@ final class AuthService {
     }
   }
 
+  // ============================================================
+  // CADASTRO DE FAMILIAR
+  // ============================================================
   static Future<void> signUpFamily({
     required String name,
     required String email,
@@ -72,7 +83,7 @@ final class AuthService {
         throw FirebaseAuthException(
           code: 'linked-elder-not-found',
           message:
-              "O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.",
+              'O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.',
         );
       }
 
@@ -82,7 +93,7 @@ final class AuthService {
         throw FirebaseAuthException(
           code: 'linked-elder-not-found',
           message:
-              "O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.",
+              'O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.',
         );
       }
     }
@@ -107,7 +118,9 @@ final class AuthService {
         'email': email.trim(),
         'role': 'familiar',
         'relationship': relationship.trim(),
-        'linkedElderEmail': (trimmedLinkedEmail?.isNotEmpty ?? false) ? trimmedLinkedEmail : null,
+        'linkedElderEmail': (trimmedLinkedEmail?.isNotEmpty ?? false)
+            ? trimmedLinkedEmail
+            : null,
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (error) {
@@ -116,6 +129,41 @@ final class AuthService {
     }
   }
 
+  // ============================================================
+  // LOGIN E IDENTIFICAÇÃO DE ROLE
+  // ============================================================
+  static Future<UserCredential> signIn({
+    required String email,
+    required String password,
+  }) async {
+    return await _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+  }
+
+  /// Consulta se o UID informado pertence a um idoso ou familiar
+  static Future<String?> getUserRole(String uid) async {
+    final idosoDoc = await _firestore.collection('idosos').doc(uid).get();
+    if (idosoDoc.exists) return 'idoso';
+
+    final familiarDoc =
+        await _firestore.collection('familiares').doc(uid).get();
+    if (familiarDoc.exists) return 'familiar';
+
+    return null;
+  }
+
+  // ============================================================
+  // RECUPERAÇÃO DE SENHA
+  // ============================================================
+  static Future<void> resetPassword(String email) async {
+    await _auth.sendPasswordResetEmail(email: email.trim());
+  }
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
   static Future<void> signOut() async {
     await _auth.signOut();
   }
@@ -123,6 +171,10 @@ final class AuthService {
   static Future<void> signOutAndRedirect(BuildContext context) async {
     await signOut();
     if (!context.mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 }

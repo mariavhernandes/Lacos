@@ -16,16 +16,15 @@ import '../../features/profile/presentation/pages/public_profile_page.dart';
 // ============================================================
 import '../../features/profile/presentation/pages/family/family_profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_about_me_page.dart';
-// import '../../features/profile/presentation/pages/edit_profile/edit_appearance_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_basic_data_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_interests_page.dart';
 
 // ============================================================
 // LOCAIS E ATIVIDADES
 // ============================================================
-import '../../features/discovery/presentation/screens/discovery_screen.dart';
-import '../../features/discovery/presentation/screens/detail_screen.dart';
 import '../../features/discovery/domain/models/place_activity.dart';
+import '../../features/discovery/presentation/screens/detail_screen.dart';
+import '../../features/discovery/presentation/screens/discovery_screen.dart';
 
 // ============================================================
 // CHAT
@@ -127,13 +126,6 @@ class AppRoutes {
       },
 
       // ----------------------------------------------------------
-      // EDITAR APARÊNCIA
-      // ----------------------------------------------------------
-      // editAppearance: (context) {
-      //   return const EditAppearancePage();
-      // },
-
-      // ----------------------------------------------------------
       // EDITAR DADOS BÁSICOS
       // ----------------------------------------------------------
       editBasicData: (context) {
@@ -176,7 +168,7 @@ class AppRoutes {
       },
 
       // ----------------------------------------------------------
-      // LOCAIS
+      // LOCAIS E ATIVIDADES
       // ----------------------------------------------------------
       discovery: (context) => const DiscoveryScreen(),
 
