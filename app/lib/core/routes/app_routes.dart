@@ -16,21 +16,21 @@ import '../../features/profile/presentation/pages/public_profile_page.dart';
 // ============================================================
 import '../../features/profile/presentation/pages/family/family_profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_about_me_page.dart';
-// import '../../features/profile/presentation/pages/edit_profile/edit_appearance_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_basic_data_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_interests_page.dart';
 
 // ============================================================
 // LOCAIS E ATIVIDADES
 // ============================================================
-import '../../features/discovery/presentation/screens/discovery_screen.dart';
-import '../../features/discovery/presentation/screens/detail_screen.dart';
 import '../../features/discovery/domain/models/place_activity.dart';
+import '../../features/discovery/presentation/screens/detail_screen.dart';
+import '../../features/discovery/presentation/screens/discovery_screen.dart';
 
 // ============================================================
-// CHAT
+// CHAT E GERENCIAMENTO DE MENSAGENS
 // ============================================================
 import '../../features/chat/screens/chat_list_screen.dart';
+import '../../features/chat/screens/manage_messages_screen.dart';
 
 class AppRoutes {
   // ============================================================
@@ -51,6 +51,7 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String help = '/help';
   static const String chat = '/chat';
+  static const String manageMessages = '/manage-messages';
 
   // ============================================================
   // EDITAR PERFIL DO IDOSO
@@ -127,13 +128,6 @@ class AppRoutes {
       },
 
       // ----------------------------------------------------------
-      // EDITAR APARÊNCIA
-      // ----------------------------------------------------------
-      // editAppearance: (context) {
-      //   return const EditAppearancePage();
-      // },
-
-      // ----------------------------------------------------------
       // EDITAR DADOS BÁSICOS
       // ----------------------------------------------------------
       editBasicData: (context) {
@@ -176,7 +170,7 @@ class AppRoutes {
       },
 
       // ----------------------------------------------------------
-      // LOCAIS
+      // LOCAIS E ATIVIDADES
       // ----------------------------------------------------------
       discovery: (context) => const DiscoveryScreen(),
 
@@ -193,9 +187,10 @@ class AppRoutes {
       },
 
       // ----------------------------------------------------------
-      // CHAT
+      // CHAT E GERENCIAMENTO DE MENSAGENS
       // ----------------------------------------------------------
       chat: (context) => const ChatListScreen(),
+      manageMessages: (context) => const ManageMessagesScreen(),
     };
   }
 }
