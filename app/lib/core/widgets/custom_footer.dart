@@ -67,9 +67,6 @@ class CustomFooter extends StatelessWidget {
                 'assets/icons/icons_footer/footer_location_icon.png',
             label: isFamilyRoute ? 'Localização' : 'Lugares',
             selected: currentIndex == 1,
-
-            // Para familiar: não faz nada.
-            // Para usuário idoso: continua abrindo Lugares.
             onTap: isFamilyRoute
                 ? () {}
                 : () {
@@ -91,19 +88,18 @@ class CustomFooter extends StatelessWidget {
                 'assets/icons/icons_footer/footer_chat_icon.png',
             label: 'Conversas',
             selected: currentIndex == 2,
+            onTap: () {
+              final targetRoute = isFamilyRoute
+                  ? '/manage-messages'
+                  : '/chat';
 
-            // Para familiar: não faz nada.
-            // Para usuário idoso: continua abrindo o chat.
-            onTap: isFamilyRoute
-                ? () {}
-                : () {
-                    if (currentRoute != '/chat') {
-                      Navigator.pushReplacementNamed(
-                        context,
-                        '/chat',
-                      );
-                    }
-                  },
+              if (currentRoute != targetRoute) {
+                Navigator.pushReplacementNamed(
+                  context,
+                  targetRoute,
+                );
+              }
+            },
           ),
 
           // =====================================================

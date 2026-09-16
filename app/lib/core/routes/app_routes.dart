@@ -27,9 +27,10 @@ import '../../features/discovery/presentation/screens/detail_screen.dart';
 import '../../features/discovery/presentation/screens/discovery_screen.dart';
 
 // ============================================================
-// CHAT
+// CHAT E GERENCIAMENTO DE MENSAGENS
 // ============================================================
 import '../../features/chat/screens/chat_list_screen.dart';
+import '../../features/chat/screens/manage_messages_screen.dart';
 
 class AppRoutes {
   // ============================================================
@@ -50,6 +51,7 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String help = '/help';
   static const String chat = '/chat';
+  static const String manageMessages = '/manage-messages';
 
   // ============================================================
   // EDITAR PERFIL DO IDOSO
@@ -185,9 +187,10 @@ class AppRoutes {
       },
 
       // ----------------------------------------------------------
-      // CHAT
+      // CHAT E GERENCIAMENTO DE MENSAGENS
       // ----------------------------------------------------------
       chat: (context) => const ChatListScreen(),
+      manageMessages: (context) => const ManageMessagesScreen(),
     };
   }
 }

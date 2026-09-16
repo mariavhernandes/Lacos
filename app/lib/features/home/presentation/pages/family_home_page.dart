@@ -16,7 +16,11 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   String _userFirstName = '';
   String _userLastName = '';
   String _elderlyMonitoredName = 'Idoso vinculado';
+  String _elderlyUid = '';
   bool _isLoadingData = true;
+
+  // Cache para guardar nomes já buscados por UID e evitar chamadas repetidas
+  final Map<String, String> _userNameCache = {};
 
   @override
   void initState() {
@@ -29,6 +33,87 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     List<String> parts = fullName.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) return parts.first;
     return '${parts.first} ${parts.last}';
+  }
+
+  String _formatTimeAgo(Timestamp? timestamp) {
+    if (timestamp == null) return 'Sem data';
+    final DateTime dateTime = timestamp.toDate();
+    final Duration difference = DateTime.now().difference(dateTime);
+
+    if (difference.inMinutes < 1) return 'Agora mesmo';
+    if (difference.inMinutes < 60) return 'Há ${difference.inMinutes}min';
+    if (difference.inHours < 24) return 'Há ${difference.inHours} ${difference.inHours == 1 ? 'hora' : 'horas'}';
+    return 'Há ${difference.inDays} ${difference.inDays == 1 ? 'dia' : 'dias'}';
+  }
+
+  // Descobre o nome do chat (se for grupo usa groupName, se for pessoa busca pelo UID no Firestore)
+  Future<String> _getChatDisplayName(Map<String, dynamic> data) async {
+    // 1. Se tiver groupName definido
+    if (data['groupName'] != null && data['groupName'].toString().trim().isNotEmpty) {
+      return data['groupName'].toString();
+    }
+
+    // 2. Se já tiver campo com nome salvo
+    if (data['participantName'] != null && data['participantName'].toString().trim().isNotEmpty) {
+      return data['participantName'].toString();
+    }
+    if (data['name'] != null && data['name'].toString().trim().isNotEmpty) {
+      return data['name'].toString();
+    }
+
+    // 3. Se for conversa individual com array de participantes (UIDs)
+    final List<dynamic> participants = data['participants'] ?? [];
+    
+    // Procura o ID que seja diferente do ID do idoso monitorado
+    String otherUid = '';
+    for (var uid in participants) {
+      if (uid.toString() != _elderlyUid && uid.toString().isNotEmpty) {
+        otherUid = uid.toString();
+        break;
+      }
+    }
+
+    if (otherUid.isEmpty && participants.isNotEmpty) {
+      otherUid = participants.first.toString();
+    }
+
+    if (otherUid.isNotEmpty) {
+      if (_userNameCache.containsKey(otherUid)) {
+        return _userNameCache[otherUid]!;
+      }
+
+      try {
+        // Busca o nome na coleção de idosos
+        final elderDoc = await FirebaseFirestore.instance.collection('idosos').doc(otherUid).get();
+        if (elderDoc.exists && elderDoc.data() != null) {
+          final eData = elderDoc.data()!;
+          final fetchedName = eData['name'] ?? eData['fullName'] ?? 'Usuário';
+          _userNameCache[otherUid] = fetchedName.toString();
+          return fetchedName.toString();
+        }
+
+        // Se não achou em idosos, busca na coleção de familiares
+        final famDoc = await FirebaseFirestore.instance.collection('familiares').doc(otherUid).get();
+        if (famDoc.exists && famDoc.data() != null) {
+          final fData = famDoc.data()!;
+          final fetchedName = fData['name'] ?? fData['fullName'] ?? 'Usuário';
+          _userNameCache[otherUid] = fetchedName.toString();
+          return fetchedName.toString();
+        }
+      } catch (e) {
+        debugPrint('Erro ao buscar nome do participante: $e');
+      }
+    }
+
+    return 'Conversa';
+  }
+
+  String _extractParticipantAvatar(Map<String, dynamic> data) {
+    return data['participantAvatar'] ??
+        data['avatar'] ??
+        data['userPhoto'] ??
+        data['photoUrl'] ??
+        '';
   }
 
   Future<void> _fetchUserData() async {
@@ -47,6 +132,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
           final String linkedEmail = data['linkedElderEmail'] ?? '';
 
           String foundElderlyName = 'Idoso vinculado';
+          String foundElderUid = '';
 
           if (linkedEmail.isNotEmpty) {
             final QuerySnapshot elderQuery = await FirebaseFirestore.instance
@@ -56,7 +142,9 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 .get();
 
             if (elderQuery.docs.isNotEmpty) {
-              final elderData = elderQuery.docs.first.data() as Map<String, dynamic>;
+              final elderDoc = elderQuery.docs.first;
+              final elderData = elderDoc.data() as Map<String, dynamic>;
+              foundElderUid = elderDoc.id;
               final String rawElderName = elderData['name'] ?? elderData['fullName'] ?? '';
               if (rawElderName.isNotEmpty) {
                 foundElderlyName = _formatFirstAndLastName(rawElderName);
@@ -72,6 +160,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 _userFirstName = nameParts.first;
                 _userLastName = nameParts.length > 1 ? nameParts.last : '';
                 _elderlyMonitoredName = foundElderlyName;
+                _elderlyUid = foundElderUid;
                 _isLoadingData = false;
               });
             }
@@ -110,9 +199,104 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 _elderlyMonitoredName,
               ),
               const SizedBox(height: 20),
-              _buildMetricCardsSection(),
-              const SizedBox(height: 28),
-              _buildRecentActivitiesSection(),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('chats')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting && _isLoadingData) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: CircularProgressIndicator(color: Color(0xFF033B63)),
+                      ),
+                    );
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+
+                  // Ordena localmente pela data da última mensagem
+                  final List<QueryDocumentSnapshot> sortedDocs = List.from(docs);
+                  sortedDocs.sort((a, b) {
+                    final dataA = a.data() as Map<String, dynamic>;
+                    final dataB = b.data() as Map<String, dynamic>;
+                    final Timestamp? timeA = dataA['lastMessageTime'] as Timestamp? ?? dataA['timestamp'] as Timestamp?;
+                    final Timestamp? timeB = dataB['lastMessageTime'] as Timestamp? ?? dataB['timestamp'] as Timestamp?;
+                    if (timeA == null) return 1;
+                    if (timeB == null) return -1;
+                    return timeB.compareTo(timeA);
+                  });
+
+                  final activeDocs = _elderlyUid.isNotEmpty
+                      ? sortedDocs.where((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final List<dynamic> participants = data['participants'] ?? [];
+                          final String participantId = data['participantId'] ?? '';
+                          return participants.contains(_elderlyUid) || participantId == _elderlyUid;
+                        }).toList()
+                      : sortedDocs;
+
+                  final docsToDisplay = activeDocs.isNotEmpty ? activeDocs : sortedDocs;
+
+                  // 1. Total de conversas ativas
+                  final int totalChats = docsToDisplay.length;
+
+                  // 2. Busca o nome do primeiro chat para a "Última Interação"
+                  final Future<String> lastInteractionFuture = docsToDisplay.isNotEmpty
+                      ? _getChatDisplayName(docsToDisplay.first.data() as Map<String, dynamic>)
+                      : Future.value('-');
+
+                  return FutureBuilder<String>(
+                    future: lastInteractionFuture,
+                    builder: (context, lastInterSnap) {
+                      final String rawLastInter = lastInterSnap.data ?? '-';
+                      final String lastInteractionUser = rawLastInter != '-'
+                          ? _formatFirstAndLastName(rawLastInter)
+                          : '-';
+
+                      // 3. Busca o Novo Seguidor
+                      return FutureBuilder<QuerySnapshot>(
+                        future: _elderlyUid.isNotEmpty
+                            ? FirebaseFirestore.instance
+                                .collection('idosos')
+                                .doc(_elderlyUid)
+                                .collection('seguidores')
+                                .orderBy('createdAt', descending: true)
+                                .limit(1)
+                                .get()
+                            : null,
+                        builder: (context, followerSnap) {
+                          String newFollowerName = '-';
+
+                          if (followerSnap.hasData &&
+                              followerSnap.data != null &&
+                              followerSnap.data!.docs.isNotEmpty) {
+                            final followerData =
+                                followerSnap.data!.docs.first.data() as Map<String, dynamic>;
+                            final rawFollower = followerData['name'] ?? followerData['fullName'] ?? '';
+                            if (rawFollower.isNotEmpty) {
+                              newFollowerName = _formatFirstAndLastName(rawFollower);
+                            }
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildMetricCardsSection(
+                                unreadCount: totalChats,
+                                newFollower: newFollowerName,
+                                lastInteraction: lastInteractionUser,
+                              ),
+                              const SizedBox(height: 28),
+                              _buildRecentActivitiesSection(docsToDisplay),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -226,7 +410,11 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 
-  Widget _buildMetricCardsSection() {
+  Widget _buildMetricCardsSection({
+    required int unreadCount,
+    required String newFollower,
+    required String lastInteraction,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: IntrinsicHeight(
@@ -236,7 +424,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             Expanded(
               child: _buildMetricCard(
                 title: 'Conversas',
-                value: '3 NOVAS',
+                value: '$unreadCount ATIVAS',
                 assetPath: 'assets/images/family/chat_icon.png',
                 fallbackIcon: Icons.chat_bubble_outline,
               ),
@@ -245,7 +433,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             Expanded(
               child: _buildMetricCard(
                 title: 'Novo Seguidor',
-                value: 'José Carlos',
+                value: newFollower,
                 assetPath: 'assets/images/family/new_follower.png',
                 fallbackIcon: Icons.account_circle_outlined,
               ),
@@ -254,7 +442,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             Expanded(
               child: _buildMetricCard(
                 title: 'Última Interação',
-                value: 'Éder Barros',
+                value: lastInteraction,
                 assetPath: 'assets/images/family/last_interation_icon.png',
                 fallbackIcon: Icons.access_time_outlined,
               ),
@@ -272,7 +460,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     required IconData fallbackIcon,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -304,28 +492,27 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             children: [
               Image.asset(
                 assetPath,
-                width: 16,
-                height: 16,
+                width: 15,
+                height: 15,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => Icon(
                   fallbackIcon,
-                  size: 16,
+                  size: 15,
                   color: const Color(0xFF033B63),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 3),
               Flexible(
                 child: Text(
                   value,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
-                  softWrap: true,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: 'Raleway',
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF033B63),
-                    height: 1.1,
                   ),
                 ),
               ),
@@ -336,7 +523,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 
-  Widget _buildRecentActivitiesSection() {
+  Widget _buildRecentActivitiesSection(List<QueryDocumentSnapshot> docs) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -352,17 +539,49 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildActivityCard('Anderson', 'Há 8min'),
-          const SizedBox(height: 12),
-          _buildActivityCard('Marina', 'Há 30min'),
-          const SizedBox(height: 12),
-          _buildActivityCard('Lurdes', 'Há 1 hora'),
+          if (docs.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Nenhuma atividade recente.',
+                style: TextStyle(fontFamily: 'Raleway', color: Colors.black45),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: docs.length > 5 ? 5 : docs.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final data = docs[index].data() as Map<String, dynamic>;
+                final Timestamp? timestamp = data['lastMessageTime'] as Timestamp? ??
+                    data['timestamp'] as Timestamp?;
+                final String avatarUrl = _extractParticipantAvatar(data);
+
+                return FutureBuilder<String>(
+                  future: _getChatDisplayName(data),
+                  builder: (context, nameSnapshot) {
+                    final rawName = nameSnapshot.data ?? 'Carregando...';
+                    return _buildActivityCard(
+                      name: _formatFirstAndLastName(rawName),
+                      timeAgo: _formatTimeAgo(timestamp),
+                      avatarUrl: avatarUrl,
+                    );
+                  },
+                );
+              },
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildActivityCard(String name, String timeAgo) {
+  Widget _buildActivityCard({
+    required String name,
+    required String timeAgo,
+    String avatarUrl = '',
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -379,10 +598,15 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 24,
-            backgroundColor: Color(0xFFE0E0E0),
-            child: Icon(Icons.person, size: 30, color: Colors.white),
+            backgroundColor: const Color(0xFFE0E0E0),
+            backgroundImage: avatarUrl.startsWith('http')
+                ? NetworkImage(avatarUrl)
+                : (avatarUrl.isNotEmpty ? AssetImage(avatarUrl) as ImageProvider : null),
+            child: avatarUrl.isEmpty
+                ? const Icon(Icons.person, size: 30, color: Colors.white)
+                : null,
           ),
           const SizedBox(width: 16),
           Column(

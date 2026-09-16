@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-/// Representa uma conversa privada entre dois participantes.
+/// Representa uma conversa privada entre dois participantes ou em grupo.
 ///
 /// O modelo é imutável para facilitar o uso em widgets, estados e
 /// futuras integrações com Firebase Firestore.
@@ -26,7 +26,7 @@ class Chat {
   /// Identificador do participante da conversa.
   final String? participantId;
 
-  /// Nome exibido do participante.
+  /// Nome exibido do participante ou do grupo.
   final String? participantName;
 
   /// URL, caminho ou identificador do avatar do participante.
@@ -82,17 +82,35 @@ class Chat {
   }
 
   /// Cria uma instância de [Chat] a partir de um mapa.
-  factory Chat.fromMap(Map<String, dynamic> map) {
+  factory Chat.fromMap(Map<String, dynamic> map, {String? docId}) {
+    // Procura o nome do participante ou grupo entre diversos campos possíveis
+    final name = map['groupName'] ??
+        map['participantName'] ??
+        map['name'] ??
+        map['otherUserName'] ??
+        map['userName'] ??
+        map['senderName'];
+
     return Chat(
-      id: map['id'] as String?,
+      id: docId ?? map['id'] as String?,
       participantId: map['participantId'] as String?,
-      participantName: map['participantName'] as String?,
-      participantAvatar: map['participantAvatar'] as String?,
+      participantName: name?.toString(),
+      participantAvatar: (map['participantAvatar'] ??
+              map['avatar'] ??
+              map['userPhoto'] ??
+              map['photoUrl'])
+          ?.toString(),
       lastMessage: map['lastMessage'] as String?,
-      lastMessageTime: _parseDateTime(map['lastMessageTime']),
-      unreadMessages: _parseInt(map['unreadMessages']),
+      lastMessageTime: _parseDateTime(map['lastMessageTime'] ?? map['timestamp']),
+      unreadMessages: _parseInt(map['unreadMessages'] ?? map['unreadCount']),
       isBlocked: map['isBlocked'] as bool? ?? false,
     );
+  }
+
+  /// Converte um QueryDocumentSnapshot ou DocumentSnapshot em um Chat.
+  factory Chat.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    return Chat.fromMap(data, docId: doc.id);
   }
 
   /// Serializa o modelo em string JSON.
