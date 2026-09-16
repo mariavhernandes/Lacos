@@ -38,16 +38,17 @@ final class AuthService {
       );
     }
 
-    final trimmedLinkedEmail = linkedElderEmail?.trim();
+    final trimmedLinkedEmail = linkedElderEmail?.trim().toLowerCase();
 
     try {
       await _firestore.collection('idosos').doc(uid).set({
         'uid': uid,
         'name': name.trim(),
-        'email': email.trim(),
+        'email': email.trim().toLowerCase(),
         'role': 'idoso',
         'birthDate': birthDate,
         'city': city,
+        // 2. Agora pode usar diretamente a variável já tratada
         'linkedElderEmail': (trimmedLinkedEmail?.isNotEmpty ?? false)
             ? trimmedLinkedEmail
             : null,
@@ -70,34 +71,10 @@ final class AuthService {
     required String relationship,
     String? linkedElderEmail,
   }) async {
-    final trimmedLinkedEmail = linkedElderEmail?.trim();
+    final trimmedLinkedEmail = linkedElderEmail?.trim().toLowerCase();
 
-    if (trimmedLinkedEmail != null && trimmedLinkedEmail.isNotEmpty) {
-      final query = await _firestore
-          .collection('idosos')
-          .where('email', isEqualTo: trimmedLinkedEmail)
-          .limit(1)
-          .get();
-
-      if (query.docs.isEmpty) {
-        throw FirebaseAuthException(
-          code: 'linked-elder-not-found',
-          message:
-              'O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.',
-        );
-      }
-
-      final data = query.docs.first.data();
-      final role = data['role'];
-      if (role != 'idoso') {
-        throw FirebaseAuthException(
-          code: 'linked-elder-not-found',
-          message:
-              'O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.',
-        );
-      }
-    }
-
+    // 1. Cria a conta de autenticação primeiro para garantir que as
+    // regras de segurança (request.auth != null) permitam a leitura no Firestore
     final userCredential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
@@ -112,10 +89,38 @@ final class AuthService {
     }
 
     try {
+      // 2. Se informou um e-mail de idoso, valida se ele realmente existe
+      if (trimmedLinkedEmail != null && trimmedLinkedEmail.isNotEmpty) {
+        final query = await _firestore
+            .collection('idosos')
+            .where('email', isEqualTo: trimmedLinkedEmail)
+            .limit(1)
+            .get();
+
+        if (query.docs.isEmpty) {
+          throw FirebaseAuthException(
+            code: 'linked-elder-not-found',
+            message:
+                'O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.',
+          );
+        }
+
+        final data = query.docs.first.data();
+        final role = data['role'];
+        if (role != 'idoso') {
+          throw FirebaseAuthException(
+            code: 'linked-elder-not-found',
+            message:
+                'O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.',
+          );
+        }
+      }
+
+      // 3. Salva os dados do familiar no Firestore
       await _firestore.collection('familiares').doc(uid).set({
         'uid': uid,
         'name': name.trim(),
-        'email': email.trim(),
+        'email': email.trim().toLowerCase(),
         'role': 'familiar',
         'relationship': relationship.trim(),
         'linkedElderEmail': (trimmedLinkedEmail?.isNotEmpty ?? false)
@@ -124,6 +129,7 @@ final class AuthService {
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (error) {
+      // Se houver qualquer falha na validação ou salvamento, desfaz a criação da conta no Auth
       await userCredential.user?.delete();
       rethrow;
     }
