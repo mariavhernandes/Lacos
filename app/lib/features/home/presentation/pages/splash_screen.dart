@@ -33,12 +33,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _sortearFrase() {
     final random = Random();
+
     setState(() {
-      _fraseSorteada = _frasesAcolhedoras[random.nextInt(_frasesAcolhedoras.length)];
+      _fraseSorteada =
+          _frasesAcolhedoras[random.nextInt(_frasesAcolhedoras.length)];
     });
   }
 
-  // Método disparado APENAS ao clicar no botão "Começar"
+  // Método disparado apenas ao clicar no botão "Começar"
   Future<void> _navegarParaHome() async {
     setState(() => _isLoading = true);
 
@@ -47,31 +49,83 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (user == null) {
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.login,
+        (route) => false,
+      );
       return;
     }
 
     final uid = user.uid;
 
-    // Checa perfil no Firestore
-    final elderlyDoc = await FirebaseFirestore.instance.collection('idosos').doc(uid).get();
-    if (!mounted) return;
-    if (elderlyDoc.exists) {
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.elderlyHome, (route) => false);
-      return;
-    }
+    try {
+      // ============================================================
+      // PRIMEIRO: verifica se é IDOSO
+      // ============================================================
+      final elderlyDoc = await FirebaseFirestore.instance
+          .collection('idosos')
+          .doc(uid)
+          .get();
 
-    final familyDoc = await FirebaseFirestore.instance.collection('familiares').doc(uid).get();
-    if (!mounted) return;
-    if (familyDoc.exists) {
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.familyHome, (route) => false);
-      return;
-    }
+      if (!mounted) return;
 
-    // Se por algum motivo o usuário não estiver em nenhuma coleção
-    await FirebaseAuth.instance.signOut();
-    if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+      if (elderlyDoc.exists) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.elderlyHome,
+          (route) => false,
+        );
+        return;
+      }
+
+      // ============================================================
+      // SEGUNDO: verifica se é FAMILIAR
+      // ============================================================
+      final familyDoc = await FirebaseFirestore.instance
+          .collection('familiares')
+          .doc(uid)
+          .get();
+
+      if (!mounted) return;
+
+      if (familyDoc.exists) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.familyHome,
+          (route) => false,
+        );
+        return;
+      }
+
+      // ============================================================
+      // USUÁRIO NÃO ENCONTRADO EM NENHUM PERFIL
+      // ============================================================
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.login,
+        (route) => false,
+      );
+    } catch (e) {
+      debugPrint('Erro ao identificar tipo de usuário: $e');
+
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível identificar seu perfil. Tente novamente.',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   @override
@@ -83,17 +137,24 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 24.0, top: 12.0, bottom: 8.0),
+              padding: const EdgeInsets.only(
+                left: 16.0,
+                right: 24.0,
+                top: 12.0,
+                bottom: 8.0,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Image.asset(
                   'assets/logos/logo_with_name.png',
                   height: 50,
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox(height: 50),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox(height: 50),
                 ),
               ),
             ),
+
             Expanded(
               flex: 6,
               child: Image.asset(
@@ -102,6 +163,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: double.infinity,
               ),
             ),
+
             Expanded(
               flex: 6,
               child: Container(
@@ -113,7 +175,12 @@ class _SplashScreenState extends State<SplashScreen> {
                     topRight: Radius.circular(36.0),
                   ),
                 ),
-                padding: const EdgeInsets.only(left: 28.0, right: 28.0, top: 28.0, bottom: 16.0),
+                padding: const EdgeInsets.only(
+                  left: 28.0,
+                  right: 28.0,
+                  top: 28.0,
+                  bottom: 16.0,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -128,22 +195,26 @@ class _SplashScreenState extends State<SplashScreen> {
                         height: 1.2,
                       ),
                     ),
+
                     Text(
                       _fraseSorteada,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: 'Raleway',
-                        color: Color(0xFFFFFFFF),
+                        color: Colors.white,
                         fontSize: 15,
                         fontWeight: FontWeight.w300,
                       ),
                     ),
+
                     const SizedBox(height: 8),
+
                     SizedBox(
                       width: double.infinity,
                       height: 44,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _navegarParaHome,
+                        onPressed:
+                            _isLoading ? null : _navegarParaHome,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1F5A84),
                           elevation: 0,
@@ -152,9 +223,12 @@ class _SplashScreenState extends State<SplashScreen> {
                           ),
                         ),
                         child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
                             : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
                                 children: [
                                   const Text(
                                     'Começar',
@@ -170,7 +244,9 @@ class _SplashScreenState extends State<SplashScreen> {
                                     'assets/images/elderly/start_arrow.png',
                                     height: 28,
                                     width: 28,
-                                    errorBuilder: (context, error, stackTrace) => const Icon(
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
                                       Icons.arrow_forward,
                                       color: Colors.white,
                                       size: 24,

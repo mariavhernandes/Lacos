@@ -17,10 +17,12 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   LoginProfile _profile = LoginProfile.usuario;
+
   bool _showPassword = false;
   bool _isLoading = false;
 
@@ -32,27 +34,41 @@ class _LoginPageState extends State<LoginPage> {
 
   void _verificarSessaoAtiva() {
     FirebaseAuth.instance.authStateChanges().first.then((user) async {
-      if (user != null && mounted) {
-        final familyDoc = await FirebaseFirestore.instance
-            .collection('familiares')
-            .doc(user.uid)
-            .get();
+      if (user == null || !mounted) return;
 
-        if (!mounted) return;
+      final uid = user.uid;
 
-        if (familyDoc.exists) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.familyHome,
-            (route) => false,
-          );
-        } else {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.splashScreen,
-            (route) => false,
-          );
-        }
+      // Verifica se é familiar
+      final familyDoc = await FirebaseFirestore.instance
+          .collection('familiares')
+          .doc(uid)
+          .get();
+
+      if (!mounted) return;
+
+      if (familyDoc.exists) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.familyHome,
+          (route) => false,
+        );
+        return;
+      }
+
+      // Verifica se é idoso
+      final elderlyDoc = await FirebaseFirestore.instance
+          .collection('idosos')
+          .doc(uid)
+          .get();
+
+      if (!mounted) return;
+
+      if (elderlyDoc.exists) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.splashScreen,
+          (route) => false,
+        );
       }
     });
   }
@@ -74,9 +90,15 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _showError(String message) async {
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontFamily: 'Raleway')),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontFamily: 'Raleway',
+          ),
+        ),
         backgroundColor: Colors.redAccent,
         duration: const Duration(seconds: 3),
       ),
@@ -84,18 +106,29 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
+
     FocusScope.of(context).unfocus();
 
     try {
-      final credentials = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // ============================================================
+      // LOGIN NO FIREBASE AUTH
+      // ============================================================
+
+      final credentials =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       final uid = credentials.user?.uid;
+
       if (uid == null) {
         throw FirebaseAuthException(
           code: 'invalid-user',
@@ -103,77 +136,95 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
 
-      final String primaryCollection =
-          _profile == LoginProfile.usuario ? 'idosos' : 'familiares';
+      // ============================================================
+      // SELECIONOU FAMILIAR
+      // ============================================================
 
-      DocumentSnapshot<Map<String, dynamic>> userDoc =
-          await FirebaseFirestore.instance.collection(primaryCollection).doc(uid).get();
-
-      if (!userDoc.exists) {
-        final String secondaryCollection =
-            _profile == LoginProfile.usuario ? 'users' : 'responsaveis';
-        userDoc = await FirebaseFirestore.instance
-            .collection(secondaryCollection)
+      if (_profile == LoginProfile.familiar) {
+        final familyDoc = await FirebaseFirestore.instance
+            .collection('familiares')
             .doc(uid)
             .get();
-      }
 
-      if (!userDoc.exists) {
-        userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      }
+        if (!familyDoc.exists) {
+          await FirebaseAuth.instance.signOut();
 
-      if (!userDoc.exists || userDoc.data() == null) {
-        await FirebaseAuth.instance.signOut();
-        await _showError('Dados do usuário não encontrados. Faça o cadastro novamente.');
+          await _showError(
+            'Esta conta não está cadastrada como Familiar.',
+          );
+
+          return;
+        }
+
+        if (!mounted) return;
+
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.familyHome,
+          (route) => false,
+        );
+
         return;
       }
 
-      final userData = userDoc.data()!;
+      // ============================================================
+      // SELECIONOU USUÁRIO / IDOSO
+      // ============================================================
 
-      final String rawRole = (userData['role'] ??
-                              userData['tipo'] ??
-                              userData['perfil'] ??
-                              userData['accountType'] ??
-                              '').toString().toLowerCase().trim();
+      if (_profile == LoginProfile.usuario) {
+        final elderlyDoc = await FirebaseFirestore.instance
+            .collection('idosos')
+            .doc(uid)
+            .get();
 
-      final bool isElderlyRole = rawRole == 'idoso' || rawRole == 'usuario' || rawRole == 'user';
-      final bool isFamilyRole = rawRole == 'familiar' || rawRole == 'responsavel' || rawRole == 'family';
+        if (!elderlyDoc.exists) {
+          await FirebaseAuth.instance.signOut();
 
-      final bool isSelectedElderly = _profile == LoginProfile.usuario;
-      final bool isSelectedFamily = _profile == LoginProfile.familiar;
+          await _showError(
+            'Esta conta não está cadastrada como Usuário.',
+          );
 
-      final bool isProfileValid = (isSelectedElderly && (isElderlyRole || rawRole.isEmpty)) ||
-                                  (isSelectedFamily && (isFamilyRole || rawRole.isEmpty));
+          return;
+        }
 
-      if (!isProfileValid) {
-        await FirebaseAuth.instance.signOut();
-        await _showError('Este perfil de acesso não corresponde ao tipo da sua conta.');
+        if (!mounted) return;
+
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.splashScreen,
+          (route) => false,
+        );
+
         return;
       }
-
-      if (!mounted) return;
-
-      final String targetRoute = isSelectedFamily
-          ? AppRoutes.familyHome
-          : AppRoutes.splashScreen;
-
-      Navigator.pushNamedAndRemoveUntil(context, targetRoute, (route) => false);
     } on FirebaseAuthException catch (e) {
       final message = switch (e.code) {
-        'user-not-found' => 'Usuário não encontrado.',
-        'wrong-password' => 'E-mail ou senha incorretos.',
-        'invalid-credential' => 'E-mail ou senha incorretos.',
-        'invalid-email' => 'Formato de e-mail inválido.',
-        'user-disabled' => 'Esta conta foi desativada.',
-        'too-many-requests' => 'Muitas tentativas. Tente novamente mais tarde.',
-        _ => 'Erro de autenticação. Verifique seus dados e tente novamente.',
+        'user-not-found' =>
+          'Usuário não encontrado.',
+        'wrong-password' =>
+          'E-mail ou senha incorretos.',
+        'invalid-credential' =>
+          'E-mail ou senha incorretos.',
+        'invalid-email' =>
+          'Formato de e-mail inválido.',
+        'user-disabled' =>
+          'Esta conta foi desativada.',
+        'too-many-requests' =>
+          'Muitas tentativas. Tente novamente mais tarde.',
+        _ =>
+          'Erro de autenticação. Verifique seus dados e tente novamente.',
       };
+
       await _showError(message);
     } catch (_) {
-      await _showError('Erro ao realizar login. Tente novamente mais tarde.');
+      await _showError(
+        'Erro ao realizar login. Tente novamente mais tarde.',
+      );
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -211,11 +262,16 @@ class _LoginPageState extends State<LoginPage> {
           fillColor: const Color(0xFFF6F6F6),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF888888)),
+            borderSide: const BorderSide(
+              color: Color(0xFF888888),
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF033B63), width: 2),
+            borderSide: const BorderSide(
+              color: Color(0xFF033B63),
+              width: 2,
+            ),
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -225,16 +281,27 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildProfileCheckbox(LoginProfile profile, String label) {
+  Widget _buildProfileCheckbox(
+    LoginProfile profile,
+    String label,
+  ) {
     final bool isSelected = _profile == profile;
+
     return InkWell(
-      onTap: () => setState(() => _profile = profile),
+      onTap: () {
+        setState(() {
+          _profile = profile;
+        });
+      },
       borderRadius: BorderRadius.circular(8),
       hoverColor: Colors.transparent,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+        padding: const EdgeInsets.symmetric(
+          vertical: 4,
+          horizontal: 4,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -246,13 +313,19 @@ class _LoginPageState extends State<LoginPage> {
                 width: 2,
               ),
               checkColor: Colors.white,
-              fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+              fillColor:
+                  WidgetStateProperty.resolveWith<Color>((states) {
                 if (states.contains(WidgetState.selected)) {
                   return const Color(0xFF033B63);
                 }
+
                 return Colors.transparent;
               }),
-              onChanged: (_) => setState(() => _profile = profile),
+              onChanged: (_) {
+                setState(() {
+                  _profile = profile;
+                });
+              },
             ),
             Text(
               label,
@@ -275,17 +348,23 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 16,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 8),
+
               Image.asset(
                 'assets/logos/app_logo.png',
                 height: 95,
                 fit: BoxFit.contain,
               ),
+
               const SizedBox(height: 18),
+
               const Text(
                 'Bem-vindo(a)!',
                 style: TextStyle(
@@ -295,7 +374,9 @@ class _LoginPageState extends State<LoginPage> {
                   color: Color(0xFF033B63),
                 ),
               ),
+
               const SizedBox(height: 8),
+
               const Text(
                 'Entre com sua conta',
                 style: TextStyle(
@@ -305,7 +386,9 @@ class _LoginPageState extends State<LoginPage> {
                   color: Color(0xFF033B63),
                 ),
               ),
+
               const SizedBox(height: 24),
+
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -318,89 +401,130 @@ class _LoginPageState extends State<LoginPage> {
                       color: Color(0xFF033B63),
                     ),
                   ),
+
                   const SizedBox(height: 8),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      _buildProfileCheckbox(LoginProfile.usuario, 'Usuário'),
+                      _buildProfileCheckbox(
+                        LoginProfile.usuario,
+                        'Usuário',
+                      ),
                       const SizedBox(width: 16),
-                      _buildProfileCheckbox(LoginProfile.familiar, 'Familiar'),
+                      _buildProfileCheckbox(
+                        LoginProfile.familiar,
+                        'Familiar',
+                      ),
                     ],
                   ),
+
                   const SizedBox(height: 8),
+
                   Form(
                     key: _formKey,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.stretch,
                       children: [
                         _buildInput(
                           label: 'E-mail',
                           hint: 'Digite seu e-mail',
                           controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
+                          keyboardType:
+                              TextInputType.emailAddress,
                           validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
+                            if (value == null ||
+                                value.trim().isEmpty) {
                               return 'Informe seu e-mail.';
                             }
+
                             final emailRegex = RegExp(
-                                r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}");
-                            if (!emailRegex.hasMatch(value.trim())) {
+                              r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}",
+                            );
+
+                            if (!emailRegex
+                                .hasMatch(value.trim())) {
                               return 'E-mail inválido.';
                             }
+
                             return null;
                           },
                         ),
+
                         _buildInput(
                           label: 'Senha',
                           hint: 'Digite sua senha',
                           controller: _passwordController,
                           obscureText: !_showPassword,
                           suffixIcon: IconButton(
-                            onPressed: () => setState(
-                                () => _showPassword = !_showPassword),
+                            onPressed: () {
+                              setState(() {
+                                _showPassword =
+                                    !_showPassword;
+                              });
+                            },
                             icon: Icon(
                               _showPassword
                                   ? Icons.visibility_off
                                   : Icons.visibility,
-                              color: const Color(0xFF033B63),
+                              color:
+                                  const Color(0xFF033B63),
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null ||
+                                value.isEmpty) {
                               return 'Informe sua senha.';
                             }
+
                             if (value.length < 6) {
                               return 'A senha deve ter pelo menos 6 caracteres.';
                             }
+
                             return null;
                           },
                         ),
+
                         const SizedBox(height: 8),
+
                         MouseRegion(
-                          cursor: SystemMouseCursors.click,
+                          cursor:
+                              SystemMouseCursors.click,
                           child: GestureDetector(
-                            onTap: _navigateToRecoverPassword,
+                            onTap:
+                                _navigateToRecoverPassword,
                             child: RichText(
                               text: const TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: 'Esqueceu a senha? ',
+                                    text:
+                                        'Esqueceu a senha? ',
                                     style: TextStyle(
-                                      fontFamily: 'Raleway',
-                                      fontWeight: FontWeight.w600,
+                                      fontFamily:
+                                          'Raleway',
+                                      fontWeight:
+                                          FontWeight.w600,
                                       fontSize: 14,
-                                      color: Color(0xFF033B63),
+                                      color:
+                                          Color(0xFF033B63),
                                     ),
                                   ),
                                   TextSpan(
                                     text: 'Clique aqui',
                                     style: TextStyle(
-                                      fontFamily: 'Raleway',
-                                      fontWeight: FontWeight.w600,
+                                      fontFamily:
+                                          'Raleway',
+                                      fontWeight:
+                                          FontWeight.w600,
                                       fontSize: 14,
-                                      color: Color(0xFF157699),
-                                      decoration: TextDecoration.underline,
-                                      decorationColor: Color(0xFF157699),
+                                      color:
+                                          Color(0xFF157699),
+                                      decoration:
+                                          TextDecoration
+                                              .underline,
+                                      decorationColor:
+                                          Color(0xFF157699),
                                     ),
                                   ),
                                 ],
@@ -408,33 +532,49 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
+
                         const SizedBox(height: 24),
+
                         SizedBox(
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: _isLoading ? null : _handleLogin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF033B63),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                            onPressed:
+                                _isLoading
+                                    ? null
+                                    : _handleLogin,
+                            style:
+                                ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color(0xFF033B63),
+                              shape:
+                                  RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(
+                                  12,
+                                ),
                               ),
                             ),
                             child: _isLoading
                                 ? const SizedBox(
                                     width: 24,
                                     height: 24,
-                                    child: CircularProgressIndicator(
+                                    child:
+                                        CircularProgressIndicator(
                                       strokeWidth: 2.5,
-                                      color: Colors.white,
+                                      color:
+                                          Colors.white,
                                     ),
                                   )
                                 : const Text(
                                     'Entrar',
                                     style: TextStyle(
-                                      fontFamily: 'Quicksand',
-                                      fontWeight: FontWeight.bold,
+                                      fontFamily:
+                                          'Quicksand',
+                                      fontWeight:
+                                          FontWeight.bold,
                                       fontSize: 16,
-                                      color: Colors.white,
+                                      color:
+                                          Colors.white,
                                     ),
                                   ),
                           ),
@@ -444,7 +584,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 22),
+
               MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
@@ -468,8 +610,10 @@ class _LoginPageState extends State<LoginPage> {
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                             color: Color(0xFF157699),
-                            decoration: TextDecoration.underline,
-                            decorationColor: Color(0xFF157699),
+                            decoration:
+                                TextDecoration.underline,
+                            decorationColor:
+                                Color(0xFF157699),
                           ),
                         ),
                       ],
