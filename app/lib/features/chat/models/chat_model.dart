@@ -3,10 +3,21 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-/// Representa uma conversa privada entre dois participantes.
+/// Representa uma conversa privada entre dois participantes ou um grupo de participantes.
 ///
-/// O modelo é imutável para facilitar o uso em widgets, estados e
-/// futuras integrações com Firebase Firestore.
+/// Para conversas privadas:
+/// - [isGroup] é false
+/// - [participantId] contém o ID do outro participante
+/// - [participantName] contém o nome do outro participante
+/// - [participantIds] é null
+///
+/// Para grupos:
+/// - [isGroup] é true
+/// - [groupName] contém o nome do grupo
+/// - [groupAvatar] contém o caminho da foto do grupo
+/// - [participantIds] contém todos os IDs dos participantes
+/// - [creatorId] contém o ID de quem criou o grupo
+/// - [participantId] e [participantName] são null
 @immutable
 class Chat {
   const Chat({
@@ -18,15 +29,20 @@ class Chat {
     this.lastMessageTime,
     this.unreadMessages = 0,
     this.isBlocked = false,
+    this.isGroup = false,
+    this.groupName,
+    this.groupAvatar,
+    this.participantIds,
+    this.creatorId,
   });
 
   /// Identificador único da conversa.
   final String? id;
 
-  /// Identificador do participante da conversa.
+  /// Identificador do participante da conversa (apenas conversas privadas).
   final String? participantId;
 
-  /// Nome exibido do participante.
+  /// Nome exibido do participante (apenas conversas privadas).
   final String? participantName;
 
   /// URL, caminho ou identificador do avatar do participante.
@@ -44,6 +60,21 @@ class Chat {
   /// Indica se o usuário foi bloqueado.
   final bool isBlocked;
 
+  /// Indica se esta é uma conversa de grupo.
+  final bool isGroup;
+
+  /// Nome do grupo (apenas para grupos).
+  final String? groupName;
+
+  /// Caminho ou URL da foto do grupo (apenas para grupos).
+  final String? groupAvatar;
+
+  /// Lista de IDs de todos os participantes (apenas para grupos).
+  final List<String>? participantIds;
+
+  /// ID de quem criou o grupo (apenas para grupos).
+  final String? creatorId;
+
   /// Cria uma nova instância de [Chat] substituindo apenas os campos informados.
   Chat copyWith({
     String? id,
@@ -54,6 +85,11 @@ class Chat {
     DateTime? lastMessageTime,
     int? unreadMessages,
     bool? isBlocked,
+    bool? isGroup,
+    String? groupName,
+    String? groupAvatar,
+    List<String>? participantIds,
+    String? creatorId,
   }) {
     return Chat(
       id: id ?? this.id,
@@ -64,6 +100,11 @@ class Chat {
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
       unreadMessages: unreadMessages ?? this.unreadMessages,
       isBlocked: isBlocked ?? this.isBlocked,
+      isGroup: isGroup ?? this.isGroup,
+      groupName: groupName ?? this.groupName,
+      groupAvatar: groupAvatar ?? this.groupAvatar,
+      participantIds: participantIds ?? this.participantIds,
+      creatorId: creatorId ?? this.creatorId,
     );
   }
 
@@ -78,6 +119,11 @@ class Chat {
       'lastMessageTime': lastMessageTime?.toIso8601String(),
       'unreadMessages': unreadMessages,
       'isBlocked': isBlocked,
+      'isGroup': isGroup,
+      'groupName': groupName,
+      'groupAvatar': groupAvatar,
+      'participantIds': participantIds,
+      'creatorId': creatorId,
     };
   }
 
@@ -92,6 +138,11 @@ class Chat {
       lastMessageTime: _parseDateTime(map['lastMessageTime']),
       unreadMessages: _parseInt(map['unreadMessages']),
       isBlocked: map['isBlocked'] as bool? ?? false,
+      isGroup: map['isGroup'] as bool? ?? false,
+      groupName: map['groupName'] as String?,
+      groupAvatar: map['groupAvatar'] as String?,
+      participantIds: _parseParticipantIds(map['participantIds']),
+      creatorId: map['creatorId'] as String?,
     );
   }
 
@@ -136,6 +187,18 @@ class Chat {
     return 0;
   }
 
+  static List<String>? _parseParticipantIds(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is List) {
+      return value.cast<String>();
+    }
+
+    return null;
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) {
@@ -149,7 +212,35 @@ class Chat {
         other.participantAvatar == participantAvatar &&
         other.lastMessage == lastMessage &&
         other.lastMessageTime == lastMessageTime &&
-        other.unreadMessages == unreadMessages;
+        other.unreadMessages == unreadMessages &&
+        other.isBlocked == isBlocked &&
+        other.isGroup == isGroup &&
+        other.groupName == groupName &&
+        other.groupAvatar == groupAvatar &&
+        other.creatorId == creatorId &&
+        _listEquals(other.participantIds, participantIds);
+  }
+
+  static bool _listEquals(List<String>? a, List<String>? b) {
+    if (identical(a, b)) {
+      return true;
+    }
+
+    if (a == null || b == null) {
+      return a == b;
+    }
+
+    if (a.length != b.length) {
+      return false;
+    }
+
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   @override
@@ -162,6 +253,12 @@ class Chat {
       lastMessage,
       lastMessageTime,
       unreadMessages,
+      isBlocked,
+      isGroup,
+      groupName,
+      groupAvatar,
+      creatorId,
+      participantIds,
     );
   }
 }

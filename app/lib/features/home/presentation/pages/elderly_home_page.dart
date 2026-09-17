@@ -14,7 +14,6 @@ class ElderlyHomePage extends StatefulWidget {
 
 class _ElderlyHomePageState extends State<ElderlyHomePage> {
   final TextEditingController _searchController = TextEditingController();
-  final bool _hasUnreadNotifications = true;
 
   String _userFirstName = '';
   String _userLastName = '';
@@ -75,9 +74,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final String displayName = _isLoadingName
-        ? '...'
-        : '$_userFirstName $_userLastName'.trim();
+    final String displayName =
+        _isLoadingName ? '...' : '$_userFirstName $_userLastName'.trim();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -90,7 +88,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  _buildHeader(context, displayName.isEmpty ? 'Usuário' : displayName),
+                  _buildHeader(
+                      context, displayName.isEmpty ? 'Usuário' : displayName),
                   Positioned(
                     left: 20,
                     right: 20,
@@ -98,8 +97,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     child: CustomSearchBar(
                       hintText: 'Pesquisar amigos',
                       controller: _searchController,
-                      onChanged: (text) {
-                      },
+                      onChanged: (text) {},
                     ),
                   ),
                 ],
@@ -132,9 +130,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         ),
       ),
       padding: EdgeInsets.only(
-        left: 24, 
-        right: 24, 
-        top: topSafeArea + 12, 
+        left: 24,
+        right: 24,
+        top: topSafeArea + 12,
         bottom: 0,
       ),
       child: Column(
@@ -232,7 +230,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                 'assets/images/elderly/home_banner.png',
                 height: 135,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(height: 110),
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(height: 110),
               ),
             ],
           ),
@@ -312,7 +311,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _buildFriendCard('Joaquim Martins', '75 anos, fã de\nmúsica antiga'),
+                _buildFriendCard(
+                    'Joaquim Martins', '75 anos, fã de\nmúsica antiga'),
                 _buildFriendCard('Fátima Rosa', '70 anos, fã de\njardinagem'),
               ],
             ),
@@ -386,7 +386,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                   width: 72,
                   height: 72,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                  errorBuilder: (context, error, stackTrace) =>
+                      const CircleAvatar(
                     radius: 36,
                     backgroundColor: Color(0xFFDCDCDC),
                     child: Icon(Icons.person, size: 44, color: Colors.white),
@@ -461,7 +462,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                   width: 72,
                   height: 72,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                  errorBuilder: (context, error, stackTrace) =>
+                      const CircleAvatar(
                     radius: 36,
                     backgroundColor: Color(0xFFDCDCDC),
                     child: Icon(Icons.group, size: 40, color: Colors.white),
@@ -513,7 +515,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isActive ? const Color(0xFF033B63) : const Color(0xFF9ED1FF),
+          backgroundColor:
+              isActive ? const Color(0xFF033B63) : const Color(0xFF9ED1FF),
           elevation: 0,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(

@@ -4,15 +4,26 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/chat_model.dart';
 
-/// Widget responsável por exibir uma conversa privada na lista com dados sincronizados do Firestore.
+/// Widget responsável por exibir uma conversa (privada ou grupo) na lista
+/// com dados sincronizados do Firestore.
 class ChatTile extends StatelessWidget {
-  const ChatTile({super.key, required this.chat, required this.onTap});
+  const ChatTile({
+    super.key,
+    required this.chat,
+    required this.onTap,
+  });
 
   final Chat chat;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    if (chat.isGroup) {
+      // Para grupos, não precisa buscar dados do Firestore.
+      return _buildTileContent(context, null);
+    }
+
+    // Para conversas privadas, busca dados do participante.
     final participantId = chat.participantId;
 
     return StreamBuilder<DocumentSnapshot>(
@@ -22,6 +33,7 @@ class ChatTile extends StatelessWidget {
           .snapshots(),
       builder: (context, idosoSnapshot) {
         Map<String, dynamic>? userData;
+
         if (idosoSnapshot.hasData && idosoSnapshot.data!.exists) {
           userData = idosoSnapshot.data!.data() as Map<String, dynamic>?;
         }
@@ -34,8 +46,10 @@ class ChatTile extends StatelessWidget {
                 .snapshots(),
             builder: (context, familiarSnapshot) {
               if (familiarSnapshot.hasData && familiarSnapshot.data!.exists) {
-                userData = familiarSnapshot.data!.data() as Map<String, dynamic>?;
+                userData =
+                    familiarSnapshot.data!.data() as Map<String, dynamic>?;
               }
+
               return _buildTileContent(context, userData);
             },
           );
@@ -46,7 +60,136 @@ class ChatTile extends StatelessWidget {
     );
   }
 
-  Widget _buildTileContent(BuildContext context, Map<String, dynamic>? userData) {
+  Widget _buildTileContent(
+    BuildContext context,
+    Map<String, dynamic>? userData,
+  ) {
+    if (chat.isGroup) {
+      final groupName = chat.groupName ?? 'Grupo';
+      final participantCount = chat.participantIds?.length ?? 0;
+
+      return Material(
+        color: AppColors.background,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // ==========================================================
+                // AVATAR DO GRUPO
+                // ==========================================================
+                SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: _buildGroupAvatar(),
+                ),
+
+                const SizedBox(width: 16),
+
+                // ==========================================================
+                // INFORMAÇÕES DO GRUPO
+                // ==========================================================
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              groupName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Raleway',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 18,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.group,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$participantCount participantes',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF8A8A8A),
+                          fontFamily: 'Quicksand',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // ==========================================================
+                // HORÁRIO E MENSAGENS NÃO LIDAS
+                // ==========================================================
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (chat.lastMessageTime != null)
+                      Text(
+                        _formatTime(chat.lastMessageTime!),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontFamily: 'Quicksand',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    if (chat.unreadMessages > 0) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        width: 22,
+                        height: 22,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${chat.unreadMessages}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'Quicksand',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ============================================================
+    // CONVERSA PRIVADA
+    // ============================================================
+
     final String name = userData?['name'] ??
         userData?['nome'] ??
         chat.participantName ??
@@ -55,6 +198,7 @@ class ChatTile extends StatelessWidget {
     final String? avatarPath = userData?['avatarPath'] ??
         userData?['foto'] ??
         userData?['avatar'] ??
+        userData?['foto_url'] ??
         chat.participantAvatar;
 
     return Material(
@@ -62,24 +206,31 @@ class ChatTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Avatar dinâmico
+              // ==========================================================
+              // AVATAR DO PARTICIPANTE
+              // ==========================================================
               SizedBox(
                 width: 56,
                 height: 56,
                 child: _buildAvatar(avatarPath),
               ),
+
               const SizedBox(width: 16),
 
-              // Informações da conversa
+              // ==========================================================
+              // INFORMAÇÕES DA CONVERSA
+              // ==========================================================
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Nome do Participante
                     Text(
                       name,
                       maxLines: 1,
@@ -92,8 +243,6 @@ class ChatTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-
-                    // Última mensagem
                     Text(
                       chat.isBlocked
                           ? 'Você bloqueou esta pessoa.'
@@ -112,9 +261,12 @@ class ChatTile extends StatelessWidget {
                   ],
                 ),
               ),
+
               const SizedBox(width: 12),
 
-              // Horário e Badge de mensagens não lidas
+              // ==========================================================
+              // HORÁRIO E MENSAGENS NÃO LIDAS
+              // ==========================================================
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -159,6 +311,10 @@ class ChatTile extends StatelessWidget {
     );
   }
 
+  // ==============================================================
+  // AVATAR DE CONVERSA PRIVADA
+  // ==============================================================
+
   Widget _buildAvatar(String? avatarPath) {
     final hasAvatar = (avatarPath ?? '').trim().isNotEmpty;
 
@@ -171,6 +327,9 @@ class ChatTile extends StatelessWidget {
                 height: 56,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.high,
+                errorBuilder: (_, __, ___) {
+                  return _buildDefaultAvatar();
+                },
               )
             : Image.network(
                 avatarPath,
@@ -178,7 +337,9 @@ class ChatTile extends StatelessWidget {
                 height: 56,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.high,
-                errorBuilder: (_, __, ___) => _buildDefaultAvatar(),
+                errorBuilder: (_, __, ___) {
+                  return _buildDefaultAvatar();
+                },
               ),
       );
     }
@@ -190,14 +351,75 @@ class ChatTile extends StatelessWidget {
     return const CircleAvatar(
       radius: 28,
       backgroundColor: AppColors.secondary,
-      child: Icon(Icons.person, color: AppColors.primary, size: 28),
+      child: Icon(
+        Icons.person,
+        color: AppColors.primary,
+        size: 28,
+      ),
     );
   }
+
+  // ==============================================================
+  // AVATAR DO GRUPO
+  // ==============================================================
+
+  Widget _buildGroupAvatar() {
+    final avatarPath = chat.groupAvatar;
+
+    if (avatarPath != null && avatarPath.trim().isNotEmpty) {
+      if (avatarPath.startsWith('assets/')) {
+        return ClipOval(
+          child: Image.asset(
+            avatarPath,
+            width: 56,
+            height: 56,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (_, __, ___) {
+              return _buildDefaultGroupAvatar();
+            },
+          ),
+        );
+      }
+
+      return ClipOval(
+        child: Image.network(
+          avatarPath,
+          width: 56,
+          height: 56,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (_, __, ___) {
+            return _buildDefaultGroupAvatar();
+          },
+        ),
+      );
+    }
+
+    return _buildDefaultGroupAvatar();
+  }
+
+  Widget _buildDefaultGroupAvatar() {
+    return const CircleAvatar(
+      radius: 28,
+      backgroundColor: AppColors.secondary,
+      child: Icon(
+        Icons.group,
+        color: AppColors.primary,
+        size: 28,
+      ),
+    );
+  }
+
+  // ==============================================================
+  // HORÁRIO
+  // ==============================================================
 
   String _formatTime(DateTime dateTime) {
     final time = dateTime.toLocal();
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
+
     return '$hour:$minute';
   }
 }

@@ -7,6 +7,7 @@ import '../../../core/widgets/custom_search_bar.dart';
 
 import '../models/chat_model.dart';
 import '../screens/chat_screen.dart';
+import '../screens/create_group_screen.dart';
 import '../services/chat_service.dart';
 import '../services/message_service.dart';
 import '../services/notification_service.dart';
@@ -80,6 +81,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   void _initializeNotificationListeners(List<Chat> chats) {
     for (final chat in chats) {
+      // Grupos não usam o sistema de notificação
+      // de conversa privada.
+      if (chat.isGroup) {
+        continue;
+      }
+
       final chatId = chat.id;
       final participantName = chat.participantName ?? 'Desconhecido';
       final participantId = chat.participantId;
@@ -92,6 +99,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           participantName,
           participantId,
         );
+
         _initializedChats.add(chatId);
       }
     }
@@ -171,77 +179,51 @@ class _ChatListScreenState extends State<ChatListScreen> {
         currentIndex: 2,
       ),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: CustomSearchBar(
-                hintText: 'Pesquisar conversas',
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value.trim().toLowerCase();
-                  });
-                },
-                onSubmitted: (value) {},
-              ),
-            ),
-            Expanded(
-              child: StreamBuilder<List<Chat>>(
-                stream: _chatService.getChatsStream(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'Erro ao carregar chats:\n${snapshot.error}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                            fontFamily: 'Quicksand',
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: CustomSearchBar(
+                    hintText: 'Pesquisar conversas',
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.trim().toLowerCase();
+                      });
+                    },
+                    onSubmitted: (value) {},
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<List<Chat>>(
+                    stream: _chatService.getChatsStream(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              'Erro ao carregar chats:\n${snapshot.error}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 14,
+                                fontFamily: 'Quicksand',
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final chats = snapshot.data!;
-
-                  if (chats.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Nenhuma conversa encontrada.',
-                        style: TextStyle(
-                          color: Color(0xFF8A8A8A),
-                          fontSize: 15,
-                          fontFamily: 'Quicksand',
-                        ),
-                      ),
-                    );
-                  }
-
-                  _initializeNotificationListeners(chats);
-
-                  return FutureBuilder<List<Chat>>(
-                    future: _filterChats(chats, _searchQuery),
-                    builder: (context, filterSnapshot) {
-                      if (filterSnapshot.connectionState ==
-                              ConnectionState.waiting &&
-                          _searchQuery.isNotEmpty) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
                         );
                       }
 
-                      final displayChats = filterSnapshot.data ?? chats;
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                      if (displayChats.isEmpty) {
+                      final chats = snapshot.data!;
+
+                      if (chats.isEmpty) {
                         return const Center(
                           child: Text(
                             'Nenhuma conversa encontrada.',
@@ -254,61 +236,132 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         );
                       }
 
-                      return ListView.separated(
-                        itemCount: displayChats.length,
-                        separatorBuilder: (context, index) {
-                          return const Divider(
-                            height: 1,
-                            thickness: 0.8,
-                            color: Color(0xFFE5E5E5),
-                          );
-                        },
-                        itemBuilder: (context, index) {
-                          final chat = displayChats[index];
+                      _initializeNotificationListeners(chats);
 
-                          return ChatTile(
-                            chat: chat,
-                            onTap: () async {
-                              if (chat.id != null) {
-                                await _chatService.markAsRead(chat.id!);
-                              }
+                      return FutureBuilder<List<Chat>>(
+                        future: _filterChats(chats, _searchQuery),
+                        builder: (context, filterSnapshot) {
+                          if (filterSnapshot.connectionState ==
+                                  ConnectionState.waiting &&
+                              _searchQuery.isNotEmpty) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
 
-                              final blocked = await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ChatScreen(
-                                    chat: chat,
-                                  ),
+                          final displayChats = filterSnapshot.data ?? chats;
+
+                          if (displayChats.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                'Nenhuma conversa encontrada.',
+                                style: TextStyle(
+                                  color: Color(0xFF8A8A8A),
+                                  fontSize: 15,
+                                  fontFamily: 'Quicksand',
                                 ),
+                              ),
+                            );
+                          }
+
+                          return ListView.separated(
+                            itemCount: displayChats.length,
+                            separatorBuilder: (context, index) {
+                              return const Divider(
+                                height: 1,
+                                thickness: 0.8,
+                                color: Color(0xFFE5E5E5),
                               );
+                            },
+                            itemBuilder: (context, index) {
+                              final chat = displayChats[index];
 
-                              if (chat.id == null) {
-                                return;
-                              }
+                              return ChatTile(
+                                chat: chat,
+                                onTap: () async {
+                                  if (chat.id != null) {
+                                    await _chatService.markAsRead(chat.id!);
+                                  }
 
-                              try {
-                                await _chatService.markAsRead(chat.id!);
-                                if (mounted) {
-                                  setState(() {});
-                                }
-
-                                if (blocked == true) {
-                                  await _chatService.blockChat(chat.id!);
-                                }
-                              } catch (error) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(error.toString())),
+                                  final blocked = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatScreen(
+                                        chat: chat,
+                                      ),
+                                    ),
                                   );
-                                }
-                              }
+
+                                  if (chat.id == null) {
+                                    return;
+                                  }
+
+                                  try {
+                                    await _chatService.markAsRead(chat.id!);
+                                    if (mounted) {
+                                      setState(() {});
+                                    }
+
+                                    if (blocked == true) {
+                                      await _chatService.blockChat(chat.id!);
+                                    }
+                                  } catch (error) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content: Text(error.toString())),
+                                      );
+                                    }
+                                  }
+                                },
+                              );
                             },
                           );
                         },
                       );
                     },
-                  );
-                },
+                  ),
+                ),
+              ],
+            ),
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child: FloatingActionButton(
+                  onPressed: () async {
+                    if (!mounted) return;
+
+                    final result = await Navigator.push<String>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CreateGroupScreen(),
+                      ),
+                    );
+
+                    if (!mounted) return;
+
+                    if (result != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Grupo criado com sucesso!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  backgroundColor: AppColors.primary,
+                  elevation: 4,
+                  shape: const CircleBorder(),
+                  child: const Icon(
+                    Icons.add,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
               ),
             ),
           ],

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -119,7 +118,8 @@ class _ChatScreenState extends State<ChatScreen> {
               if (!familiarSnapshot.hasData || !familiarSnapshot.data!.exists) {
                 return const Text(
                   'Off-line',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 );
               }
               final familiarData =
@@ -246,6 +246,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildNormalAppBar(bool isBlocked) {
+    if (widget.chat.isGroup) {
+      return _buildGroupAppBar();
+    }
+
     final otherUserId = widget.chat.participantId;
 
     return Row(
@@ -287,8 +291,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     Map<String, dynamic>? familiarData;
                     if (familiarSnapshot.hasData &&
                         familiarSnapshot.data!.exists) {
-                      familiarData =
-                          familiarSnapshot.data!.data() as Map<String, dynamic>?;
+                      familiarData = familiarSnapshot.data!.data()
+                          as Map<String, dynamic>?;
                     }
                     return _buildHeaderContent(
                       userId: otherUserId,
@@ -305,6 +309,101 @@ class _ChatScreenState extends State<ChatScreen> {
                 isBlocked: isBlocked,
               );
             },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGroupAppBar() {
+    final groupName = widget.chat.groupName ?? 'Grupo';
+    final participantCount = widget.chat.participantIds?.length ?? 0;
+
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () async {
+            if (widget.chat.id != null) {
+              await _chatService.markAsRead(widget.chat.id!);
+            }
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          },
+          icon: Image.asset('assets/icons/navigation/arrow_left.png'),
+          color: AppColors.textPrimary,
+          splashRadius: 24,
+          tooltip: 'Voltar',
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              final result = await Navigator.push<String>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ConversationInfoScreen(
+                    chat: widget.chat,
+                  ),
+                ),
+              );
+
+              if (!mounted) return;
+
+              if (result == 'search') {
+                setState(() {
+                  isSearching = true;
+                  searchQuery = '';
+                  _searchController.clear();
+                });
+              }
+            },
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.group,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        groupName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Raleway',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$participantCount participantes',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -420,7 +519,9 @@ class _ChatScreenState extends State<ChatScreen> {
           builder: (context, snapshot) {
             final messages = snapshot.data ?? const <MessageModel>[];
 
-            if (_isChatScreenActive && snapshot.hasData && messages.isNotEmpty) {
+            if (_isChatScreenActive &&
+                snapshot.hasData &&
+                messages.isNotEmpty) {
               _markMessagesAsRead();
             }
 
@@ -531,8 +632,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 if (event is KeyDownEvent &&
                                     event.logicalKey ==
                                         LogicalKeyboardKey.enter &&
-                                    !HardwareKeyboard
-                                        .instance.isShiftPressed) {
+                                    !HardwareKeyboard.instance.isShiftPressed) {
                                   if (!isBlocked) {
                                     _sendMessage();
                                   }
