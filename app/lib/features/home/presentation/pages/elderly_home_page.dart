@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
@@ -422,9 +423,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final String displayName = _isLoadingName
-        ? '...'
-        : '$_userFirstName $_userLastName'.trim();
+    final String displayName =
+        _isLoadingName ? '...' : '$_userFirstName $_userLastName'.trim();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -586,7 +586,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   }
 
   // ============================================================
-  // FILTROS (PADRÃO DISCOVERY SCREEN)
+  // FILTROS
   // ============================================================
 
   Widget _buildFiltersSection() {

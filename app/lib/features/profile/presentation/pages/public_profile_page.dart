@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class PublicProfilePage extends StatefulWidget {
@@ -115,6 +116,48 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     return 'Não informado.';
   }
 
+  Future<void> _toggleFollow(String targetUid) async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null || currentUserId == targetUid) {
+      return;
+    }
+
+    try {
+      final currentUserRef =
+          FirebaseFirestore.instance.collection('idosos').doc(currentUserId);
+
+      final wasFollowing = _isFollowing;
+
+      setState(() {
+        _isFollowing = !wasFollowing;
+      });
+
+      if (wasFollowing) {
+        await currentUserRef.update({
+          'followingIds': FieldValue.arrayRemove([targetUid]),
+        });
+      } else {
+        await currentUserRef.set({
+          'followingIds': FieldValue.arrayUnion([targetUid]),
+        }, SetOptions(merge: true));
+      }
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isFollowing = !_isFollowing;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível atualizar o seguir: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String? targetUid = widget.uid;
@@ -147,7 +190,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               );
             }
 
-            if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+            if (snapshot.hasError ||
+                !snapshot.hasData ||
+                snapshot.data == null) {
               return const Center(
                 child: Text(
                   'Perfil não encontrado.',
@@ -166,7 +211,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             final String bio =
                 data['bio'] ?? data['biografia'] ?? data['sobre'] ?? '';
             final String ageText = _getAgeText(data);
-            final String city = data['city'] ?? data['cidade'] ?? 'Não informada';
+            final String city =
+                data['city'] ?? data['cidade'] ?? 'Não informada';
             final bool isOnline =
                 data['isOnline'] is bool ? data['isOnline'] as bool : false;
             final String avatarPath = data['avatarPath'] ??
@@ -184,7 +230,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 .toList();
 
             final addedInterests = allInterests
-                .where((item) => !_predefinedInterests.contains(item.toString()))
+                .where(
+                    (item) => !_predefinedInterests.contains(item.toString()))
                 .toList();
 
             final int followersCount = data['followersCount'] is int
@@ -248,9 +295,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                           fontFamily: 'Raleway',
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isOnline
-                              ? const Color(0xFF6BBE66)
-                              : Colors.grey,
+                          color:
+                              isOnline ? const Color(0xFF6BBE66) : Colors.grey,
                         ),
                       ),
                     ],
@@ -300,9 +346,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                           onPressed: () {
-                            setState(() {
-                              _isFollowing = !_isFollowing;
-                            });
+                            _toggleFollow(targetUid);
                           },
                           child: Text(
                             _isFollowing ? 'Seguindo' : 'Seguir',
@@ -374,7 +418,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             fontSize: 14,
                             height: 1.4,
                             color: bio.isEmpty ? Colors.grey : Colors.black87,
-                            fontStyle: bio.isEmpty ? FontStyle.italic : FontStyle.normal,
+                            fontStyle: bio.isEmpty
+                                ? FontStyle.italic
+                                : FontStyle.normal,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -492,7 +538,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
             child: Row(
               children: [
                 Icon(icon, color: const Color(0xFF0D3B66)),
@@ -529,7 +576,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: items.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
@@ -610,7 +658,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
             child: Row(
               children: [
                 Icon(icon, color: const Color(0xFF0D3B66)),
