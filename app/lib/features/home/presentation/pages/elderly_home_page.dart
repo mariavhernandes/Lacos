@@ -14,6 +14,15 @@ class ElderlyHomePage extends StatefulWidget {
   State<ElderlyHomePage> createState() => _ElderlyHomePageState();
 }
 
+// Mapeamento de exibições amigáveis para cidades
+const Map<String, String> _cityDisplayNames = {
+  'Americana': 'Americana',
+  'Campinas': 'Campinas',
+  'Limeira': 'Limeira',
+  'SantaBarbara': 'Santa Bárbara',
+  'Sumare': 'Sumaré',
+};
+
 class _ElderlyHomePageState extends State<ElderlyHomePage> {
   final TextEditingController _searchController = TextEditingController();
 
@@ -28,13 +37,25 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   bool _isLoadingSuggestions = true;
 
   // Controle de estado dos filtros
-  bool _filterSameCity = false;
-  bool _filterSameInterests = false;
+  String? _selectedCity;
+  String? _selectedHobby;
+  String? _selectedAgeRange; // Ex: '60-70', '70-80', '80+'
+
+  // Lista de todos os interesses pré-definidos do sistema
+  final List<String> _predefinedInterestsList = const [
+    'Dominó',
+    'Jogo de cartas',
+    'Jogos de tabuleiro',
+    'Tricô/Crochê',
+    'Caminhada',
+    'Dança',
+    'Artesanato',
+    'Jardinagem',
+  ];
 
   @override
   void initState() {
     super.initState();
-
     _fetchUserData();
     _fetchFriendSuggestions();
   }
@@ -66,9 +87,6 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             userDoc.data() as Map<String, dynamic>;
 
         final String rawName = _getName(data);
-
-        debugPrint('Nome do usuário atual: $rawName');
-        debugPrint('Dados completos do usuário: $data');
 
         if (rawName.isNotEmpty) {
           final List<String> nameParts =
@@ -106,18 +124,13 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       final User? currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser == null) {
-        debugPrint('Nenhum usuário autenticado.');
-
         if (mounted) {
           setState(() {
             _isLoadingSuggestions = false;
           });
         }
-
         return;
       }
-
-      debugPrint('UID do usuário logado: ${currentUser.uid}');
 
       final DocumentSnapshot currentUserDoc =
           await FirebaseFirestore.instance
@@ -126,16 +139,11 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
               .get();
 
       if (!currentUserDoc.exists || currentUserDoc.data() == null) {
-        debugPrint(
-          'Documento do usuário não encontrado na coleção idosos.',
-        );
-
         if (mounted) {
           setState(() {
             _isLoadingSuggestions = false;
           });
         }
-
         return;
       }
 
@@ -184,10 +192,6 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             city.isNotEmpty &&
             _normalizeText(currentCity) == _normalizeText(city);
 
-        if (commonInterests.isEmpty && !sameCity) {
-          continue;
-        }
-
         final String birthDate = _getBirthDate(userData);
         final int? age = _calculateAge(birthDate);
         final String avatarPath = _getAvatarPath(userData);
@@ -222,9 +226,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           _isLoadingSuggestions = false;
         });
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('ERRO AO BUSCAR SUGESTÕES: $e');
-      debugPrint('STACK TRACE: $stackTrace');
 
       if (mounted) {
         setState(() {
@@ -245,21 +248,33 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       final String name = _normalizeText((friend['name'] ?? '').toString());
       final String city = _normalizeText((friend['city'] ?? '').toString());
       final List<String> interests = _convertInterests(friend['interests']);
+      final int? age = friend['age'] as int?;
 
       final bool matchesQuery = query.isEmpty ||
           name.contains(query) ||
           city.contains(query) ||
           interests.any((i) => _normalizeText(i).contains(query));
 
-      final bool sameCity = (friend['sameCity'] ?? false) as bool;
-      final bool matchesCityFilter = !_filterSameCity || sameCity;
+      final bool matchesCity = _selectedCity == null ||
+          _normalizeText(city) == _normalizeText(_selectedCity!);
 
-      final List<String> commonInterests =
-          _convertInterests(friend['commonInterests']);
-      final bool matchesInterestsFilter =
-          !_filterSameInterests || commonInterests.isNotEmpty;
+      final bool matchesHobby = _selectedHobby == null ||
+          interests.any((i) =>
+              _normalizeText(i).contains(_normalizeText(_selectedHobby!)) ||
+              _normalizeText(_selectedHobby!).contains(_normalizeText(i)));
 
-      return matchesQuery && matchesCityFilter && matchesInterestsFilter;
+      bool matchesAge = true;
+      if (_selectedAgeRange != null && age != null) {
+        if (_selectedAgeRange == '60-70') {
+          matchesAge = age >= 60 && age <= 70;
+        } else if (_selectedAgeRange == '70-80') {
+          matchesAge = age > 70 && age <= 80;
+        } else if (_selectedAgeRange == '80+') {
+          matchesAge = age > 80;
+        }
+      }
+
+      return matchesQuery && matchesCity && matchesHobby && matchesAge;
     }).toList();
   }
 
@@ -596,51 +611,50 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _filterSameCity
-                ? _buildActiveFilterChip(
-                    label: 'Cidade',
-                    onRemove: () {
-                      setState(() {
-                        _filterSameCity = false;
-                      });
-                    },
-                  )
-                : _buildInactiveFilterChip(
-                    label: 'Cidade',
-                    onTap: () {
-                      setState(() {
-                        _filterSameCity = true;
-                      });
-                    },
-                  ),
-            const SizedBox(width: 8),
-            _filterSameInterests
-                ? _buildActiveFilterChip(
-                    label: 'Hobbies',
-                    onRemove: () {
-                      setState(() {
-                        _filterSameInterests = false;
-                      });
-                    },
-                  )
-                : _buildInactiveFilterChip(
-                    label: 'Hobbies',
-                    onTap: () {
-                      setState(() {
-                        _filterSameInterests = true;
-                      });
-                    },
-                  ),
+            _buildAddFilterButton(),
+
+            if (_selectedCity != null) ...[
+              const SizedBox(width: 8),
+              _buildActiveFilterChip(
+                label: _cityDisplayNames[_selectedCity] ?? _selectedCity!,
+                onRemove: () {
+                  setState(() {
+                    _selectedCity = null;
+                  });
+                },
+              ),
+            ],
+
+            if (_selectedHobby != null) ...[
+              const SizedBox(width: 8),
+              _buildActiveFilterChip(
+                label: _selectedHobby!,
+                onRemove: () {
+                  setState(() {
+                    _selectedHobby = null;
+                  });
+                },
+              ),
+            ],
+
+            if (_selectedAgeRange != null) ...[
+              const SizedBox(width: 8),
+              _buildActiveFilterChip(
+                label: '$_selectedAgeRange anos',
+                onRemove: () {
+                  setState(() {
+                    _selectedAgeRange = null;
+                  });
+                },
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInactiveFilterChip({
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildAddFilterButton() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -648,24 +662,24 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         boxShadow: const [
           BoxShadow(
             color: Color(0x1A000000),
-            blurRadius: 6,
+            blurRadius: 10,
             offset: Offset(0, 2),
           ),
         ],
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(30),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
+        onTap: _openFilterMenu,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(
             horizontal: 20,
-            vertical: 8,
+            vertical: 10,
           ),
           child: Text(
-            label,
-            style: const TextStyle(
+            'Filtrar',
+            style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: Color(0xFF033B63),
             ),
@@ -680,13 +694,13 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     required VoidCallback onRemove,
   }) {
     return Container(
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(2.5),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
           color: const Color(0xFF033B63),
-          width: 1.8,
+          width: 2,
         ),
         boxShadow: const [
           BoxShadow(
@@ -712,7 +726,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
               label,
               style: const TextStyle(
                 fontFamily: 'Raleway',
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
@@ -727,6 +741,162 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // MENU DE FILTROS (BOTTOM SHEET)
+  // ============================================================
+
+  Future<void> _openFilterMenu() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 8,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- CIDADE ---
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Cidade',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF033B63),
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text('Americana', style: TextStyle(fontFamily: 'Raleway')),
+                    onTap: () {
+                      setState(() => _selectedCity = 'Americana');
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Campinas', style: TextStyle(fontFamily: 'Raleway')),
+                    onTap: () {
+                      setState(() => _selectedCity = 'Campinas');
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Limeira', style: TextStyle(fontFamily: 'Raleway')),
+                    onTap: () {
+                      setState(() => _selectedCity = 'Limeira');
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Santa Bárbara', style: TextStyle(fontFamily: 'Raleway')),
+                    onTap: () {
+                      setState(() => _selectedCity = 'SantaBarbara');
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Sumaré', style: TextStyle(fontFamily: 'Raleway')),
+                    onTap: () {
+                      setState(() => _selectedCity = 'Sumare');
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                  const Divider(),
+
+                  // --- HOBBIES (TODOS OS 8 INTERESSES PRÉ-DEFINIDOS) ---
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Hobbies / Interesses',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF033B63),
+                      ),
+                    ),
+                  ),
+                  ..._predefinedInterestsList.map((hobby) {
+                    return ListTile(
+                      title: Text(hobby, style: const TextStyle(fontFamily: 'Raleway')),
+                      onTap: () {
+                        setState(() => _selectedHobby = hobby);
+                        Navigator.pop(context);
+                      },
+                    );
+                  }).toList(),
+
+                  const Divider(),
+
+                  // --- FAIXA ETÁRIA ---
+                  const Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Faixa Etária',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF033B63),
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text('60 a 70 anos', style: TextStyle(fontFamily: 'Raleway')),
+                    onTap: () {
+                      setState(() => _selectedAgeRange = '60-70');
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('70 a 80 anos', style: TextStyle(fontFamily: 'Raleway')),
+                    onTap: () {
+                      setState(() => _selectedAgeRange = '70-80');
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Mais de 80 anos', style: TextStyle(fontFamily: 'Raleway')),
+                    onTap: () {
+                      setState(() => _selectedAgeRange = '80+');
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
