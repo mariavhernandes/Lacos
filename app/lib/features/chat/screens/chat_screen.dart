@@ -251,56 +251,78 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         const SizedBox(width: 4),
         Expanded(
-          child: TextField(
-            controller: _searchController,
-            autofocus: true,
-            onChanged: (value) {
-              setState(() {
-                searchQuery = value;
-              });
-            },
-            cursorColor: const Color(0xFF8A8A8A),
-            style: const TextStyle(
-              color: Color(0xFF8A8A8A),
-              fontSize: 15,
-              fontFamily: 'Quicksand',
+          child: Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
-            decoration: InputDecoration(
-              hintText: 'Pesquisar mensagens...',
-              hintStyle: const TextStyle(
+            child: TextField(
+              controller: _searchController,
+              autofocus: true,
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+              cursorColor: const Color(0xFF8A8A8A),
+              style: const TextStyle(
                 color: Color(0xFF8A8A8A),
                 fontSize: 15,
                 fontFamily: 'Quicksand',
               ),
-              prefixIcon: const Icon(
-                Icons.search,
-                color: AppColors.textSecondary,
-                size: 21,
-              ),
-              suffixIcon: searchQuery.isNotEmpty
-                  ? IconButton(
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {
-                          searchQuery = '';
-                        });
-                      },
-                      icon: const Icon(
-                        Icons.close,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                    )
-                  : null,
-              filled: true,
-              fillColor: const Color(0xFFEAEAEA),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 10,
-                horizontal: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide.none,
+              decoration: InputDecoration(
+                hintText: 'Pesquisar mensagens...',
+                hintStyle: const TextStyle(
+                  color: Color(0xFF8A8A8A),
+                  fontSize: 15,
+                  fontFamily: 'Quicksand',
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                  size: 21,
+                ),
+                suffixIcon: searchQuery.isNotEmpty
+                    ? IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            searchQuery = '';
+                          });
+                        },
+                        icon: const Icon(
+                          Icons.close,
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.transparent,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),

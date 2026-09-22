@@ -498,6 +498,8 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
       return const SizedBox.shrink();
     }
 
+    final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -542,7 +544,19 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
               );
             }
 
-            final members = snapshot.data ?? const <Map<String, dynamic>>[];
+            final members = List<Map<String, dynamic>>.from(
+              snapshot.data ?? [],
+            );
+
+            members.sort((a, b) {
+              final String? uidA = a['uid']?.toString();
+              final String? uidB = b['uid']?.toString();
+
+              if (uidA == currentUserId) return -1;
+              if (uidB == currentUserId) return 1;
+
+              return 0;
+            });
 
             if (members.isEmpty) {
               return const Padding(
@@ -564,8 +578,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
                 final String name = member['name']?.toString() ?? 'Usuário';
 
-                final String avatar = member['avatar']?.toString() ??
-                    'assets/avatars/avatar_1.png';
+                final String? avatar = member['avatar']?.toString();
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -574,7 +587,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: uid == null || uid.isEmpty
+                      onTap: uid == null || uid.isEmpty || uid == currentUserId
                           ? null
                           : () {
                               Navigator.push(
@@ -608,7 +621,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                 ),
                               ),
                             ),
-                            if (uid != null && uid.isNotEmpty)
+                            if (uid != null &&
+                                uid.isNotEmpty &&
+                                uid != currentUserId)
                               const Icon(
                                 Icons.chevron_right,
                                 color: AppColors.textSecondary,
@@ -633,8 +648,12 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
   // ==========================================
 
   Widget _buildMemberAvatar(
-    String avatarPath,
+    String? avatarPath,
   ) {
+    if (avatarPath == null || avatarPath.trim().isEmpty) {
+      return _buildDefaultMemberAvatar();
+    }
+
     if (avatarPath.startsWith('assets/')) {
       return ClipOval(
         child: Image.asset(
