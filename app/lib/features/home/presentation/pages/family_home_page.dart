@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
+import '../../../notifications/data/notification_service.dart';
 
 class FamilyHomePage extends StatefulWidget {
   const FamilyHomePage({super.key});
@@ -18,14 +21,32 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   String _elderlyMonitoredName = 'Idoso vinculado';
   String _elderlyUid = '';
   bool _isLoadingData = true;
+  bool _hasUnreadNotifications = false;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _notificationSubscription;
 
-  // Cache para guardar nomes já buscados por UID e evitar chamadas repetidas
+  // Cache para guardar nomes jÃ¡ buscados por UID e evitar chamadas repetidas
   final Map<String, String> _userNameCache = {};
 
   @override
   void initState() {
     super.initState();
     _fetchUserData();
+    _listenForUnreadNotifications();
+  }
+
+  void _listenForUnreadNotifications() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    _notificationSubscription = FamilyNotificationService()
+        .unreadNotificationsStream(uid: uid, isElder: false)
+        .snapshots()
+        .listen((snapshot) {
+      if (mounted) {
+        setState(() => _hasUnreadNotifications = snapshot.docs.isNotEmpty);
+      }
+    });
   }
 
   String _formatFirstAndLastName(String fullName) {
@@ -41,20 +62,23 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     final Duration difference = DateTime.now().difference(dateTime);
 
     if (difference.inMinutes < 1) return 'Agora mesmo';
-    if (difference.inMinutes < 60) return 'Há ${difference.inMinutes}min';
-    if (difference.inHours < 24) return 'Há ${difference.inHours} ${difference.inHours == 1 ? 'hora' : 'horas'}';
-    return 'Há ${difference.inDays} ${difference.inDays == 1 ? 'dia' : 'dias'}';
+    if (difference.inMinutes < 60) return 'HÃ¡ ${difference.inMinutes}min';
+    if (difference.inHours < 24)
+      return 'HÃ¡ ${difference.inHours} ${difference.inHours == 1 ? 'hora' : 'horas'}';
+    return 'HÃ¡ ${difference.inDays} ${difference.inDays == 1 ? 'dia' : 'dias'}';
   }
 
   // Descobre o nome do chat (se for grupo usa groupName, se for pessoa busca pelo UID no Firestore)
   Future<String> _getChatDisplayName(Map<String, dynamic> data) async {
     // 1. Se tiver groupName definido
-    if (data['groupName'] != null && data['groupName'].toString().trim().isNotEmpty) {
+    if (data['groupName'] != null &&
+        data['groupName'].toString().trim().isNotEmpty) {
       return data['groupName'].toString();
     }
 
-    // 2. Se já tiver campo com nome salvo
-    if (data['participantName'] != null && data['participantName'].toString().trim().isNotEmpty) {
+    // 2. Se jÃ¡ tiver campo com nome salvo
+    if (data['participantName'] != null &&
+        data['participantName'].toString().trim().isNotEmpty) {
       return data['participantName'].toString();
     }
     if (data['name'] != null && data['name'].toString().trim().isNotEmpty) {
@@ -63,7 +87,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
 
     // 3. Se for conversa individual com array de participantes (UIDs)
     final List<dynamic> participants = data['participants'] ?? [];
-    
+
     // Procura o ID que seja diferente do ID do idoso monitorado
     String otherUid = '';
     for (var uid in participants) {
@@ -83,20 +107,26 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       }
 
       try {
-        // Busca o nome na coleção de idosos
-        final elderDoc = await FirebaseFirestore.instance.collection('idosos').doc(otherUid).get();
+        // Busca o nome na coleÃ§Ã£o de idosos
+        final elderDoc = await FirebaseFirestore.instance
+            .collection('idosos')
+            .doc(otherUid)
+            .get();
         if (elderDoc.exists && elderDoc.data() != null) {
           final eData = elderDoc.data()!;
-          final fetchedName = eData['name'] ?? eData['fullName'] ?? 'Usuário';
+          final fetchedName = eData['name'] ?? eData['fullName'] ?? 'UsuÃ¡rio';
           _userNameCache[otherUid] = fetchedName.toString();
           return fetchedName.toString();
         }
 
-        // Se não achou em idosos, busca na coleção de familiares
-        final famDoc = await FirebaseFirestore.instance.collection('familiares').doc(otherUid).get();
+        // Se nÃ£o achou em idosos, busca na coleÃ§Ã£o de familiares
+        final famDoc = await FirebaseFirestore.instance
+            .collection('familiares')
+            .doc(otherUid)
+            .get();
         if (famDoc.exists && famDoc.data() != null) {
           final fData = famDoc.data()!;
-          final fetchedName = fData['name'] ?? fData['fullName'] ?? 'Usuário';
+          final fetchedName = fData['name'] ?? fData['fullName'] ?? 'UsuÃ¡rio';
           _userNameCache[otherUid] = fetchedName.toString();
           return fetchedName.toString();
         }
@@ -130,6 +160,19 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
           final data = userDoc.data() as Map<String, dynamic>;
           final String rawName = data['name'] ?? '';
           final String linkedEmail = data['linkedElderEmail'] ?? '';
+          final String linkStatus = data['familyLinkStatus']?.toString() ?? '';
+
+          if (linkStatus == 'blocked') {
+            if (mounted) {
+              setState(() {
+                _userFirstName = rawName.split(' ').first;
+                _userLastName = '';
+                _elderlyMonitoredName = 'Vínculo bloqueado';
+                _isLoadingData = false;
+              });
+            }
+            return;
+          }
 
           String foundElderlyName = 'Idoso vinculado';
           String foundElderUid = '';
@@ -145,7 +188,8 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
               final elderDoc = elderQuery.docs.first;
               final elderData = elderDoc.data() as Map<String, dynamic>;
               foundElderUid = elderDoc.id;
-              final String rawElderName = elderData['name'] ?? elderData['fullName'] ?? '';
+              final String rawElderName =
+                  elderData['name'] ?? elderData['fullName'] ?? '';
               if (rawElderName.isNotEmpty) {
                 foundElderlyName = _formatFirstAndLastName(rawElderName);
               }
@@ -180,10 +224,15 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   }
 
   @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String displayName = _isLoadingData
-        ? '...'
-        : '$_userFirstName $_userLastName'.trim();
+    final String displayName =
+        _isLoadingData ? '...' : '$_userFirstName $_userLastName'.trim();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -195,33 +244,39 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             children: [
               _buildHeader(
                 context,
-                displayName.isEmpty ? 'Usuário' : displayName,
+                displayName.isEmpty ? 'UsuÃ¡rio' : displayName,
                 _elderlyMonitoredName,
               ),
               const SizedBox(height: 20),
               StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('chats')
-                    .snapshots(),
+                stream:
+                    FirebaseFirestore.instance.collection('chats').snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting && _isLoadingData) {
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      _isLoadingData) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
                       child: Center(
-                        child: CircularProgressIndicator(color: Color(0xFF033B63)),
+                        child:
+                            CircularProgressIndicator(color: Color(0xFF033B63)),
                       ),
                     );
                   }
 
                   final docs = snapshot.data?.docs ?? [];
 
-                  // Ordena localmente pela data da última mensagem
-                  final List<QueryDocumentSnapshot> sortedDocs = List.from(docs);
+                  // Ordena localmente pela data da Ãºltima mensagem
+                  final List<QueryDocumentSnapshot> sortedDocs =
+                      List.from(docs);
                   sortedDocs.sort((a, b) {
                     final dataA = a.data() as Map<String, dynamic>;
                     final dataB = b.data() as Map<String, dynamic>;
-                    final Timestamp? timeA = dataA['lastMessageTime'] as Timestamp? ?? dataA['timestamp'] as Timestamp?;
-                    final Timestamp? timeB = dataB['lastMessageTime'] as Timestamp? ?? dataB['timestamp'] as Timestamp?;
+                    final Timestamp? timeA =
+                        dataA['lastMessageTime'] as Timestamp? ??
+                            dataA['timestamp'] as Timestamp?;
+                    final Timestamp? timeB =
+                        dataB['lastMessageTime'] as Timestamp? ??
+                            dataB['timestamp'] as Timestamp?;
                     if (timeA == null) return 1;
                     if (timeB == null) return -1;
                     return timeB.compareTo(timeA);
@@ -230,20 +285,26 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                   final activeDocs = _elderlyUid.isNotEmpty
                       ? sortedDocs.where((doc) {
                           final data = doc.data() as Map<String, dynamic>;
-                          final List<dynamic> participants = data['participants'] ?? [];
-                          final String participantId = data['participantId'] ?? '';
-                          return participants.contains(_elderlyUid) || participantId == _elderlyUid;
+                          final List<dynamic> participants =
+                              data['participants'] ?? [];
+                          final String participantId =
+                              data['participantId'] ?? '';
+                          return participants.contains(_elderlyUid) ||
+                              participantId == _elderlyUid;
                         }).toList()
                       : sortedDocs;
 
-                  final docsToDisplay = activeDocs.isNotEmpty ? activeDocs : sortedDocs;
+                  final docsToDisplay =
+                      activeDocs.isNotEmpty ? activeDocs : sortedDocs;
 
                   // 1. Total de conversas ativas
                   final int totalChats = docsToDisplay.length;
 
-                  // 2. Busca o nome do primeiro chat para a "Última Interação"
-                  final Future<String> lastInteractionFuture = docsToDisplay.isNotEmpty
-                      ? _getChatDisplayName(docsToDisplay.first.data() as Map<String, dynamic>)
+                  // 2. Busca o nome do primeiro chat para a "Ãšltima InteraÃ§Ã£o"
+                  final Future<String> lastInteractionFuture = docsToDisplay
+                          .isNotEmpty
+                      ? _getChatDisplayName(
+                          docsToDisplay.first.data() as Map<String, dynamic>)
                       : Future.value('-');
 
                   return FutureBuilder<String>(
@@ -271,11 +332,14 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                           if (followerSnap.hasData &&
                               followerSnap.data != null &&
                               followerSnap.data!.docs.isNotEmpty) {
-                            final followerData =
-                                followerSnap.data!.docs.first.data() as Map<String, dynamic>;
-                            final rawFollower = followerData['name'] ?? followerData['fullName'] ?? '';
+                            final followerData = followerSnap.data!.docs.first
+                                .data() as Map<String, dynamic>;
+                            final rawFollower = followerData['name'] ??
+                                followerData['fullName'] ??
+                                '';
                             if (rawFollower.isNotEmpty) {
-                              newFollowerName = _formatFirstAndLastName(rawFollower);
+                              newFollowerName =
+                                  _formatFirstAndLastName(rawFollower);
                             }
                           }
 
@@ -306,7 +370,8 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, String displayName, String monitoredName) {
+  Widget _buildHeader(
+      BuildContext context, String displayName, String monitoredName) {
     final double topSafeArea = MediaQuery.of(context).padding.top;
 
     return Container(
@@ -332,17 +397,40 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             children: [
               GestureDetector(
                 onTap: () {
+                  setState(() => _hasUnreadNotifications = false);
                   Navigator.pushNamed(context, AppRoutes.notifications);
                 },
-                child: Image.asset(
-                  'assets/images/commun/notification_icon.png',
-                  height: 21,
-                  width: 21,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.notifications_none,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Image.asset(
+                      'assets/images/commun/notification_icon.png',
+                      height: 21,
+                      width: 21,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.notifications_none,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    if (_hasUnreadNotifications)
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF62B6CB),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF033B63),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 16),
@@ -374,7 +462,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Olá, $displayName!',
+                        'OlÃ¡, $displayName!',
                         style: const TextStyle(
                           fontFamily: 'Quicksand',
                           fontSize: 20,
@@ -384,7 +472,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Gerencie as interações\nda $monitoredName.',
+                        'Gerencie as interaÃ§Ãµes\nda $monitoredName.',
                         style: const TextStyle(
                           fontFamily: 'Raleway',
                           fontSize: 13,
@@ -401,7 +489,8 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 'assets/images/family/home_banner_responsible.png',
                 height: 135,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(height: 110),
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(height: 110),
               ),
             ],
           ),
@@ -441,7 +530,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             const SizedBox(width: 8),
             Expanded(
               child: _buildMetricCard(
-                title: 'Última Interação',
+                title: 'Ãšltima InteraÃ§Ã£o',
                 value: lastInteraction,
                 assetPath: 'assets/images/family/last_interation_icon.png',
                 fallbackIcon: Icons.access_time_outlined,
@@ -555,8 +644,9 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final data = docs[index].data() as Map<String, dynamic>;
-                final Timestamp? timestamp = data['lastMessageTime'] as Timestamp? ??
-                    data['timestamp'] as Timestamp?;
+                final Timestamp? timestamp =
+                    data['lastMessageTime'] as Timestamp? ??
+                        data['timestamp'] as Timestamp?;
                 final String avatarUrl = _extractParticipantAvatar(data);
 
                 return FutureBuilder<String>(
@@ -603,7 +693,9 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             backgroundColor: const Color(0xFFE0E0E0),
             backgroundImage: avatarUrl.startsWith('http')
                 ? NetworkImage(avatarUrl)
-                : (avatarUrl.isNotEmpty ? AssetImage(avatarUrl) as ImageProvider : null),
+                : (avatarUrl.isNotEmpty
+                    ? AssetImage(avatarUrl) as ImageProvider
+                    : null),
             child: avatarUrl.isEmpty
                 ? const Icon(Icons.person, size: 30, color: Colors.white)
                 : null,

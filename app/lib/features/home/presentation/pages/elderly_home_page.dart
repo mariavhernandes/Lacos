@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
+import '../../../notifications/data/notification_service.dart';
 
 class ElderlyHomePage extends StatefulWidget {
   const ElderlyHomePage({super.key});
@@ -14,7 +17,9 @@ class ElderlyHomePage extends StatefulWidget {
 
 class _ElderlyHomePageState extends State<ElderlyHomePage> {
   final TextEditingController _searchController = TextEditingController();
-  final bool _hasUnreadNotifications = true;
+  bool _hasUnreadNotifications = false;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _notificationSubscription;
 
   String _userFirstName = '';
   String _userLastName = '';
@@ -28,6 +33,21 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   void initState() {
     super.initState();
     _fetchUserData();
+    _listenForUnreadNotifications();
+  }
+
+  void _listenForUnreadNotifications() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    _notificationSubscription = FamilyNotificationService()
+        .unreadNotificationsStream(uid: uid, isElder: true)
+        .snapshots()
+        .listen((snapshot) {
+      if (mounted) {
+        setState(() => _hasUnreadNotifications = snapshot.docs.isNotEmpty);
+      }
+    });
   }
 
   Future<void> _fetchUserData() async {
@@ -70,14 +90,14 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final String displayName = _isLoadingName
-        ? '...'
-        : '$_userFirstName $_userLastName'.trim();
+    final String displayName =
+        _isLoadingName ? '...' : '$_userFirstName $_userLastName'.trim();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -90,7 +110,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  _buildHeader(context, displayName.isEmpty ? 'Usuário' : displayName),
+                  _buildHeader(
+                      context, displayName.isEmpty ? 'Usuário' : displayName),
                   Positioned(
                     left: 20,
                     right: 20,
@@ -98,8 +119,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     child: CustomSearchBar(
                       hintText: 'Pesquisar amigos',
                       controller: _searchController,
-                      onChanged: (text) {
-                      },
+                      onChanged: (text) {},
                     ),
                   ),
                 ],
@@ -132,9 +152,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         ),
       ),
       padding: EdgeInsets.only(
-        left: 24, 
-        right: 24, 
-        top: topSafeArea + 12, 
+        left: 24,
+        right: 24,
+        top: topSafeArea + 12,
         bottom: 0,
       ),
       child: Column(
@@ -145,6 +165,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             children: [
               GestureDetector(
                 onTap: () {
+                  setState(() => _hasUnreadNotifications = false);
                   Navigator.pushNamed(context, AppRoutes.notifications);
                 },
                 child: Stack(
@@ -160,20 +181,23 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                         size: 28,
                       ),
                     ),
-                    // if (_hasUnreadNotifications)
-                    //   Positioned(
-                    //     right: 2,
-                    //     top: 2,
-                    //     child: Container(
-                    //       width: 10,
-                    //       height: 10,
-                    //       decoration: BoxDecoration(
-                    //         color: const Color(0xFF62B6CB),
-                    //         shape: BoxShape.circle,
-                    //         border: Border.all(color: const Color(0xFF033B63), width: 1.5),
-                    //       ),
-                    //     ),
-                    //   ),
+                    if (_hasUnreadNotifications)
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF62B6CB),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF033B63),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -232,7 +256,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                 'assets/images/elderly/home_banner.png',
                 height: 135,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(height: 110),
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(height: 110),
               ),
             ],
           ),
@@ -312,7 +337,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _buildFriendCard('Joaquim Martins', '75 anos, fã de\nmúsica antiga'),
+                _buildFriendCard(
+                    'Joaquim Martins', '75 anos, fã de\nmúsica antiga'),
                 _buildFriendCard('Fátima Rosa', '70 anos, fã de\njardinagem'),
               ],
             ),
@@ -386,7 +412,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                   width: 72,
                   height: 72,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                  errorBuilder: (context, error, stackTrace) =>
+                      const CircleAvatar(
                     radius: 36,
                     backgroundColor: Color(0xFFDCDCDC),
                     child: Icon(Icons.person, size: 44, color: Colors.white),
@@ -461,7 +488,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                   width: 72,
                   height: 72,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const CircleAvatar(
+                  errorBuilder: (context, error, stackTrace) =>
+                      const CircleAvatar(
                     radius: 36,
                     backgroundColor: Color(0xFFDCDCDC),
                     child: Icon(Icons.group, size: 40, color: Colors.white),
@@ -513,7 +541,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isActive ? const Color(0xFF033B63) : const Color(0xFF9ED1FF),
+          backgroundColor:
+              isActive ? const Color(0xFF033B63) : const Color(0xFF9ED1FF),
           elevation: 0,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
