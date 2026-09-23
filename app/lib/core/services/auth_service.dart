@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../features/notifications/data/notification_service.dart';
 import '../routes/app_routes.dart';
 
 final class AuthService {
@@ -38,17 +39,16 @@ final class AuthService {
       );
     }
 
-    final trimmedLinkedEmail = linkedElderEmail?.trim().toLowerCase();
+    final trimmedLinkedEmail = linkedElderEmail?.trim();
 
     try {
       await _firestore.collection('idosos').doc(uid).set({
         'uid': uid,
         'name': name.trim(),
-        'email': email.trim().toLowerCase(),
+        'email': email.trim(),
         'role': 'idoso',
         'birthDate': birthDate,
         'city': city,
-        // 2. Agora pode usar diretamente a variável já tratada
         'linkedElderEmail': (trimmedLinkedEmail?.isNotEmpty ?? false)
             ? trimmedLinkedEmail
             : null,
@@ -71,10 +71,8 @@ final class AuthService {
     required String relationship,
     String? linkedElderEmail,
   }) async {
-    final trimmedLinkedEmail = linkedElderEmail?.trim().toLowerCase();
+    final trimmedLinkedEmail = linkedElderEmail?.trim();
 
-    // 1. Cria a conta de autenticação primeiro para garantir que as
-    // regras de segurança (request.auth != null) permitam a leitura no Firestore
     final userCredential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
@@ -89,47 +87,87 @@ final class AuthService {
     }
 
     try {
-      // 2. Se informou um e-mail de idoso, valida se ele realmente existe
-      if (trimmedLinkedEmail != null && trimmedLinkedEmail.isNotEmpty) {
-        final query = await _firestore
-            .collection('idosos')
-            .where('email', isEqualTo: trimmedLinkedEmail)
-            .limit(1)
-            .get();
+      final familyReference = _firestore.collection('familiares').doc(uid);
+      final familyNotificationService =
+          FamilyNotificationService(firestore: _firestore);
 
-        if (query.docs.isEmpty) {
-          throw FirebaseAuthException(
-            code: 'linked-elder-not-found',
-            message:
-                'O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.',
-          );
-        }
-
-        final data = query.docs.first.data();
-        final role = data['role'];
-        if (role != 'idoso') {
-          throw FirebaseAuthException(
-            code: 'linked-elder-not-found',
-            message:
-                'O e-mail do idoso informado não foi encontrado. Certifique-se de que o idoso já possui cadastro.',
-          );
-        }
+      if (trimmedLinkedEmail == null || trimmedLinkedEmail.isEmpty) {
+        await familyReference.set({
+          'uid': uid,
+          'name': name.trim(),
+          'email': email.trim(),
+          'role': 'familiar',
+          'relationship': relationship.trim(),
+          'linkedElderEmail': null,
+          'familyLinkStatus': 'none',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        return;
       }
 
-      // 3. Salva os dados do familiar no Firestore
-      await _firestore.collection('familiares').doc(uid).set({
-        'uid': uid,
-        'name': name.trim(),
-        'email': email.trim().toLowerCase(),
-        'role': 'familiar',
-        'relationship': relationship.trim(),
-        'linkedElderEmail': (trimmedLinkedEmail?.isNotEmpty ?? false)
-            ? trimmedLinkedEmail
-            : null,
-        'createdAt': FieldValue.serverTimestamp(),
+      final elderQuery = await _firestore
+          .collection('idosos')
+          .where('email', isEqualTo: trimmedLinkedEmail)
+          .limit(1)
+          .get();
+      if (elderQuery.docs.isEmpty) {
+        throw FirebaseAuthException(
+          code: 'linked-elder-not-found',
+          message: 'O idoso vinculado não foi encontrado.',
+        );
+      }
+
+      final elderData = elderQuery.docs.first.data();
+      if (elderData['role'] != 'idoso') {
+        throw FirebaseAuthException(
+          code: 'linked-elder-not-found',
+          message: 'O idoso vinculado não foi encontrado.',
+        );
+      }
+
+      final elderReference = elderQuery.docs.first.reference;
+      final elderUid = elderReference.id;
+
+      await _firestore.runTransaction((transaction) async {
+        final elderSnapshot = await transaction.get(elderReference);
+        final elderData = elderSnapshot.data() ?? <String, dynamic>{};
+        final linkedFamilyUid = elderData['linkedFamilyUid']?.toString();
+        final linkStatus = elderData['familyLinkStatus']?.toString();
+
+        if (linkStatus == 'active' &&
+            linkedFamilyUid != null &&
+            linkedFamilyUid.isNotEmpty) {
+          throw FirebaseAuthException(
+            code: 'elder-already-linked',
+            message: 'Este idoso já possui um familiar vinculado.',
+          );
+        }
+
+        transaction.set(familyReference, {
+          'uid': uid,
+          'name': name.trim(),
+          'email': email.trim(),
+          'role': 'familiar',
+          'relationship': relationship.trim(),
+          'linkedElderEmail': trimmedLinkedEmail,
+          'linkedElderUid': elderUid,
+          'familyLinkStatus': 'active',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        transaction.update(elderReference, {
+          'linkedFamilyUid': uid,
+          'familyLinkStatus': 'active',
+          'familyLinkBlockedAt': FieldValue.delete(),
+          'familyLinkBlockedBy': FieldValue.delete(),
+        });
+        familyNotificationService.setFamilyLinkCreatedNotification(
+          transaction: transaction,
+          elderUid: elderUid,
+          familyUid: uid,
+          familyName: name.trim(),
+        );
       });
     } catch (error) {
-      // Se houver qualquer falha na validação ou salvamento, desfaz a criação da conta no Auth
       await userCredential.user?.delete();
       rethrow;
     }

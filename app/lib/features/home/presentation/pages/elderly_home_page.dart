@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
+import '../../../notifications/data/notification_service.dart';
 import '../../../profile/presentation/pages/public_profile_page.dart';
 
 class ElderlyHomePage extends StatefulWidget {
@@ -25,6 +28,9 @@ const Map<String, String> _cityDisplayNames = {
 
 class _ElderlyHomePageState extends State<ElderlyHomePage> {
   final TextEditingController _searchController = TextEditingController();
+  bool _hasUnreadNotifications = false;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _notificationSubscription;
 
   String _userFirstName = '';
   String _userLastName = '';
@@ -58,6 +64,21 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     super.initState();
     _fetchUserData();
     _fetchFriendSuggestions();
+    _listenForUnreadNotifications();
+  }
+
+  void _listenForUnreadNotifications() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    _notificationSubscription = FamilyNotificationService()
+        .unreadNotificationsStream(uid: uid, isElder: true)
+        .snapshots()
+        .listen((snapshot) {
+      if (mounted) {
+        setState(() => _hasUnreadNotifications = snapshot.docs.isNotEmpty);
+      }
+    });
   }
 
   // ============================================================
@@ -429,6 +450,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -515,20 +537,40 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             children: [
               GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.notifications,
-                  );
+                  setState(() => _hasUnreadNotifications = false);
+                  Navigator.pushNamed(context, AppRoutes.notifications);
                 },
-                child: Image.asset(
-                  'assets/images/commun/notification_icon.png',
-                  height: 21,
-                  width: 21,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.notifications_none,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Image.asset(
+                      'assets/images/commun/notification_icon.png',
+                      height: 21,
+                      width: 21,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.notifications_none,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    if (_hasUnreadNotifications)
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF62B6CB),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF033B63),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 16),
@@ -589,9 +631,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                 'assets/images/elderly/home_banner.png',
                 height: 135,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(
-                  height: 110,
-                ),
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(height: 110),
               ),
             ],
           ),
