@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class PublicProfilePage extends StatefulWidget {
@@ -16,9 +17,13 @@ class PublicProfilePage extends StatefulWidget {
 class _PublicProfilePageState extends State<PublicProfilePage> {
   bool _isFollowing = false;
 
+  // Inclui variações de singular/plural usadas no app
   final Set<String> _predefinedInterests = {
     'Jogos de tabuleiro',
+    'Jogo de tabuleiro',
     'Jogos de carta',
+    'Jogo de cartas',
+    'Jogos de cartas',
     'Xadrez',
     'Dança',
     'Jardinagem',
@@ -29,17 +34,108 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   };
 
   final Map<String, String> _interestIcons = {
-    'Jogos de tabuleiro': 'assets/images/commun/card_games.png',
-    'Jogo de cartas': 'assets/images/commun/card_games.png',
-    'Jogos de carta': 'assets/images/commun/card_games.png',
-    'Xadrez': 'assets/images/commun/chess.png',
-    'Dança': 'assets/images/commun/dancing.png',
-    'Jardinagem': 'assets/images/commun/gardening.png',
-    'Tricô/Crochê': 'assets/images/commun/knitting.png',
-    'Artesanato': 'assets/images/commun/sewing.png',
-    'Caminhada': 'assets/images/commun/walking.png',
-    'Dominó': 'assets/images/commun/domino.png',
+    'jogos de tabuleiro': 'assets/images/commun/card_games.png',
+    'jogo de tabuleiro': 'assets/images/commun/card_games.png',
+    'jogo de cartas': 'assets/images/commun/card_games.png',
+    'jogos de carta': 'assets/images/commun/card_games.png',
+    'jogos de cartas': 'assets/images/commun/card_games.png',
+    'xadrez': 'assets/images/commun/chess.png',
+    'danca': 'assets/images/commun/dancing.png',
+    'dança': 'assets/images/commun/dancing.png',
+    'jardinagem': 'assets/images/commun/gardening.png',
+    'trico/croche': 'assets/images/commun/knitting.png',
+    'tricô/crochê': 'assets/images/commun/knitting.png',
+    'trico': 'assets/images/commun/knitting.png',
+    'tricô': 'assets/images/commun/knitting.png',
+    'croche': 'assets/images/commun/knitting.png',
+    'crochê': 'assets/images/commun/knitting.png',
+    'artesanato': 'assets/images/commun/sewing.png',
+    'caminhada': 'assets/images/commun/walking.png',
+    'domino': 'assets/images/commun/domino.png',
+    'dominó': 'assets/images/commun/domino.png',
   };
+
+  // ============================================================
+  // FUNÇÕES DE TRATAMENTO E NORMALIZAÇÃO
+  // ============================================================
+
+  String _normalizeText(String text) {
+    return text
+        .toLowerCase()
+        .trim()
+        .replaceAll('á', 'a')
+        .replaceAll('à', 'a')
+        .replaceAll('ã', 'a')
+        .replaceAll('â', 'a')
+        .replaceAll('ä', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('è', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('ë', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ì', 'i')
+        .replaceAll('î', 'i')
+        .replaceAll('ï', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ò', 'o')
+        .replaceAll('õ', 'o')
+        .replaceAll('ô', 'o')
+        .replaceAll('ö', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ù', 'u')
+        .replaceAll('û', 'u')
+        .replaceAll('ü', 'u')
+        .replaceAll('ç', 'c');
+  }
+
+  bool _isPredefinedInterest(String item) {
+    final cleanItem = _normalizeText(item);
+    return _predefinedInterests.any((p) => _normalizeText(p) == cleanItem);
+  }
+
+  String? _getIconPath(String title) {
+    final cleanTitle = title.toLowerCase().trim();
+    if (_interestIcons.containsKey(cleanTitle)) {
+      return _interestIcons[cleanTitle];
+    }
+    final normalized = _normalizeText(title);
+    return _interestIcons[normalized];
+  }
+
+  List<String> _extractInterestsList(Map<String, dynamic> data) {
+    final dynamic rawData = data['interests'] ?? data['interesses'];
+
+    if (rawData == null) return [];
+
+    if (rawData is List) {
+      return rawData
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
+    if (rawData is Map) {
+      return rawData.values
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
+    if (rawData is String) {
+      if (rawData.trim().isEmpty) return [];
+      return rawData
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
+    return [];
+  }
+
+  // ============================================================
+  // BUSCA DE DADOS
+  // ============================================================
 
   Future<Map<String, dynamic>?> _fetchUserData(String targetUid) async {
     final idosoDoc = await FirebaseFirestore.instance
@@ -115,6 +211,52 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     return 'Não informado.';
   }
 
+  Future<void> _toggleFollow(String targetUid) async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null || currentUserId == targetUid) {
+      return;
+    }
+
+    try {
+      final currentUserRef =
+          FirebaseFirestore.instance.collection('idosos').doc(currentUserId);
+
+      final wasFollowing = _isFollowing;
+
+      setState(() {
+        _isFollowing = !wasFollowing;
+      });
+
+      if (wasFollowing) {
+        await currentUserRef.update({
+          'followingIds': FieldValue.arrayRemove([targetUid]),
+        });
+      } else {
+        await currentUserRef.set({
+          'followingIds': FieldValue.arrayUnion([targetUid]),
+        }, SetOptions(merge: true));
+      }
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isFollowing = !_isFollowing;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível atualizar o seguir: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // BUILD PRINCIPAL
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
     final String? targetUid = widget.uid;
@@ -147,7 +289,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               );
             }
 
-            if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+            if (snapshot.hasError ||
+                !snapshot.hasData ||
+                snapshot.data == null) {
               return const Center(
                 child: Text(
                   'Perfil não encontrado.',
@@ -166,25 +310,23 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             final String bio =
                 data['bio'] ?? data['biografia'] ?? data['sobre'] ?? '';
             final String ageText = _getAgeText(data);
-            final String city = data['city'] ?? data['cidade'] ?? 'Não informada';
+            final String city =
+                data['city'] ?? data['cidade'] ?? 'Não informada';
             final bool isOnline =
                 data['isOnline'] is bool ? data['isOnline'] as bool : false;
             final String avatarPath = data['avatarPath'] ??
                 data['foto'] ??
                 'assets/avatars/default_profile_image.png';
 
-            final List<dynamic> allInterests = data['interests'] is List
-                ? data['interests'] as List
-                : (data['interesses'] is List
-                    ? data['interesses'] as List
-                    : []);
+            final List<String> allInterests = _extractInterestsList(data);
 
+            // Filtragem normalizada garantindo separação exata
             final chosenInterests = allInterests
-                .where((item) => _predefinedInterests.contains(item.toString()))
+                .where((item) => _isPredefinedInterest(item))
                 .toList();
 
             final addedInterests = allInterests
-                .where((item) => !_predefinedInterests.contains(item.toString()))
+                .where((item) => !_isPredefinedInterest(item))
                 .toList();
 
             final int followersCount = data['followersCount'] is int
@@ -203,15 +345,11 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // ==================================================
-                  // CABEÇALHO COM NOME E STATUS ONLINE
-                  // ==================================================
+                  // CABEÇALHO
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          Navigator.maybePop(context);
-                        },
+                        onTap: () => Navigator.maybePop(context),
                         child: Image.asset(
                           'assets/icons/navigation/back_icon.png',
                           width: 40,
@@ -258,9 +396,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 16),
 
-                  // ==================================================
                   // FOTO + SEGUIDORES
-                  // ==================================================
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -283,9 +419,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 16),
 
-                  // ==================================================
                   // BOTÕES
-                  // ==================================================
                   Row(
                     children: [
                       Expanded(
@@ -299,11 +433,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _isFollowing = !_isFollowing;
-                            });
-                          },
+                          onPressed: () => _toggleFollow(targetUid),
                           child: Text(
                             _isFollowing ? 'Seguindo' : 'Seguir',
                             style: const TextStyle(
@@ -326,9 +456,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
+                          onPressed: () => Navigator.pop(context),
                           child: const Text(
                             'Mensagens',
                             style: TextStyle(
@@ -344,9 +472,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 20),
 
-                  // ==================================================
                   // SOBRE MIM
-                  // ==================================================
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -374,7 +500,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             fontSize: 14,
                             height: 1.4,
                             color: bio.isEmpty ? Colors.grey : Colors.black87,
-                            fontStyle: bio.isEmpty ? FontStyle.italic : FontStyle.normal,
+                            fontStyle: bio.isEmpty
+                                ? FontStyle.italic
+                                : FontStyle.normal,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -421,9 +549,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 20),
 
-                  // ==================================================
                   // INTERESSES ESCOLHIDOS
-                  // ==================================================
                   _buildChosenInterestsSection(
                     title: 'Interesses Escolhidos',
                     icon: Icons.check_circle,
@@ -432,9 +558,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 20),
 
-                  // ==================================================
                   // INTERESSES ADICIONADOS
-                  // ==================================================
                   _buildAddedInterestsSection(
                     title: 'Interesses Adicionados',
                     icon: Icons.add_circle,
@@ -480,7 +604,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   Widget _buildChosenInterestsSection({
     required String title,
     required IconData icon,
-    required List<dynamic> items,
+    required List<String> items,
   }) {
     return Container(
       width: double.infinity,
@@ -492,7 +616,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: 12,
+            ),
             child: Row(
               children: [
                 Icon(icon, color: const Color(0xFF0D3B66)),
@@ -529,15 +658,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: items.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.95,
+                      childAspectRatio: 0.95, // Proporção original restaurada
                     ),
                     itemBuilder: (context, index) {
-                      final titleStr = items[index].toString();
-                      final imagePath = _interestIcons[titleStr];
+                      final titleStr = items[index];
+                      final imagePath = _getIconPath(titleStr);
                       return _buildInterestCardWithIcon(titleStr, imagePath);
                     },
                   ),
@@ -549,7 +679,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
   Widget _buildInterestCardWithIcon(String title, String? imagePath) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFFF7F7F7),
         borderRadius: BorderRadius.circular(16),
@@ -576,7 +706,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               size: 32,
               color: Color(0xFF0D3B66),
             ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -598,7 +728,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   Widget _buildAddedInterestsSection({
     required String title,
     required IconData icon,
-    required List<dynamic> items,
+    required List<String> items,
   }) {
     return Container(
       width: double.infinity,
@@ -610,7 +740,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: 12,
+            ),
             child: Row(
               children: [
                 Icon(icon, color: const Color(0xFF0D3B66)),
@@ -649,15 +784,19 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     children: items.map((item) {
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF7F7F7),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: const Color(0xFF0D3B66), width: 1.5),
+                            color: const Color(0xFF0D3B66),
+                            width: 1.5,
+                          ),
                         ),
                         child: Text(
-                          item.toString(),
+                          item,
                           style: const TextStyle(
                             fontFamily: 'Raleway',
                             color: Color(0xFF0D3B66),
