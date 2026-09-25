@@ -63,12 +63,20 @@ class CustomFooter extends StatelessWidget {
           // =====================================================
 
           _FooterItem(
-            asset:
-                'assets/icons/icons_footer/footer_location_icon.png',
-            label: isFamilyRoute ? 'Localização' : 'Lugares',
+            asset: isFamilyRoute
+                ? 'assets/icons/icons_footer/footer_camera_icon.png'
+                : 'assets/icons/icons_footer/footer_location_icon.png',
+            label: isFamilyRoute ? 'Registros' : 'Lugares',
             selected: currentIndex == 1,
             onTap: isFamilyRoute
-                ? () {}
+                ? () {
+                    if (currentRoute != '/family-records') {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/family-records',
+                      );
+                    }
+                  }
                 : () {
                     if (currentRoute != '/discovery') {
                       Navigator.pushReplacementNamed(

@@ -32,6 +32,11 @@ import '../../features/discovery/presentation/screens/discovery_screen.dart';
 import '../../features/chat/screens/chat_list_screen.dart';
 import '../../features/chat/screens/manage_messages_screen.dart';
 
+// ============================================================
+// REGISTROS (IOT)
+// ============================================================
+import '../../features/records/records_page.dart';
+
 class AppRoutes {
   // ============================================================
   // ROTAS
@@ -52,6 +57,7 @@ class AppRoutes {
   static const String help = '/help';
   static const String chat = '/chat';
   static const String manageMessages = '/manage-messages';
+  static const String familyRecords = '/family-records';
 
   // ============================================================
   // EDITAR PERFIL DO IDOSO
@@ -109,6 +115,11 @@ class AppRoutes {
       // AJUDA
       // ----------------------------------------------------------
       help: (context) => const HelpPage(),
+
+      // ----------------------------------------------------------
+      // REGISTROS DO FAMILIAR (IOT)
+      // ----------------------------------------------------------
+      familyRecords: (context) => const RecordsPage(),
 
       // ----------------------------------------------------------
       // EDITAR SOBRE VOCÊ
