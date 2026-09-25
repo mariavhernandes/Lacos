@@ -20,10 +20,14 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   String _userLastName = '';
   String _elderlyMonitoredName = 'Idoso vinculado';
   String _elderlyUid = '';
+  String _familyLinkStatus = 'none';
   bool _isLoadingData = true;
   bool _hasUnreadNotifications = false;
+
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       _notificationSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+      _familyLinkSubscription;
 
   // Cache para guardar nomes já buscados por UID e evitar chamadas repetidas
   final Map<String, String> _userNameCache = {};
@@ -33,6 +37,24 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     super.initState();
     _fetchUserData();
     _listenForUnreadNotifications();
+    _listenForFamilyLinkStatus();
+  }
+
+  void _listenForFamilyLinkStatus() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    _familyLinkSubscription = FirebaseFirestore.instance
+        .collection('familiares')
+        .doc(uid)
+        .snapshots()
+        .listen((snapshot) {
+      final status = snapshot.data()?['familyLinkStatus']?.toString() ?? 'none';
+      if (!mounted || status == _familyLinkStatus) return;
+
+      setState(() => _familyLinkStatus = status);
+      if (status == 'active') _fetchUserData();
+    });
   }
 
   void _listenForUnreadNotifications() {
@@ -161,6 +183,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
           final String rawName = data['name'] ?? '';
           final String linkedEmail = data['linkedElderEmail'] ?? '';
           final String linkStatus = data['familyLinkStatus']?.toString() ?? '';
+          _familyLinkStatus = linkStatus;
 
           if (linkStatus == 'blocked') {
             if (mounted) {
@@ -226,6 +249,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   @override
   void dispose() {
     _notificationSubscription?.cancel();
+    _familyLinkSubscription?.cancel();
     super.dispose();
   }
 
@@ -233,6 +257,10 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   Widget build(BuildContext context) {
     final String displayName =
         _isLoadingData ? '...' : '$_userFirstName $_userLastName'.trim();
+
+    if (!_isLoadingData && _familyLinkStatus == 'blocked') {
+      return _buildBlockedHome(context, displayName);
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -370,6 +398,159 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 
+Widget _buildBlockedHome(BuildContext context, String displayName) {
+  return Scaffold(
+    backgroundColor: const Color(0xFFFAFAFA),
+    body: SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(
+              context,
+              displayName.isEmpty ? 'Usuário' : displayName,
+              'Vínculo bloqueado',
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x12000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEAF5FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline,
+                        color: Color(0xFF033B63),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Vínculo familiar bloqueado',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Quicksand',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF222222),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'O acesso aos dados do idoso não está disponível no momento. Consulte as notificações para acompanhar alterações no vínculo.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF555555),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    bottomNavigationBar: _buildBlockedFooter(),
+  );
+}
+  Widget _buildBlockedFooter() {
+    return Container(
+      height: 64,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 5,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildBlockedFooterItem('footer_home_icon.png', 'Início', true),
+          _buildBlockedFooterItem(
+              'footer_location_icon.png', 'Localização', false),
+          _buildBlockedFooterItem('footer_chat_icon.png', 'Conversas', false),
+          _buildBlockedFooterItem(
+            'footer_profile_icon.png',
+            'Perfil',
+            false,
+            () => Navigator.pushNamed(context, AppRoutes.familyProfile),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlockedFooterItem(String iconName, String label, bool selected,
+      [VoidCallback? onTap]) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 70,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 32,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: selected ? const Color(0xFFD9EEFF) : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Image.asset(
+                'assets/icons/icons_footer/$iconName',
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.image_not_supported,
+                  size: 20,
+                  color: selected ? const Color(0xFF033B63) : Colors.grey,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Raleway',
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                color: const Color(0xFF333333),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(
       BuildContext context, String displayName, String monitoredName) {
     final double topSafeArea = MediaQuery.of(context).padding.top;
@@ -471,9 +652,11 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        'Gerencie as interações\nda $monitoredName.',
-                        style: const TextStyle(
+                     Text(
+                      monitoredName == 'Vínculo bloqueado'
+                       ? 'Seu vínculo familiar está bloqueado no momento.'
+                       : 'Gerencie as interações\nda $monitoredName.',
+                      style: const TextStyle(
                           fontFamily: 'Raleway',
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
