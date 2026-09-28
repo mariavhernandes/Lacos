@@ -1,0 +1,13 @@
+RewriteEngine On
+
+# Permite que o Flutter Web carregue fotos e APIs
+
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+    Header set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+</IfModule>
+
+
+RewriteRule ^api/upload$ api/upload.php [L]
+RewriteRule ^api/photos$ api/photos.php [L]
