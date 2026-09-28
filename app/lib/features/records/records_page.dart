@@ -14,8 +14,7 @@ class RecordsPage extends StatefulWidget {
 }
 
 class _RecordsPageState extends State<RecordsPage> {
-  // Endereço do computador onde o Docker/PHP está rodando.
-  // É o mesmo endereço utilizado pelo ESP32.
+  // IP DO COMPUTADOR NA REDE WI-FI
   static const String _baseUrl = 'http://192.168.15.154:3000';
 
   List<Map<String, dynamic>> _photos = [];
@@ -44,7 +43,9 @@ class _RecordsPageState extends State<RecordsPage> {
     super.dispose();
   }
 
-  Future<void> _loadPhotos({bool showLoading = true}) async {
+  Future<void> _loadPhotos({
+    bool showLoading = true,
+  }) async {
     if (showLoading && mounted) {
       setState(() {
         _isLoading = true;
@@ -52,51 +53,110 @@ class _RecordsPageState extends State<RecordsPage> {
       });
     }
 
+    final url = '$_baseUrl/api/photos.php';
+
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/photos'),
+      debugPrint('====================================');
+      debugPrint('📸 BUSCANDO FOTOS');
+      debugPrint('📸 URL: $url');
+
+      final response = await http
+          .get(Uri.parse(url))
+          .timeout(
+            const Duration(seconds: 10),
+          );
+
+      debugPrint(
+        '📸 STATUS HTTP: ${response.statusCode}',
+      );
+
+      debugPrint(
+        '📸 RESPOSTA: ${response.body}',
       );
 
       if (response.statusCode != 200) {
         throw Exception(
-          'Erro HTTP: ${response.statusCode}',
+          'Erro HTTP ${response.statusCode}',
         );
       }
 
-      final data = jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
+
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception(
+          'Resposta da API possui formato inválido.',
+        );
+      }
+
+      final data = decoded;
+
+      debugPrint(
+        '📸 SUCCESS: ${data['success']}',
+      );
 
       if (data['success'] != true) {
         throw Exception(
-          'Não foi possível carregar as fotos.',
+          data['message']?.toString() ??
+              'A API retornou success=false.',
         );
       }
 
-      final List<dynamic> photos = data['photos'] ?? [];
+      final List<dynamic> photosData = data['photos'] ?? [];
+
+      debugPrint(
+        '📸 QUANTIDADE DE FOTOS: ${photosData.length}',
+      );
+
+      final List<Map<String, dynamic>> photos = photosData
+          .map(
+            (photo) => Map<String, dynamic>.from(photo),
+          )
+          .toList();
+
+      for (final photo in photos) {
+        debugPrint(
+          '📸 FOTO: ${photo['fileName']}',
+        );
+
+        debugPrint(
+          '📸 URL RELATIVA: ${photo['url']}',
+        );
+      }
 
       if (!mounted) return;
 
       setState(() {
-        _photos = photos
-            .map(
-              (photo) => Map<String, dynamic>.from(photo),
-            )
-            .toList();
-
+        _photos = photos;
         _isLoading = false;
         _errorMessage = null;
       });
-    } catch (e) {
+
+      debugPrint(
+        '✅ FOTOS CARREGADAS NO FLUTTER: ${_photos.length}',
+      );
+
+      debugPrint('====================================');
+    } catch (e, stackTrace) {
+      debugPrint('====================================');
+      debugPrint('❌ ERRO AO CARREGAR FOTOS');
+      debugPrint('❌ $e');
+      debugPrint('❌ STACKTRACE:');
+      debugPrint('$stackTrace');
+      debugPrint('====================================');
+
       if (!mounted) return;
 
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            'Não foi possível carregar os registros.';
+
+        _errorMessage = 'Erro ao conectar ao servidor:\n$e';
       });
     }
   }
 
-  String _formatDateTime(String? dateTimeString) {
+  String _formatDateTime(
+    String? dateTimeString,
+  ) {
     if (dateTimeString == null || dateTimeString.isEmpty) {
       return 'Data não disponível';
     }
@@ -105,20 +165,29 @@ class _RecordsPageState extends State<RecordsPage> {
       final dateTime = DateTime.parse(dateTimeString).toLocal();
 
       final day = dateTime.day.toString().padLeft(2, '0');
+
       final month = dateTime.month.toString().padLeft(2, '0');
+
       final year = dateTime.year.toString();
 
       final hour = dateTime.hour.toString().padLeft(2, '0');
+
       final minute = dateTime.minute.toString().padLeft(2, '0');
 
       return '$day/$month/$year às $hour:$minute';
-    } catch (_) {
+    } catch (e) {
+      debugPrint(
+        'Erro ao converter data: $e',
+      );
+
       return 'Data não disponível';
     }
   }
 
   /// Modal que explica o funcionamento do IoT.
-  void _showInfoModal(BuildContext context) {
+  void _showInfoModal(
+    BuildContext context,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -150,9 +219,7 @@ class _RecordsPageState extends State<RecordsPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Row(
                 children: [
                   Container(
@@ -167,9 +234,7 @@ class _RecordsPageState extends State<RecordsPage> {
                       size: 22,
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
                   const Expanded(
                     child: Text(
                       'Registros e Monitoramento IoT',
@@ -183,14 +248,11 @@ class _RecordsPageState extends State<RecordsPage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
-
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
@@ -202,21 +264,15 @@ class _RecordsPageState extends State<RecordsPage> {
                           color: Color(0xFF555555),
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       _buildBulletPoint(
                         'As imagens registradas pela câmera inteligente são sincronizadas automaticamente em tempo real.',
                       ),
-
                       const SizedBox(height: 10),
-
                       _buildBulletPoint(
                         'Permite acompanhar momentos dos encontros e garantir maior tranquilidade e proteção.',
                       ),
-
                       const SizedBox(height: 10),
-
                       _buildBulletPoint(
                         'Todas as fotos capturadas durante os passeios ficam salvas no histórico.',
                       ),
@@ -224,9 +280,7 @@ class _RecordsPageState extends State<RecordsPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -263,19 +317,13 @@ class _RecordsPageState extends State<RecordsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       bottomNavigationBar: const CustomFooter(
         currentIndex: 1,
         isFamily: true,
       ),
-
       body: SafeArea(
         child: Column(
           children: [
-            // =====================================================
-            // CABEÇALHO
-            // =====================================================
-
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 20,
@@ -284,7 +332,6 @@ class _RecordsPageState extends State<RecordsPage> {
               child: Row(
                 children: [
                   const SizedBox(width: 40),
-
                   const Expanded(
                     child: Text(
                       'Registros do IoT',
@@ -299,7 +346,6 @@ class _RecordsPageState extends State<RecordsPage> {
                       ),
                     ),
                   ),
-
                   GestureDetector(
                     onTap: () => _showInfoModal(context),
                     child: Container(
@@ -319,18 +365,12 @@ class _RecordsPageState extends State<RecordsPage> {
                 ],
               ),
             ),
-
-            // =====================================================
-            // CONTEÚDO
-            // =====================================================
-
             Expanded(
               child: RefreshIndicator(
                 color: const Color(0xFF033B63),
                 onRefresh: () => _loadPhotos(),
                 child: SingleChildScrollView(
-                  physics:
-                      const AlwaysScrollableScrollPhysics(),
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(
                     20,
                     12,
@@ -338,8 +378,7 @@ class _RecordsPageState extends State<RecordsPage> {
                     30,
                   ),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Últimas Capturas',
@@ -350,9 +389,7 @@ class _RecordsPageState extends State<RecordsPage> {
                           color: Color(0xFF033B63),
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       _buildContent(),
                     ],
                   ),
@@ -366,10 +403,6 @@ class _RecordsPageState extends State<RecordsPage> {
   }
 
   Widget _buildContent() {
-    // ===========================================================
-    // CARREGANDO
-    // ===========================================================
-
     if (_isLoading) {
       return Container(
         width: double.infinity,
@@ -383,10 +416,6 @@ class _RecordsPageState extends State<RecordsPage> {
         ),
       );
     }
-
-    // ===========================================================
-    // ERRO
-    // ===========================================================
 
     if (_errorMessage != null) {
       return Container(
@@ -409,9 +438,7 @@ class _RecordsPageState extends State<RecordsPage> {
               size: 42,
               color: Color(0xFF777777),
             ),
-
             const SizedBox(height: 16),
-
             const Text(
               'Não foi possível carregar os registros',
               textAlign: TextAlign.center,
@@ -422,22 +449,18 @@ class _RecordsPageState extends State<RecordsPage> {
                 color: Color(0xFF333333),
               ),
             ),
-
             const SizedBox(height: 8),
-
-            const Text(
-              'Verifique se o servidor do Laços está conectado e tente novamente.',
+            Text(
+              _errorMessage!,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Raleway',
-                fontSize: 13,
+                fontSize: 12,
                 height: 1.35,
                 color: Color(0xFF666666),
               ),
             ),
-
             const SizedBox(height: 18),
-
             ElevatedButton(
               onPressed: () => _loadPhotos(),
               style: ElevatedButton.styleFrom(
@@ -456,10 +479,6 @@ class _RecordsPageState extends State<RecordsPage> {
         ),
       );
     }
-
-    // ===========================================================
-    // NENHUMA FOTO
-    // ===========================================================
 
     if (_photos.isEmpty) {
       return Container(
@@ -492,9 +511,7 @@ class _RecordsPageState extends State<RecordsPage> {
                 color: Color(0xFF033B63),
               ),
             ),
-
             const SizedBox(height: 16),
-
             const Text(
               'Nenhum registro no momento',
               textAlign: TextAlign.center,
@@ -505,9 +522,7 @@ class _RecordsPageState extends State<RecordsPage> {
                 color: Color(0xFF333333),
               ),
             ),
-
             const SizedBox(height: 8),
-
             const Text(
               'Assim que o dispositivo capturar novas imagens, elas aparecerão aqui automaticamente.',
               textAlign: TextAlign.center,
@@ -523,10 +538,6 @@ class _RecordsPageState extends State<RecordsPage> {
       );
     }
 
-    // ===========================================================
-    // FOTOS
-    // ===========================================================
-
     return Column(
       children: _photos.map((photo) {
         return _buildPhotoCard(photo);
@@ -537,20 +548,21 @@ class _RecordsPageState extends State<RecordsPage> {
   Widget _buildPhotoCard(
     Map<String, dynamic> photo,
   ) {
-    final fileName =
-        photo['fileName']?.toString() ?? '';
+    final relativeUrl = photo['url']?.toString() ?? '';
+    final capturedAt = photo['capturedAt']?.toString();
 
-    final capturedAt =
-        photo['capturedAt']?.toString();
+    // Pega o timestamp retornado do backend (ou gera um fallback com o tempo atual)
+    final timestamp = photo['timestamp']?.toString() ??
+        DateTime.now().millisecondsSinceEpoch.toString();
 
-    final imageUrl =
-        '$_baseUrl/uploads/$fileName';
+    // Adiciona ?t=$timestamp para burlar o cache HTTP da imagem
+    final imageUrl = '$_baseUrl$relativeUrl?t=$timestamp';
+
+    debugPrint('🖼️ TENTANDO CARREGAR IMAGEM: $imageUrl');
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(
-        bottom: 18,
-      ),
+      margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -567,25 +579,20 @@ class _RecordsPageState extends State<RecordsPage> {
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // =====================================================
-          // FOTO
-          // =====================================================
-
           AspectRatio(
             aspectRatio: 4 / 3,
             child: Image.network(
               imageUrl,
               fit: BoxFit.cover,
-
               loadingBuilder: (
                 context,
                 child,
                 loadingProgress,
               ) {
                 if (loadingProgress == null) {
+                  debugPrint('✅ IMAGEM CARREGADA: $imageUrl');
                   return child;
                 }
 
@@ -595,12 +602,14 @@ class _RecordsPageState extends State<RecordsPage> {
                   ),
                 );
               },
-
               errorBuilder: (
                 context,
                 error,
                 stackTrace,
               ) {
+                debugPrint('❌ ERRO AO CARREGAR IMAGEM: $imageUrl');
+                debugPrint('❌ ERRO: $error');
+
                 return Container(
                   color: const Color(0xFFF5F5F5),
                   child: const Center(
@@ -614,11 +623,6 @@ class _RecordsPageState extends State<RecordsPage> {
               },
             ),
           ),
-
-          // =====================================================
-          // DATA E HORA
-          // =====================================================
-
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -638,13 +642,10 @@ class _RecordsPageState extends State<RecordsPage> {
                     color: Color(0xFF033B63),
                   ),
                 ),
-
                 const SizedBox(width: 10),
-
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Captura do dispositivo',
@@ -655,9 +656,7 @@ class _RecordsPageState extends State<RecordsPage> {
                           color: Color(0xFF333333),
                         ),
                       ),
-
                       const SizedBox(height: 3),
-
                       Text(
                         _formatDateTime(capturedAt),
                         style: const TextStyle(
@@ -677,11 +676,9 @@ class _RecordsPageState extends State<RecordsPage> {
     );
   }
 
-  /// Item de lista com marcador.
   Widget _buildBulletPoint(String text) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           '• ',
@@ -692,7 +689,6 @@ class _RecordsPageState extends State<RecordsPage> {
             color: Color(0xFF033B63),
           ),
         ),
-
         Expanded(
           child: Text(
             text,
