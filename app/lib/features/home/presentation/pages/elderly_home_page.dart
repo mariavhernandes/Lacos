@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
+import '../../../friends/services/friend_request_service.dart';
 
 class ElderlyHomePage extends StatefulWidget {
   const ElderlyHomePage({super.key});
@@ -13,14 +15,26 @@ class ElderlyHomePage extends StatefulWidget {
 }
 
 class _ElderlyHomePageState extends State<ElderlyHomePage> {
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController =
+      TextEditingController();
+
+  final FriendRequestService _friendRequestService =
+      FriendRequestService();
 
   String _userFirstName = '';
   String _userLastName = '';
   bool _isLoadingName = true;
 
-  final Set<String> _followingFriends = {};
   final Set<String> _joinedGroups = {};
+
+  // Status das solicitações:
+  // null       = nenhuma solicitação
+  // pending    = solicitação enviada
+  // accepted   = amizade aceita
+  // rejected   = solicitação recusada
+  final Map<String, String?> _friendRequestStatus = {};
+
+  final Set<String> _loadingFriendRequests = {};
 
   List<Map<String, dynamic>> _friendSuggestions = [];
   List<Map<String, dynamic>> _allFriendSuggestions = [];
@@ -40,7 +54,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
   Future<void> _fetchUserData() async {
     try {
-      final User? currentUser = FirebaseAuth.instance.currentUser;
+      final User? currentUser =
+          FirebaseAuth.instance.currentUser;
 
       if (currentUser == null) {
         if (mounted) {
@@ -51,19 +66,26 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         return;
       }
 
-      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('idosos')
-          .doc(currentUser.uid)
-          .get();
+      final DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance
+              .collection('idosos')
+              .doc(currentUser.uid)
+              .get();
 
-      if (userDoc.exists && userDoc.data() != null) {
+      if (userDoc.exists &&
+          userDoc.data() != null) {
         final Map<String, dynamic> data =
             userDoc.data() as Map<String, dynamic>;
 
         final String rawName = _getName(data);
 
-        debugPrint('Nome do usuário atual: $rawName');
-        debugPrint('Dados completos do usuário: $data');
+        debugPrint(
+          'Nome do usuário atual: $rawName',
+        );
+
+        debugPrint(
+          'Dados completos do usuário: $data',
+        );
 
         if (rawName.isNotEmpty) {
           final List<String> nameParts =
@@ -72,8 +94,12 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           if (mounted) {
             setState(() {
               _userFirstName = nameParts.first;
+
               _userLastName =
-                  nameParts.length > 1 ? nameParts.last : '';
+                  nameParts.length > 1
+                      ? nameParts.last
+                      : '';
+
               _isLoadingName = false;
             });
           }
@@ -82,7 +108,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         }
       }
     } catch (e) {
-      debugPrint('Erro ao buscar dados do idoso: $e');
+      debugPrint(
+        'Erro ao buscar dados do idoso: $e',
+      );
     }
 
     if (mounted) {
@@ -98,10 +126,13 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
   Future<void> _fetchFriendSuggestions() async {
     try {
-      final User? currentUser = FirebaseAuth.instance.currentUser;
+      final User? currentUser =
+          FirebaseAuth.instance.currentUser;
 
       if (currentUser == null) {
-        debugPrint('Nenhum usuário autenticado.');
+        debugPrint(
+          'Nenhum usuário autenticado.',
+        );
 
         if (mounted) {
           setState(() {
@@ -112,7 +143,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         return;
       }
 
-      debugPrint('UID do usuário logado: ${currentUser.uid}');
+      debugPrint(
+        'UID do usuário logado: ${currentUser.uid}',
+      );
 
       // ----------------------------------------------------------
       // BUSCA O DOCUMENTO DO USUÁRIO LOGADO
@@ -160,25 +193,30 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       final List<String> currentInterests =
           _getInterests(currentUserData);
 
-      final Set<String> currentInterestKeys = currentInterests
-          .map(
-            (interest) => _normalizeText(interest),
-          )
-          .where(
-            (interest) => interest.isNotEmpty,
-          )
-          .toSet();
+      final Set<String> currentInterestKeys =
+          currentInterests
+              .map(
+                (interest) =>
+                    _normalizeText(interest),
+              )
+              .where(
+                (interest) =>
+                    interest.isNotEmpty,
+              )
+              .toSet();
 
       debugPrint(
         'Cidade do usuário atual: $currentCity',
       );
 
       debugPrint(
-        'Interesses do usuário atual: $currentInterests',
+        'Interesses do usuário atual: '
+        '$currentInterests',
       );
 
       debugPrint(
-        'Interesses normalizados: $currentInterestKeys',
+        'Interesses normalizados: '
+        '$currentInterestKeys',
       );
 
       // ----------------------------------------------------------
@@ -201,7 +239,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       // ANALISA CADA IDOSO
       // ----------------------------------------------------------
 
-      for (final DocumentSnapshot doc in usersSnapshot.docs) {
+      for (final DocumentSnapshot doc
+          in usersSnapshot.docs) {
         // Não mostra o próprio usuário.
         if (doc.id == currentUser.uid) {
           continue;
@@ -224,13 +263,15 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         // NOME
         // --------------------------------------------------------
 
-        final String name = _getName(userData);
+        final String name =
+            _getName(userData);
 
         // --------------------------------------------------------
         // CIDADE
         // --------------------------------------------------------
 
-        final String city = _getCity(userData);
+        final String city =
+            _getCity(userData);
 
         // --------------------------------------------------------
         // INTERESSES
@@ -245,7 +286,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
         final List<String> commonInterests = [];
 
-        for (final String interest in interests) {
+        for (final String interest
+            in interests) {
           final String normalizedInterest =
               _normalizeText(interest);
 
@@ -262,9 +304,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
         final bool sameCity =
             currentCity.isNotEmpty &&
-            city.isNotEmpty &&
-            _normalizeText(currentCity) ==
-                _normalizeText(city);
+                city.isNotEmpty &&
+                _normalizeText(currentCity) ==
+                    _normalizeText(city);
 
         // --------------------------------------------------------
         // DEBUG
@@ -287,7 +329,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         );
 
         debugPrint(
-          'Interesses em comum: $commonInterests',
+          'Interesses em comum: '
+          '$commonInterests',
         );
 
         debugPrint(
@@ -298,7 +341,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         // SÓ MOSTRA SE HOUVER COMPATIBILIDADE
         // --------------------------------------------------------
 
-        if (commonInterests.isEmpty && !sameCity) {
+        if (commonInterests.isEmpty &&
+            !sameCity) {
           debugPrint(
             'Ignorado: sem interesses ou cidade em comum.',
           );
@@ -340,13 +384,17 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
         suggestions.add({
           'id': doc.id,
-          'name': name.isEmpty ? 'Usuário' : name,
+          'name': name.isEmpty
+              ? 'Usuário'
+              : name,
           'city': city,
           'interests': interests,
-          'commonInterests': commonInterests,
+          'commonInterests':
+              commonInterests,
           'sameCity': sameCity,
           'age': age,
-          'avatarPath': avatarPath,
+          'avatarPath':
+              avatarPath,
           'score': score,
         });
 
@@ -394,6 +442,14 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           _isLoadingSuggestions = false;
         });
       }
+
+      // ----------------------------------------------------------
+      // BUSCA O STATUS DAS SOLICITAÇÕES
+      // ----------------------------------------------------------
+
+      await _loadFriendRequestStatuses(
+        suggestions,
+      );
     } catch (e, stackTrace) {
       debugPrint(
         'ERRO AO BUSCAR SUGESTÕES: $e',
@@ -412,6 +468,289 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   }
 
   // ============================================================
+  // CARREGAR STATUS DAS SOLICITAÇÕES
+  // ============================================================
+
+  Future<void> _loadFriendRequestStatuses(
+    List<Map<String, dynamic>> suggestions,
+  ) async {
+    for (final friend in suggestions) {
+      final String id =
+          (friend['id'] ?? '').toString();
+
+      if (id.isEmpty) {
+        continue;
+      }
+
+      try {
+        final String? status =
+            await _friendRequestService
+                .getRequestStatus(id);
+
+        if (mounted) {
+          setState(() {
+            _friendRequestStatus[id] = status;
+          });
+        }
+
+        debugPrint(
+          'Status da solicitação para $id: $status',
+        );
+      } catch (e) {
+        debugPrint(
+          'Erro ao buscar status para $id: $e',
+        );
+      }
+    }
+  }
+
+  // ============================================================
+  // ENVIAR OU CANCELAR SOLICITAÇÃO
+  // ============================================================
+
+  Future<void> _handleFriendRequest(
+    String friendId,
+  ) async {
+    if (friendId.isEmpty) {
+      return;
+    }
+
+    if (_loadingFriendRequests.contains(
+      friendId,
+    )) {
+      return;
+    }
+
+    final String? currentStatus =
+        _friendRequestStatus[friendId];
+
+    // ----------------------------------------------------------
+    // JÁ SÃO AMIGOS
+    // ----------------------------------------------------------
+
+    if (currentStatus == 'accepted') {
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _loadingFriendRequests.add(
+          friendId,
+        );
+      });
+    }
+
+    try {
+      // --------------------------------------------------------
+      // SE ESTÁ PENDENTE, CANCELA
+      // --------------------------------------------------------
+
+      if (currentStatus == 'pending') {
+        await _cancelFriendRequest(
+          friendId,
+        );
+
+        return;
+      }
+
+      // --------------------------------------------------------
+      // CASO NÃO EXISTA SOLICITAÇÃO,
+      // ENVIA UMA NOVA
+      // --------------------------------------------------------
+
+      await _friendRequestService
+          .sendRequest(friendId);
+
+      if (mounted) {
+        setState(() {
+          _friendRequestStatus[friendId] =
+              'pending';
+        });
+      }
+
+      debugPrint(
+        'Solicitação enviada para $friendId',
+      );
+    } catch (e) {
+      debugPrint(
+        'Erro ao enviar solicitação: $e',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+          SnackBar(
+            content: Text(
+              _getFriendlyErrorMessage(e),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingFriendRequests.remove(
+            friendId,
+          );
+        });
+      }
+    }
+  }
+
+  // ============================================================
+  // CANCELAR SOLICITAÇÃO
+  // ============================================================
+
+  Future<void> _cancelFriendRequest(
+    String friendId,
+  ) async {
+    try {
+      final User? currentUser =
+          FirebaseAuth.instance.currentUser;
+
+      if (currentUser == null) {
+        throw Exception(
+          'Usuário não autenticado.',
+        );
+      }
+
+      final QuerySnapshot<
+          Map<String, dynamic>> snapshot =
+          await FirebaseFirestore.instance
+              .collection('friend_requests')
+              .where(
+                'senderId',
+                isEqualTo: currentUser.uid,
+              )
+              .where(
+                'receiverId',
+                isEqualTo: friendId,
+              )
+              .where(
+                'status',
+                isEqualTo: 'pending',
+              )
+              .limit(1)
+              .get();
+
+      if (snapshot.docs.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _friendRequestStatus[friendId] =
+                null;
+          });
+        }
+
+        return;
+      }
+
+      final String requestId =
+          snapshot.docs.first.id;
+
+      await _friendRequestService
+          .cancelRequest(requestId);
+
+      if (mounted) {
+        setState(() {
+          _friendRequestStatus[friendId] =
+              null;
+        });
+      }
+
+      debugPrint(
+        'Solicitação cancelada para $friendId',
+      );
+    } catch (e) {
+      debugPrint(
+        'Erro ao cancelar solicitação: $e',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+          SnackBar(
+            content: Text(
+              _getFriendlyErrorMessage(e),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  // ============================================================
+  // MENSAGEM DE ERRO
+  // ============================================================
+
+  String _getFriendlyErrorMessage(
+    dynamic error,
+  ) {
+    final String message =
+        error.toString();
+
+    if (message.contains(
+      'Usuário não autenticado',
+    )) {
+      return 'Você precisa estar logado.';
+    }
+
+    if (message.contains(
+      'Já existe uma solicitação',
+    )) {
+      return 'Já existe uma solicitação pendente.';
+    }
+
+    if (message.contains(
+      'Vocês já são amigos',
+    )) {
+      return 'Vocês já são amigos.';
+    }
+
+    if (message.contains(
+      'destinatário inválido',
+    )) {
+      return 'Usuário inválido.';
+    }
+
+    return 'Não foi possível realizar a ação. Tente novamente.';
+  }
+
+  // ============================================================
+  // TEXTO DO BOTÃO
+  // ============================================================
+
+  String _getFriendButtonLabel(
+    String friendId,
+  ) {
+    final String? status =
+        _friendRequestStatus[friendId];
+
+    if (status == 'accepted') {
+      return 'Amigos';
+    }
+
+    if (status == 'pending') {
+      return 'Solicitação enviada';
+    }
+
+    return 'Seguir';
+  }
+
+  // ============================================================
+  // ESTADO VISUAL DO BOTÃO
+  // ============================================================
+
+  bool _isFriendButtonActive(
+    String friendId,
+  ) {
+    final String? status =
+        _friendRequestStatus[friendId];
+
+    return status == 'pending' ||
+        status == 'accepted';
+  }
+
+  // ============================================================
   // PEGAR NOME
   // ============================================================
 
@@ -420,9 +759,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   ) {
     final dynamic value =
         data['nome'] ??
-        data['name'] ??
-        data['Nome'] ??
-        data['Name'];
+            data['name'] ??
+            data['Nome'] ??
+            data['Name'];
 
     if (value == null) {
       return '';
@@ -440,9 +779,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   ) {
     final dynamic value =
         data['cidade'] ??
-        data['city'] ??
-        data['Cidade'] ??
-        data['City'];
+            data['city'] ??
+            data['Cidade'] ??
+            data['City'];
 
     if (value == null) {
       return '';
@@ -460,11 +799,11 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   ) {
     dynamic interestsData =
         data['interesses'] ??
-        data['interests'] ??
-        data['Interesses'] ??
-        data['Interests'];
+            data['interests'] ??
+            data['Interesses'] ??
+            data['Interests'];
 
-    // Caso os interesses estejam salvos como uma String.
+    // Caso os interesses estejam salvos como String.
     if (interestsData is String) {
       final String value =
           interestsData.trim();
@@ -473,7 +812,6 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         return [];
       }
 
-      // Aceita interesses separados por vírgula.
       return value
           .split(',')
           .map(
@@ -548,11 +886,11 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   ) {
     final dynamic value =
         data['data de nascimento'] ??
-        data['dataDeNascimento'] ??
-        data['data_nascimento'] ??
-        data['birthDate'] ??
-        data['nascimento'] ??
-        data['Nascimento'];
+            data['dataDeNascimento'] ??
+            data['data_nascimento'] ??
+            data['birthDate'] ??
+            data['nascimento'] ??
+            data['Nascimento'];
 
     if (value == null) {
       return '';
@@ -570,11 +908,11 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   ) {
     final dynamic value =
         data['avatarPath'] ??
-        data['avatar'] ??
-        data['foto'] ??
-        data['fotoPerfil'] ??
-        data['photoURL'] ??
-        data['photoUrl'];
+            data['avatar'] ??
+            data['foto'] ??
+            data['fotoPerfil'] ??
+            data['photoURL'] ??
+            data['photoUrl'];
 
     if (value == null ||
         value.toString().trim().isEmpty) {
@@ -807,6 +1145,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                         ? 'Usuário'
                         : displayName,
                   ),
+
                   Positioned(
                     left: 20,
                     right: 20,
@@ -910,7 +1249,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     error,
                     stackTrace,
                   ) =>
-                          const Icon(
+                      const Icon(
                     Icons.notifications_none,
                     color: Colors.white,
                     size: 28,
@@ -939,7 +1278,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     error,
                     stackTrace,
                   ) =>
-                          const Icon(
+                      const Icon(
                     Icons.help_outline,
                     color: Colors.white,
                     size: 28,
@@ -986,7 +1325,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                       ),
 
                       const Text(
-                        'Pronto para praticar\nseus hobbies?',
+                        'Pronto para praticar\n'
+                        'seus hobbies?',
                         style:
                             TextStyle(
                           fontFamily:
@@ -1013,7 +1353,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                   error,
                   stackTrace,
                 ) =>
-                        const SizedBox(
+                    const SizedBox(
                   height: 110,
                 ),
               ),
@@ -1039,9 +1379,11 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           _buildFilterChip(
             'Cidade',
           ),
+
           const SizedBox(
             width: 10,
           ),
+
           _buildFilterChip(
             'Hobbies',
           ),
@@ -1209,17 +1551,22 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     Map<String, dynamic> friend,
   ) {
     final String id =
-        (friend['id'] ?? '')
-            .toString();
+        (friend['id'] ?? '').toString();
 
     final String name =
         (friend['name'] ??
                 'Usuário')
             .toString();
 
-    final bool isFollowing =
-        _followingFriends
+    final String? requestStatus =
+        _friendRequestStatus[id];
+
+    final bool isLoading =
+        _loadingFriendRequests
             .contains(id);
+
+    final bool isActive =
+        _isFriendButtonActive(id);
 
     final int? age =
         friend['age'] as int?;
@@ -1338,22 +1685,23 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
           _buildActionButton(
             label:
-                isFollowing
-                    ? 'Seguindo'
-                    : 'Seguir',
+                isLoading
+                    ? 'Aguarde...'
+                    : _getFriendButtonLabel(
+                        id,
+                      ),
             isActive:
-                isFollowing,
-            onPressed: () {
-              setState(() {
-                if (isFollowing) {
-                  _followingFriends
-                      .remove(id);
-                } else {
-                  _followingFriends
-                      .add(id);
-                }
-              });
-            },
+                isActive,
+            onPressed:
+                isLoading ||
+                        requestStatus ==
+                            'accepted'
+                    ? () {}
+                    : () {
+                        _handleFriendRequest(
+                          id,
+                        );
+                      },
           ),
         ],
       ),
@@ -1389,7 +1737,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           error,
           stackTrace,
         ) =>
-                _defaultFriendAvatar(),
+            _defaultFriendAvatar(),
       );
     }
 
@@ -1404,7 +1752,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         error,
         stackTrace,
       ) =>
-              _defaultFriendAvatar(),
+          _defaultFriendAvatar(),
     );
   }
 
@@ -1497,8 +1845,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     String title,
   ) {
     final bool isJoined =
-        _joinedGroups
-            .contains(title);
+        _joinedGroups.contains(title);
 
     return Container(
       width: 160,
@@ -1538,7 +1885,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     error,
                     stackTrace,
                   ) =>
-                          const CircleAvatar(
+                      const CircleAvatar(
                     radius: 36,
                     backgroundColor:
                         Color(0xFFDCDCDC),
@@ -1639,6 +1986,8 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         ),
         child: Text(
           label,
+          textAlign:
+              TextAlign.center,
           style:
               TextStyle(
             fontFamily:
