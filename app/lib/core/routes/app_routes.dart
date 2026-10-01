@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../features/help/presentation/pages/chatbot_page.dart';
 
 import '../../features/home/presentation/pages/elderly_home_page.dart';
 import '../../features/home/presentation/pages/family_home_page.dart';
@@ -55,6 +56,7 @@ class AppRoutes {
   static const String familyProfile = '/family-profile';
   static const String notifications = '/notifications';
   static const String help = '/help';
+  static const String chatbot = '/chatbot';
   static const String chat = '/chat';
   static const String manageMessages = '/manage-messages';
   static const String familyRecords = '/family-records';
@@ -115,7 +117,7 @@ class AppRoutes {
       // AJUDA
       // ----------------------------------------------------------
       help: (context) => const HelpPage(),
-
+      chatbot: (context) => const ChatbotPage(),
       // ----------------------------------------------------------
       // REGISTROS DO FAMILIAR (IOT)
       // ----------------------------------------------------------

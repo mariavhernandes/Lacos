@@ -41,7 +41,7 @@ class _HelpPageState extends State<HelpPage> {
                         ),
                         child: const Icon(
                           Icons.arrow_back_ios_new,
-                          size: 18,
+                          size: 15,
                           color: Color(0xFF033B63),
                         ),
                       ),
@@ -146,28 +146,6 @@ class _HelpPageState extends State<HelpPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // ElevatedButton(
-                          //   onPressed: () {
-                          //     // Ação de alterar tamanho
-                          //   },
-                          //   style: ElevatedButton.styleFrom(
-                          //     backgroundColor: const Color(0xFF033B63),
-                          //     elevation: 0,
-                          //     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          //     shape: RoundedRectangleBorder(
-                          //       borderRadius: BorderRadius.circular(20),
-                          //     ),
-                          //   ),
-                          //   child: const Text(
-                          //     'Alterar tamanho',
-                          //     style: TextStyle(
-                          //       fontFamily: 'Raleway',
-                          //       fontSize: 13,
-                          //       fontWeight: FontWeight.bold,
-                          //       color: Colors.white,
-                          //     ),
-                          //   ),
-                          // ),
                         ],
                       ),
                     ),
@@ -201,12 +179,77 @@ class _HelpPageState extends State<HelpPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          _buildBulletPoint('Seguir pessoas que tenham os mesmos interesses que você.'),
+                          _buildBulletPoint(
+                            'Seguir pessoas que tenham os mesmos interesses que você.',
+                          ),
                           const SizedBox(height: 10),
-                          _buildBulletPoint('Combinar encontros para praticarem seus hobbies juntos.'),
+                          _buildBulletPoint(
+                            'Combinar encontros para praticarem seus hobbies juntos.',
+                          ),
                           const SizedBox(height: 10),
-                          _buildBulletPoint('Receber sugestões de lugares para o encontro, escolhidos conforme a cidade de vocês.'),
+                          _buildBulletPoint(
+                            'Receber sugestões de lugares para o encontro, escolhidos conforme a cidade de vocês.',
+                          ),
                         ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // 4. Assistente Laços
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/chatbot');
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F5F7),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(
+                              width: 32,
+                              child: Center(
+                                child: Icon(
+                                  Icons.smart_toy_outlined,
+                                  color: Color(0xFF033B63),
+                                  size: 25,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'Assistente Laços',
+                                style: TextStyle(
+                                  fontFamily: 'Quicksand',
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF222222),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF4C7296),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.keyboard_arrow_right,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -250,7 +293,7 @@ class _HelpPageState extends State<HelpPage> {
                   title,
                   style: const TextStyle(
                     fontFamily: 'Quicksand',
-                    fontSize: 15, // Fonte diminuída para alinhar ao protótipo
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF222222),
                   ),
@@ -266,7 +309,9 @@ class _HelpPageState extends State<HelpPage> {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: Colors.white,
                     size: 24,
                   ),
