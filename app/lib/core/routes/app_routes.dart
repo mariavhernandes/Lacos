@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../features/help/presentation/pages/chatbot_page.dart';
 
 import '../../features/home/presentation/pages/elderly_home_page.dart';
 import '../../features/home/presentation/pages/family_home_page.dart';
@@ -16,21 +17,26 @@ import '../../features/profile/presentation/pages/public_profile_page.dart';
 // ============================================================
 import '../../features/profile/presentation/pages/family/family_profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_about_me_page.dart';
-// import '../../features/profile/presentation/pages/edit_profile/edit_appearance_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_basic_data_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_interests_page.dart';
 
 // ============================================================
 // LOCAIS E ATIVIDADES
 // ============================================================
-import '../../features/discovery/presentation/screens/discovery_screen.dart';
-import '../../features/discovery/presentation/screens/detail_screen.dart';
 import '../../features/discovery/domain/models/place_activity.dart';
+import '../../features/discovery/presentation/screens/detail_screen.dart';
+import '../../features/discovery/presentation/screens/discovery_screen.dart';
 
 // ============================================================
-// CHAT
+// CHAT E GERENCIAMENTO DE MENSAGENS
 // ============================================================
 import '../../features/chat/screens/chat_list_screen.dart';
+import '../../features/chat/screens/manage_messages_screen.dart';
+
+// ============================================================
+// REGISTROS (IOT)
+// ============================================================
+import '../../features/records/records_page.dart';
 
 class AppRoutes {
   // ============================================================
@@ -50,7 +56,10 @@ class AppRoutes {
   static const String familyProfile = '/family-profile';
   static const String notifications = '/notifications';
   static const String help = '/help';
+  static const String chatbot = '/chatbot';
   static const String chat = '/chat';
+  static const String manageMessages = '/manage-messages';
+  static const String familyRecords = '/family-records';
 
   // ============================================================
   // EDITAR PERFIL DO IDOSO
@@ -108,6 +117,11 @@ class AppRoutes {
       // AJUDA
       // ----------------------------------------------------------
       help: (context) => const HelpPage(),
+      chatbot: (context) => const ChatbotPage(),
+      // ----------------------------------------------------------
+      // REGISTROS DO FAMILIAR (IOT)
+      // ----------------------------------------------------------
+      familyRecords: (context) => const RecordsPage(),
 
       // ----------------------------------------------------------
       // EDITAR SOBRE VOCÊ
@@ -125,13 +139,6 @@ class AppRoutes {
           initialBio: initialBio,
         );
       },
-
-      // ----------------------------------------------------------
-      // EDITAR APARÊNCIA
-      // ----------------------------------------------------------
-      // editAppearance: (context) {
-      //   return const EditAppearancePage();
-      // },
 
       // ----------------------------------------------------------
       // EDITAR DADOS BÁSICOS
@@ -176,7 +183,7 @@ class AppRoutes {
       },
 
       // ----------------------------------------------------------
-      // LOCAIS
+      // LOCAIS E ATIVIDADES
       // ----------------------------------------------------------
       discovery: (context) => const DiscoveryScreen(),
 
@@ -193,9 +200,10 @@ class AppRoutes {
       },
 
       // ----------------------------------------------------------
-      // CHAT
+      // CHAT E GERENCIAMENTO DE MENSAGENS
       // ----------------------------------------------------------
       chat: (context) => const ChatListScreen(),
+      manageMessages: (context) => const ManageMessagesScreen(),
     };
   }
 }

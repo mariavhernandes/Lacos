@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import 'edit_profile/edit_profile_menu_page.dart';
+import 'public_profile_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -60,6 +61,144 @@ class _ProfilePageState extends State<ProfilePage> {
     return '--';
   }
 
+  // ============================================================
+  // EXIBIR MODAL DE SEGUIDORES / SEGUINDO
+  // ============================================================
+
+  void _showUsersListModal(String title, List<dynamic> userIds) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: 'Raleway',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0D3B66),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: userIds.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Nenhum usuário encontrado.',
+                            style: TextStyle(
+                              fontFamily: 'Quicksand',
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: userIds.length,
+                          itemBuilder: (context, index) {
+                            final uidStr = userIds[index].toString();
+
+                            return FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance
+                                  .collection('idosos')
+                                  .doc(uidStr)
+                                  .get(),
+                              builder: (context, snapshot) {
+                                Map<String, dynamic>? uData;
+
+                                if (snapshot.hasData && snapshot.data!.exists) {
+                                  uData = snapshot.data!.data()
+                                      as Map<String, dynamic>?;
+                                }
+
+                                if (uData == null) {
+                                  return FutureBuilder<DocumentSnapshot>(
+                                    future: FirebaseFirestore.instance
+                                        .collection('familiares')
+                                        .doc(uidStr)
+                                        .get(),
+                                    builder: (context, famSnap) {
+                                      if (famSnap.hasData &&
+                                          famSnap.data!.exists) {
+                                        final fData = famSnap.data!.data()
+                                            as Map<String, dynamic>?;
+                                        return _buildUserTile(uidStr, fData);
+                                      }
+                                      return _buildUserTile(uidStr, null);
+                                    },
+                                  );
+                                }
+
+                                return _buildUserTile(uidStr, uData);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildUserTile(String uidStr, Map<String, dynamic>? uData) {
+    final uName = uData?['name'] ?? uData?['nome'] ?? 'Usuário';
+    final uAvatar = uData?['avatarPath'] ??
+        uData?['foto'] ??
+        'assets/avatars/default_profile_image.png';
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundImage: AssetImage(uAvatar),
+      ),
+      title: Text(
+        uName,
+        style: const TextStyle(
+          fontFamily: 'Quicksand',
+          fontWeight: FontWeight.bold,
+          color: Colors.black87, // Nome em preto
+        ),
+      ),
+      trailing: const Icon(
+        Icons.arrow_forward_ios_rounded,
+        size: 16,
+        color: Colors.grey,
+      ),
+      onTap: () {
+        Navigator.pop(context); // Fechar o modal
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PublicProfilePage(uid: uidStr),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _logout(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -85,7 +224,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Sair', style: TextStyle(color: Colors.white)),
@@ -98,16 +238,20 @@ class _ProfilePageState extends State<ProfilePage> {
       final uid = FirebaseAuth.instance.currentUser?.uid;
 
       if (uid != null) {
-        // Atualiza o status no Firestore antes de deslogar
         try {
-          await FirebaseFirestore.instance.collection('idosos').doc(uid).update({
+          await FirebaseFirestore.instance
+              .collection('idosos')
+              .doc(uid)
+              .update({
             'isOnline': false,
             'lastSeen': FieldValue.serverTimestamp(),
           });
         } catch (_) {
-          // Caso o usuário seja da coleção familiares
           try {
-            await FirebaseFirestore.instance.collection('familiares').doc(uid).update({
+            await FirebaseFirestore.instance
+                .collection('familiares')
+                .doc(uid)
+                .update({
               'isOnline': false,
               'lastSeen': FieldValue.serverTimestamp(),
             });
@@ -117,7 +261,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
       await FirebaseAuth.instance.signOut();
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/login', (route) => false);
       }
     }
   }
@@ -144,11 +289,13 @@ class _ProfilePageState extends State<ProfilePage> {
             }
 
             if (snapshot.hasError) {
-              return const Center(child: Text('Erro ao carregar dados do perfil.'));
+              return const Center(
+                  child: Text('Erro ao carregar dados do perfil.'));
             }
 
             if (!snapshot.hasData || !snapshot.data!.exists) {
-              return const Center(child: Text('Dados não encontrados na coleção idosos.'));
+              return const Center(
+                  child: Text('Dados não encontrados na coleção idosos.'));
             }
 
             final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -156,17 +303,31 @@ class _ProfilePageState extends State<ProfilePage> {
             final name = data['name'] ?? 'Nome não informado';
             final bio = data['bio'] ?? '';
             final city = data['city'] ?? 'Não informada';
-            final avatarPath = data['avatarPath'] ?? 'assets/avatars/default_profile_image.png';
+            final avatarPath = data['avatarPath'] ??
+                'assets/avatars/default_profile_image.png';
 
             final List<dynamic> allInterests = data['interests'] ?? [];
             final age = _calculateAge(data['birthDate']);
 
+            // Listas de seguidores e seguindo
+            final List<dynamic> followerIds = data['followerIds'] ?? [];
+            final int followersCount = data['followersCount'] is int
+                ? data['followersCount'] as int
+                : followerIds.length;
+
+            final List<dynamic> followingIds = data['followingIds'] ?? [];
+            final int followingCount = data['followingCount'] is int
+                ? data['followingCount'] as int
+                : followingIds.length;
+
             final chosenInterests = allInterests
-                .where((item) => _predefinedInterests.contains(item.toString()))
+                .where(
+                    (item) => _predefinedInterests.contains(item.toString()))
                 .toList();
 
             final addedInterests = allInterests
-                .where((item) => !_predefinedInterests.contains(item.toString()))
+                .where(
+                    (item) => !_predefinedInterests.contains(item.toString()))
                 .toList();
 
             return SingleChildScrollView(
@@ -193,8 +354,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         backgroundColor: const Color(0xFFEEEEEE),
                         backgroundImage: AssetImage(avatarPath),
                       ),
-                      _buildStatColumn('Seguidores', data['followersCount'] ?? 0),
-                      _buildStatColumn('Seguindo', data['followingCount'] ?? 0),
+                      _buildStatColumn('Seguidores', followersCount, () {
+                        _showUsersListModal('Seguidores', followerIds);
+                      }),
+                      _buildStatColumn('Seguindo', followingCount, () {
+                        _showUsersListModal('Seguindo', followingIds);
+                      }),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -208,7 +373,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                       ),
                       onPressed: () {
                         Navigator.push(
@@ -221,7 +387,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       icon: const Icon(Icons.edit, size: 16),
                       label: const Text(
                         'Editar perfil',
-                        style: TextStyle(fontFamily: 'Raleway', fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontFamily: 'Raleway', fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -248,13 +415,17 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          bio.isEmpty ? 'Toque em "Editar perfil" para adicionar uma biografia.' : bio,
+                          bio.isEmpty
+                              ? 'Toque em "Editar perfil" para adicionar uma biografia.'
+                              : bio,
                           style: TextStyle(
                             fontFamily: 'Raleway',
                             fontSize: 14,
                             height: 1.4,
                             color: bio.isEmpty ? Colors.grey : Colors.black87,
-                            fontStyle: bio.isEmpty ? FontStyle.italic : FontStyle.normal,
+                            fontStyle: bio.isEmpty
+                                ? FontStyle.italic
+                                : FontStyle.normal,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -319,14 +490,17 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFD32F2F),
-                        side: const BorderSide(color: Color(0xFFD32F2F), width: 1.5),
+                        side: const BorderSide(
+                            color: Color(0xFFD32F2F), width: 1.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 10),
                       ),
                       onPressed: () => _logout(context),
-                      icon: const Icon(Icons.logout, size: 18, color: Color(0xFFD32F2F)),
+                      icon: const Icon(Icons.logout,
+                          size: 18, color: Color(0xFFD32F2F)),
                       label: const Text(
                         'Sair do aplicativo',
                         style: TextStyle(
@@ -352,29 +526,36 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStatColumn(String label, int number) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Raleway',
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0D3B66),
-          ),
+  Widget _buildStatColumn(String label, int number, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Raleway',
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0D3B66),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$number',
+              style: const TextStyle(
+                fontFamily: 'Quicksand',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          '$number',
-          style: const TextStyle(
-            fontFamily: 'Quicksand',
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -393,7 +574,8 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+            padding: const EdgeInsets.only(
+                left: 16, right: 16, top: 16, bottom: 12),
             child: Row(
               children: [
                 Icon(icon, color: const Color(0xFF0D3B66)),
@@ -430,7 +612,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: items.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
@@ -511,7 +694,8 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+            padding: const EdgeInsets.only(
+                left: 16, right: 16, top: 16, bottom: 12),
             child: Row(
               children: [
                 Icon(icon, color: const Color(0xFF0D3B66)),
@@ -549,11 +733,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     runSpacing: 12,
                     children: items.map((item) {
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF7F7F7),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFF0D3B66), width: 1.5),
+                          border: Border.all(
+                              color: const Color(0xFF0D3B66), width: 1.5),
                         ),
                         child: Text(
                           item.toString(),

@@ -14,6 +14,7 @@ class MessageService {
 
   Stream<List<MessageModel>> getMessagesStream(String chatId) {
     final userId = _auth.currentUser?.uid;
+
     if (userId == null) {
       return Stream<List<MessageModel>>.value(const <MessageModel>[]);
     }
@@ -22,7 +23,7 @@ class MessageService {
         .collection('chats')
         .doc(chatId)
         .collection('messages')
-        .orderBy('createdAt', descending: true) // <--- MUDADO PARA TRUE
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((document) {

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
+import '../../../notifications/data/notification_service.dart';
 
 class FamilyHomePage extends StatefulWidget {
   const FamilyHomePage({super.key});
@@ -16,12 +19,56 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   String _userFirstName = '';
   String _userLastName = '';
   String _elderlyMonitoredName = 'Idoso vinculado';
+  String _elderlyUid = '';
+  String _familyLinkStatus = 'none';
   bool _isLoadingData = true;
+  bool _hasUnreadNotifications = false;
+
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _notificationSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+      _familyLinkSubscription;
+
+  // Cache para guardar nomes já buscados por UID e evitar chamadas repetidas
+  final Map<String, String> _userNameCache = {};
 
   @override
   void initState() {
     super.initState();
     _fetchUserData();
+    _listenForUnreadNotifications();
+    _listenForFamilyLinkStatus();
+  }
+
+  void _listenForFamilyLinkStatus() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    _familyLinkSubscription = FirebaseFirestore.instance
+        .collection('familiares')
+        .doc(uid)
+        .snapshots()
+        .listen((snapshot) {
+      final status = snapshot.data()?['familyLinkStatus']?.toString() ?? 'none';
+      if (!mounted || status == _familyLinkStatus) return;
+
+      setState(() => _familyLinkStatus = status);
+      if (status == 'active') _fetchUserData();
+    });
+  }
+
+  void _listenForUnreadNotifications() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    _notificationSubscription = FamilyNotificationService()
+        .unreadNotificationsStream(uid: uid, isElder: false)
+        .snapshots()
+        .listen((snapshot) {
+      if (mounted) {
+        setState(() => _hasUnreadNotifications = snapshot.docs.isNotEmpty);
+      }
+    });
   }
 
   String _formatFirstAndLastName(String fullName) {
@@ -29,6 +76,96 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     List<String> parts = fullName.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) return parts.first;
     return '${parts.first} ${parts.last}';
+  }
+
+  String _formatTimeAgo(Timestamp? timestamp) {
+    if (timestamp == null) return 'Sem data';
+    final DateTime dateTime = timestamp.toDate();
+    final Duration difference = DateTime.now().difference(dateTime);
+
+    if (difference.inMinutes < 1) return 'Agora mesmo';
+    if (difference.inMinutes < 60) return 'Há ${difference.inMinutes}min';
+    if (difference.inHours < 24)
+      return 'Há ${difference.inHours} ${difference.inHours == 1 ? 'hora' : 'horas'}';
+    return 'Há ${difference.inDays} ${difference.inDays == 1 ? 'dia' : 'dias'}';
+  }
+
+  // Descobre o nome do chat (se for grupo usa groupName, se for pessoa busca pelo UID no Firestore)
+  Future<String> _getChatDisplayName(Map<String, dynamic> data) async {
+    // 1. Se tiver groupName definido
+    if (data['groupName'] != null &&
+        data['groupName'].toString().trim().isNotEmpty) {
+      return data['groupName'].toString();
+    }
+
+    // 2. Se já tiver campo com nome salvo
+    if (data['participantName'] != null &&
+        data['participantName'].toString().trim().isNotEmpty) {
+      return data['participantName'].toString();
+    }
+    if (data['name'] != null && data['name'].toString().trim().isNotEmpty) {
+      return data['name'].toString();
+    }
+
+    // 3. Se for conversa individual com array de participantes (UIDs)
+    final List<dynamic> participants = data['participants'] ?? [];
+
+    // Procura o ID que seja diferente do ID do idoso monitorado
+    String otherUid = '';
+    for (var uid in participants) {
+      if (uid.toString() != _elderlyUid && uid.toString().isNotEmpty) {
+        otherUid = uid.toString();
+        break;
+      }
+    }
+
+    if (otherUid.isEmpty && participants.isNotEmpty) {
+      otherUid = participants.first.toString();
+    }
+
+    if (otherUid.isNotEmpty) {
+      if (_userNameCache.containsKey(otherUid)) {
+        return _userNameCache[otherUid]!;
+      }
+
+      try {
+        // Busca o nome na coleção de idosos
+        final elderDoc = await FirebaseFirestore.instance
+            .collection('idosos')
+            .doc(otherUid)
+            .get();
+        if (elderDoc.exists && elderDoc.data() != null) {
+          final eData = elderDoc.data()!;
+          final fetchedName = eData['name'] ?? eData['fullName'] ?? 'Usuário';
+          _userNameCache[otherUid] = fetchedName.toString();
+          return fetchedName.toString();
+        }
+
+        // Se não achou em idosos, busca na coleção de familiares
+        final famDoc = await FirebaseFirestore.instance
+            .collection('familiares')
+            .doc(otherUid)
+            .get();
+        if (famDoc.exists && famDoc.data() != null) {
+          final fData = famDoc.data()!;
+          final fetchedName = fData['name'] ?? fData['fullName'] ?? 'Usuário';
+          _userNameCache[otherUid] = fetchedName.toString();
+          return fetchedName.toString();
+        }
+      } catch (e) {
+        debugPrint('Erro ao buscar nome do participante: $e');
+      }
+    }
+
+    return 'Conversa';
+  }
+
+  String _extractParticipantAvatar(Map<String, dynamic> data) {
+    return data['participantAvatar'] ??
+        data['avatar'] ??
+        data['userPhoto'] ??
+        data['photoUrl'] ??
+        '';
   }
 
   Future<void> _fetchUserData() async {
@@ -45,8 +182,23 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
           final data = userDoc.data() as Map<String, dynamic>;
           final String rawName = data['name'] ?? '';
           final String linkedEmail = data['linkedElderEmail'] ?? '';
+          final String linkStatus = data['familyLinkStatus']?.toString() ?? '';
+          _familyLinkStatus = linkStatus;
+
+          if (linkStatus == 'blocked') {
+            if (mounted) {
+              setState(() {
+                _userFirstName = rawName.split(' ').first;
+                _userLastName = '';
+                _elderlyMonitoredName = 'Vínculo bloqueado';
+                _isLoadingData = false;
+              });
+            }
+            return;
+          }
 
           String foundElderlyName = 'Idoso vinculado';
+          String foundElderUid = '';
 
           if (linkedEmail.isNotEmpty) {
             final QuerySnapshot elderQuery = await FirebaseFirestore.instance
@@ -56,8 +208,11 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 .get();
 
             if (elderQuery.docs.isNotEmpty) {
-              final elderData = elderQuery.docs.first.data() as Map<String, dynamic>;
-              final String rawElderName = elderData['name'] ?? elderData['fullName'] ?? '';
+              final elderDoc = elderQuery.docs.first;
+              final elderData = elderDoc.data() as Map<String, dynamic>;
+              foundElderUid = elderDoc.id;
+              final String rawElderName =
+                  elderData['name'] ?? elderData['fullName'] ?? '';
               if (rawElderName.isNotEmpty) {
                 foundElderlyName = _formatFirstAndLastName(rawElderName);
               }
@@ -72,6 +227,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 _userFirstName = nameParts.first;
                 _userLastName = nameParts.length > 1 ? nameParts.last : '';
                 _elderlyMonitoredName = foundElderlyName;
+                _elderlyUid = foundElderUid;
                 _isLoadingData = false;
               });
             }
@@ -91,10 +247,20 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   }
 
   @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    _familyLinkSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String displayName = _isLoadingData
-        ? '...'
-        : '$_userFirstName $_userLastName'.trim();
+    final String displayName =
+        _isLoadingData ? '...' : '$_userFirstName $_userLastName'.trim();
+
+    if (!_isLoadingData && _familyLinkStatus == 'blocked') {
+      return _buildBlockedHome(context, displayName);
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -110,9 +276,119 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 _elderlyMonitoredName,
               ),
               const SizedBox(height: 20),
-              _buildMetricCardsSection(),
-              const SizedBox(height: 28),
-              _buildRecentActivitiesSection(),
+              StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance.collection('chats').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      _isLoadingData) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(color: Color(0xFF033B63)),
+                      ),
+                    );
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+
+                  // Ordena localmente pela data da última mensagem
+                  final List<QueryDocumentSnapshot> sortedDocs =
+                      List.from(docs);
+                  sortedDocs.sort((a, b) {
+                    final dataA = a.data() as Map<String, dynamic>;
+                    final dataB = b.data() as Map<String, dynamic>;
+                    final Timestamp? timeA =
+                        dataA['lastMessageTime'] as Timestamp? ??
+                            dataA['timestamp'] as Timestamp?;
+                    final Timestamp? timeB =
+                        dataB['lastMessageTime'] as Timestamp? ??
+                            dataB['timestamp'] as Timestamp?;
+                    if (timeA == null) return 1;
+                    if (timeB == null) return -1;
+                    return timeB.compareTo(timeA);
+                  });
+
+                  final activeDocs = _elderlyUid.isNotEmpty
+                      ? sortedDocs.where((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final List<dynamic> participants =
+                              data['participants'] ?? [];
+                          final String participantId =
+                              data['participantId'] ?? '';
+                          return participants.contains(_elderlyUid) ||
+                              participantId == _elderlyUid;
+                        }).toList()
+                      : sortedDocs;
+
+                  final docsToDisplay =
+                      activeDocs.isNotEmpty ? activeDocs : sortedDocs;
+
+                  // 1. Total de conversas ativas
+                  final int totalChats = docsToDisplay.length;
+
+                  // 2. Busca o nome do primeiro chat para a "Última Interação"
+                  final Future<String> lastInteractionFuture = docsToDisplay
+                          .isNotEmpty
+                      ? _getChatDisplayName(
+                          docsToDisplay.first.data() as Map<String, dynamic>)
+                      : Future.value('-');
+
+                  return FutureBuilder<String>(
+                    future: lastInteractionFuture,
+                    builder: (context, lastInterSnap) {
+                      final String rawLastInter = lastInterSnap.data ?? '-';
+                      final String lastInteractionUser = rawLastInter != '-'
+                          ? _formatFirstAndLastName(rawLastInter)
+                          : '-';
+
+                      // 3. Busca o Novo Seguidor
+                      return FutureBuilder<QuerySnapshot>(
+                        future: _elderlyUid.isNotEmpty
+                            ? FirebaseFirestore.instance
+                                .collection('idosos')
+                                .doc(_elderlyUid)
+                                .collection('seguidores')
+                                .orderBy('createdAt', descending: true)
+                                .limit(1)
+                                .get()
+                            : null,
+                        builder: (context, followerSnap) {
+                          String newFollowerName = '-';
+
+                          if (followerSnap.hasData &&
+                              followerSnap.data != null &&
+                              followerSnap.data!.docs.isNotEmpty) {
+                            final followerData = followerSnap.data!.docs.first
+                                .data() as Map<String, dynamic>;
+                            final rawFollower = followerData['name'] ??
+                                followerData['fullName'] ??
+                                '';
+                            if (rawFollower.isNotEmpty) {
+                              newFollowerName =
+                                  _formatFirstAndLastName(rawFollower);
+                            }
+                          }
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildMetricCardsSection(
+                                unreadCount: totalChats,
+                                newFollower: newFollowerName,
+                                lastInteraction: lastInteractionUser,
+                              ),
+                              const SizedBox(height: 28),
+                              _buildRecentActivitiesSection(docsToDisplay),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -122,7 +398,161 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, String displayName, String monitoredName) {
+Widget _buildBlockedHome(BuildContext context, String displayName) {
+  return Scaffold(
+    backgroundColor: const Color(0xFFFAFAFA),
+    body: SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(
+              context,
+              displayName.isEmpty ? 'Usuário' : displayName,
+              'Vínculo bloqueado',
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x12000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEAF5FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline,
+                        color: Color(0xFF033B63),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Vínculo familiar bloqueado',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Quicksand',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF222222),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'O acesso aos dados do idoso não está disponível no momento. Consulte as notificações para acompanhar alterações no vínculo.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Color(0xFF555555),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    bottomNavigationBar: _buildBlockedFooter(),
+  );
+}
+  Widget _buildBlockedFooter() {
+    return Container(
+      height: 64,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 5,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildBlockedFooterItem('footer_home_icon.png', 'Início', true),
+          _buildBlockedFooterItem(
+              'footer_location_icon.png', 'Localização', false),
+          _buildBlockedFooterItem('footer_chat_icon.png', 'Conversas', false),
+          _buildBlockedFooterItem(
+            'footer_profile_icon.png',
+            'Perfil',
+            false,
+            () => Navigator.pushNamed(context, AppRoutes.familyProfile),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlockedFooterItem(String iconName, String label, bool selected,
+      [VoidCallback? onTap]) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 70,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 32,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: selected ? const Color(0xFFD9EEFF) : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Image.asset(
+                'assets/icons/icons_footer/$iconName',
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.image_not_supported,
+                  size: 20,
+                  color: selected ? const Color(0xFF033B63) : Colors.grey,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Raleway',
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                color: const Color(0xFF333333),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(
+      BuildContext context, String displayName, String monitoredName) {
     final double topSafeArea = MediaQuery.of(context).padding.top;
 
     return Container(
@@ -148,17 +578,40 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             children: [
               GestureDetector(
                 onTap: () {
+                  setState(() => _hasUnreadNotifications = false);
                   Navigator.pushNamed(context, AppRoutes.notifications);
                 },
-                child: Image.asset(
-                  'assets/images/commun/notification_icon.png',
-                  height: 21,
-                  width: 21,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.notifications_none,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Image.asset(
+                      'assets/images/commun/notification_icon.png',
+                      height: 21,
+                      width: 21,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.notifications_none,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    if (_hasUnreadNotifications)
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF62B6CB),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF033B63),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 16),
@@ -199,9 +652,11 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        'Gerencie as interações\nda $monitoredName.',
-                        style: const TextStyle(
+                     Text(
+                      monitoredName == 'Vínculo bloqueado'
+                       ? 'Seu vínculo familiar está bloqueado no momento.'
+                       : 'Gerencie as interações\nda $monitoredName.',
+                      style: const TextStyle(
                           fontFamily: 'Raleway',
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
@@ -217,7 +672,8 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 'assets/images/family/home_banner_responsible.png',
                 height: 135,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(height: 110),
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(height: 110),
               ),
             ],
           ),
@@ -226,7 +682,11 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 
-  Widget _buildMetricCardsSection() {
+  Widget _buildMetricCardsSection({
+    required int unreadCount,
+    required String newFollower,
+    required String lastInteraction,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: IntrinsicHeight(
@@ -236,7 +696,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             Expanded(
               child: _buildMetricCard(
                 title: 'Conversas',
-                value: '3 NOVAS',
+                value: '$unreadCount ATIVAS',
                 assetPath: 'assets/images/family/chat_icon.png',
                 fallbackIcon: Icons.chat_bubble_outline,
               ),
@@ -245,7 +705,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             Expanded(
               child: _buildMetricCard(
                 title: 'Novo Seguidor',
-                value: 'José Carlos',
+                value: newFollower,
                 assetPath: 'assets/images/family/new_follower.png',
                 fallbackIcon: Icons.account_circle_outlined,
               ),
@@ -254,7 +714,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             Expanded(
               child: _buildMetricCard(
                 title: 'Última Interação',
-                value: 'Éder Barros',
+                value: lastInteraction,
                 assetPath: 'assets/images/family/last_interation_icon.png',
                 fallbackIcon: Icons.access_time_outlined,
               ),
@@ -272,7 +732,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     required IconData fallbackIcon,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -304,28 +764,27 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             children: [
               Image.asset(
                 assetPath,
-                width: 16,
-                height: 16,
+                width: 15,
+                height: 15,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => Icon(
                   fallbackIcon,
-                  size: 16,
+                  size: 15,
                   color: const Color(0xFF033B63),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 3),
               Flexible(
                 child: Text(
                   value,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
-                  softWrap: true,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: 'Raleway',
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF033B63),
-                    height: 1.1,
                   ),
                 ),
               ),
@@ -336,7 +795,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 
-  Widget _buildRecentActivitiesSection() {
+  Widget _buildRecentActivitiesSection(List<QueryDocumentSnapshot> docs) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -352,17 +811,50 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildActivityCard('Anderson', 'Há 8min'),
-          const SizedBox(height: 12),
-          _buildActivityCard('Marina', 'Há 30min'),
-          const SizedBox(height: 12),
-          _buildActivityCard('Lurdes', 'Há 1 hora'),
+          if (docs.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Nenhuma atividade recente.',
+                style: TextStyle(fontFamily: 'Raleway', color: Colors.black45),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: docs.length > 5 ? 5 : docs.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final data = docs[index].data() as Map<String, dynamic>;
+                final Timestamp? timestamp =
+                    data['lastMessageTime'] as Timestamp? ??
+                        data['timestamp'] as Timestamp?;
+                final String avatarUrl = _extractParticipantAvatar(data);
+
+                return FutureBuilder<String>(
+                  future: _getChatDisplayName(data),
+                  builder: (context, nameSnapshot) {
+                    final rawName = nameSnapshot.data ?? 'Carregando...';
+                    return _buildActivityCard(
+                      name: _formatFirstAndLastName(rawName),
+                      timeAgo: _formatTimeAgo(timestamp),
+                      avatarUrl: avatarUrl,
+                    );
+                  },
+                );
+              },
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildActivityCard(String name, String timeAgo) {
+  Widget _buildActivityCard({
+    required String name,
+    required String timeAgo,
+    String avatarUrl = '',
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -379,10 +871,17 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 24,
-            backgroundColor: Color(0xFFE0E0E0),
-            child: Icon(Icons.person, size: 30, color: Colors.white),
+            backgroundColor: const Color(0xFFE0E0E0),
+            backgroundImage: avatarUrl.startsWith('http')
+                ? NetworkImage(avatarUrl)
+                : (avatarUrl.isNotEmpty
+                    ? AssetImage(avatarUrl) as ImageProvider
+                    : null),
+            child: avatarUrl.isEmpty
+                ? const Icon(Icons.person, size: 30, color: Colors.white)
+                : null,
           ),
           const SizedBox(width: 16),
           Column(

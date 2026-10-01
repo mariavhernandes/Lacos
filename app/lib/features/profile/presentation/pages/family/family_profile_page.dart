@@ -172,12 +172,14 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
             // DADOS DO FAMILIAR
             // ==================================================
 
-            final data =
-                snapshot.data!.data() as Map<String, dynamic>;
+            final data = snapshot.data!.data() as Map<String, dynamic>;
 
             final String name =
-                data['name']?.toString() ??
-                    'Nome não informado';
+                data['name']?.toString() ?? 'Nome não informado';
+
+            if (data['familyLinkStatus']?.toString() == 'blocked') {
+              return _buildBlockedProfile(context);
+            }
 
             // ==================================================
             // E-MAIL DO IDOSO VINCULADO
@@ -206,9 +208,8 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
 
                 if (elderlySnapshot.hasData &&
                     elderlySnapshot.data!.docs.isNotEmpty) {
-                  final elderlyData =
-                      elderlySnapshot.data!.docs.first.data()
-                          as Map<String, dynamic>;
+                  final elderlyData = elderlySnapshot.data!.docs.first.data()
+                      as Map<String, dynamic>;
 
                   final String rawElderlyName =
                       elderlyData['name']?.toString() ??
@@ -230,8 +231,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                     vertical: 16,
                   ),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // ==========================================
                       // TÍTULO
@@ -290,8 +290,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                       Center(
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color(0xFF0D3B66),
+                            backgroundColor: const Color(0xFF0D3B66),
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(
@@ -299,8 +298,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                               vertical: 8,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                           ),
 
@@ -344,8 +342,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: const Color(0xFFF7F7F7),
-                          borderRadius:
-                              BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
                           children: [
@@ -422,18 +419,15 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                         alignment: Alignment.centerLeft,
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor:
-                                const Color(0xFFD32F2F),
+                            foregroundColor: const Color(0xFFD32F2F),
                             side: const BorderSide(
                               color: Color(0xFFD32F2F),
                               width: 1.5,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            padding:
-                                const EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 18,
                               vertical: 10,
                             ),
@@ -470,12 +464,184 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
       // FOOTER
       // ==========================================================
 
-      bottomNavigationBar: const CustomFooter(
-        currentIndex: 3,
-        isFamily: true,
+      bottomNavigationBar: _buildFamilyFooter(),
+    );
+  }
+
+  Widget _buildBlockedProfile(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        children: [
+          const Text(
+            'Perfil',
+            style: TextStyle(
+              fontFamily: 'Quicksand',
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF777777),
+            ),
+          ),
+          const Spacer(),
+          const Text(
+            'Vínculo familiar bloqueado',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Quicksand',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF333333),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'O perfil está restrito enquanto o vínculo estiver bloqueado.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Raleway',
+              fontSize: 14,
+              color: Color(0xFF666666),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Align(
+  alignment: Alignment.centerLeft,
+  child: OutlinedButton.icon(
+    style: OutlinedButton.styleFrom(
+      foregroundColor: const Color(0xFFD32F2F),
+      side: const BorderSide(
+        color: Color(0xFFD32F2F),
+        width: 1.5,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 10,
+      ),
+    ),
+    onPressed: () => _logout(context),
+    icon: const Icon(
+      Icons.logout,
+      size: 18,
+      color: Color(0xFFD32F2F),
+    ),
+    label: const Text(
+      'Sair do aplicativo',
+      style: TextStyle(
+        fontFamily: 'Raleway',
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+        color: Color(0xFFD32F2F),
+      ),
+    ),
+  ),
+),
+          const Spacer(),
+        ],
       ),
     );
   }
+
+  Widget _buildFamilyFooter() {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore
+          .collection('familiares')
+          .doc(_auth.currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data() as Map<String, dynamic>?;
+        if (data?['familyLinkStatus']?.toString() == 'blocked') {
+          return _buildBlockedFooter();
+        }
+        return const CustomFooter(currentIndex: 3);
+      },
+    );
+  }
+
+  Widget _buildBlockedFooter() {
+    return Container(
+      height: 64,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 5,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildBlockedFooterItem(
+        'footer_home_icon.png',
+        'Início',
+       false,
+       () => Navigator.pop(context),
+                          ),
+          _buildBlockedFooterItem(
+              'footer_location_icon.png', 'Localização', false),
+          _buildBlockedFooterItem('footer_chat_icon.png', 'Conversas', false),
+          _buildBlockedFooterItem('footer_profile_icon.png', 'Perfil', true),
+        ],
+      ),
+    );
+  }
+
+ Widget _buildBlockedFooterItem(
+  String iconName,
+  String label,
+  bool selected, [
+  VoidCallback? onTap,
+]) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(16),
+    child: SizedBox(
+      width: 70,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 32,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: selected
+                  ? const Color(0xFFD9EEFF)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Image.asset(
+              'assets/icons/icons_footer/$iconName',
+              errorBuilder: (context, error, stackTrace) => Icon(
+                Icons.image_not_supported,
+                size: 20,
+                color: selected
+                    ? const Color(0xFF033B63)
+                    : Colors.grey,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Raleway',
+              fontSize: 10,
+              fontWeight:
+                  selected ? FontWeight.bold : FontWeight.w500,
+              color: const Color(0xFF333333),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   // ==========================================================
   // CABEÇALHO "GERENCIAR"
@@ -496,8 +662,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
               width: 25,
               height: 25,
               fit: BoxFit.contain,
-              errorBuilder:
-                  (context, error, stackTrace) {
+              errorBuilder: (context, error, stackTrace) {
                 return const Icon(
                   Icons.manage_search,
                   color: Color(0xFF0D3B66),
@@ -505,9 +670,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                 );
               },
             ),
-
             const SizedBox(width: 10),
-
             const Text(
               'Gerenciar',
               style: TextStyle(
