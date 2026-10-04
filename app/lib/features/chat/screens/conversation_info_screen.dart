@@ -29,7 +29,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     super.initState();
 
     if (widget.chat.isGroup && widget.chat.id != null) {
-      _groupMembersFuture = _chatService.getGroupMembers(widget.chat.id!);
+      _groupMembersFuture = _chatService.getGroupMembers(
+        widget.chat.id!,
+      );
     }
   }
 
@@ -44,6 +46,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
           .snapshots(),
       builder: (context, chatSnapshot) {
         bool isBlocked = widget.chat.isBlocked;
+
         Map<String, dynamic>? chatData;
 
         if (chatSnapshot.hasData && chatSnapshot.data!.exists) {
@@ -54,29 +57,32 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
           }
         }
 
-        // ==========================================
+        // ========================================================
         // GRUPO
-        // ==========================================
+        // ========================================================
 
         if (widget.chat.isGroup) {
           return _buildScaffold(
             context,
             null,
             chatData,
-            isBlocked,
+            false,
           );
         }
 
-        // ==========================================
+        // ========================================================
         // CONVERSA PRIVADA
-        // ==========================================
+        // ========================================================
 
         return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
               .collection('idosos')
               .doc(participantId)
               .snapshots(),
-          builder: (context, userSnapshot) {
+          builder: (
+            context,
+            userSnapshot,
+          ) {
             Map<String, dynamic>? userData;
 
             if (userSnapshot.hasData && userSnapshot.data!.exists) {
@@ -89,7 +95,10 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                     .collection('familiares')
                     .doc(participantId)
                     .snapshots(),
-                builder: (context, familiarSnapshot) {
+                builder: (
+                  context,
+                  familiarSnapshot,
+                ) {
                   if (familiarSnapshot.hasData &&
                       familiarSnapshot.data!.exists) {
                     userData =
@@ -129,7 +138,7 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
     final Map<String, dynamic> leftAt = Map<String, dynamic>.from(
-      (chatData?['leftAt'] as Map<String, dynamic>?) ?? {},
+      (chatData?['leftAt'] as Map?) ?? {},
     );
 
     final bool hasLeftGroup =
@@ -137,26 +146,29 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
     final String displayName = isGroup
         ? (chatData?['groupName'] ?? widget.chat.groupName ?? 'Grupo')
+            .toString()
         : (userData?['name'] ??
-            userData?['nome'] ??
-            widget.chat.participantName ??
-            'Participante');
+                userData?['nome'] ??
+                widget.chat.participantName ??
+                'Participante')
+            .toString();
 
     final String? avatarPath = isGroup
-        ? (chatData?['groupAvatar'] ?? widget.chat.groupAvatar)
+        ? (chatData?['groupAvatar'] ?? widget.chat.groupAvatar)?.toString()
         : (userData?['avatarPath'] ??
-            userData?['foto'] ??
-            userData?['avatar'] ??
-            widget.chat.participantAvatar);
+                userData?['foto'] ??
+                userData?['avatar'] ??
+                widget.chat.participantAvatar)
+            ?.toString();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // ==========================================
+            // ======================================================
             // BOTÃO VOLTAR
-            // ==========================================
+            // ======================================================
 
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -174,7 +186,11 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                       width: 40,
                       height: 40,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
+                      errorBuilder: (
+                        context,
+                        error,
+                        stackTrace,
+                      ) {
                         return Container(
                           width: 40,
                           height: 40,
@@ -196,9 +212,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
               ),
             ),
 
-            // ==========================================
+            // ======================================================
             // CONTEÚDO
-            // ==========================================
+            // ======================================================
 
             Expanded(
               child: SingleChildScrollView(
@@ -211,12 +227,10 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                     children: [
                       const SizedBox(height: 18),
 
-                      // FOTO
                       _buildAvatar(avatarPath),
 
                       const SizedBox(height: 18),
 
-                      // NOME
                       Text(
                         displayName,
                         textAlign: TextAlign.center,
@@ -230,17 +244,20 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
                       const SizedBox(height: 10),
 
-                      // ==========================================
+                      // ==================================================
                       // INFORMAÇÕES DO GRUPO
-                      // ==========================================
+                      // ==================================================
 
-                      if (isGroup) _buildGroupInfo(chatData),
+                      if (isGroup)
+                        _buildGroupInfo(
+                          chatData,
+                        ),
 
                       const SizedBox(height: 22),
 
-                      // ==========================================
+                      // ==================================================
                       // PESQUISAR
-                      // ==========================================
+                      // ==================================================
 
                       ListTile(
                         contentPadding: EdgeInsets.zero,
@@ -272,18 +289,24 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
                       const SizedBox(height: 8),
 
-                      // ==========================================
-                      // OPÇÕES DO GRUPO
-                      // ==========================================
+                      // ==================================================
+                      // GRUPO
+                      // ==================================================
 
                       if (isGroup) ...[
-                        _buildMembersSection(chatData),
-                        const SizedBox(height: 12),
+                        _buildMembersSection(
+                          chatData,
+                        ),
+                        const SizedBox(
+                          height: 12,
+                        ),
                         const Divider(
                           color: AppColors.divider,
                           thickness: 1,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(
+                          height: 8,
+                        ),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(
@@ -305,15 +328,17 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                             if (hasLeftGroup) {
                               _handleDeleteGroup();
                             } else {
-                              _handleLeaveGroup(displayName);
+                              _handleLeaveGroup(
+                                displayName,
+                              );
                             }
                           },
                         ),
                       ],
 
-                      // ==========================================
-                      // OPÇÕES DA CONVERSA PRIVADA
-                      // ==========================================
+                      // ==================================================
+                      // CONVERSA PRIVADA
+                      // ==================================================
 
                       if (!isGroup) ...[
                         ListTile(
@@ -380,7 +405,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                                         ? 'Você poderá voltar a enviar e receber mensagens dessa pessoa.'
                                         : 'A pessoa não poderá mais enviar mensagens para você. Ela não saberá que foi bloqueada.',
                                     style: const TextStyle(
-                                      color: Color(0xFF8A8A8A),
+                                      color: Color(
+                                        0xFF8A8A8A,
+                                      ),
                                       fontFamily: 'Quicksand',
                                       fontSize: 14,
                                     ),
@@ -445,7 +472,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(error.toString()),
+                                    content: Text(
+                                      error.toString(),
+                                    ),
                                   ),
                                 );
                               }
@@ -464,9 +493,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     );
   }
 
-  // ==========================================
+  // ============================================================
   // INFORMAÇÕES DO GRUPO
-  // ==========================================
+  // ============================================================
 
   Widget _buildGroupInfo(
     Map<String, dynamic>? chatData,
@@ -474,7 +503,17 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     final List<dynamic> participants =
         chatData?['participants'] ?? widget.chat.participantIds ?? [];
 
-    final int participantCount = participants.length;
+    final Map<String, dynamic> leftAt = Map<String, dynamic>.from(
+      (chatData?['leftAt'] as Map?) ?? {},
+    );
+
+    // Só conta quem ainda está no grupo.
+    final int participantCount = participants
+        .whereType<String>()
+        .where(
+          (uid) => !leftAt.containsKey(uid),
+        )
+        .length;
 
     return Text(
       '$participantCount participantes',
@@ -487,9 +526,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     );
   }
 
-  // ==========================================
+  // ============================================================
   // MEMBROS
-  // ==========================================
+  // ============================================================
 
   Widget _buildMembersSection(
     Map<String, dynamic>? chatData,
@@ -499,6 +538,11 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     }
 
     final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    // UIDs que já saíram.
+    final Map<String, dynamic> leftAt = Map<String, dynamic>.from(
+      (chatData?['leftAt'] as Map?) ?? {},
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,7 +565,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
+                padding: EdgeInsets.symmetric(
+                  vertical: 20,
+                ),
                 child: Center(
                   child: CircularProgressIndicator(
                     color: AppColors.primary,
@@ -532,7 +578,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
             if (snapshot.hasError) {
               return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  vertical: 12,
+                ),
                 child: Text(
                   'Não foi possível carregar os membros.',
                   style: TextStyle(
@@ -548,19 +596,41 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
               snapshot.data ?? [],
             );
 
+            // ========================================================
+            // REMOVE DA LISTA QUEM SAIU
+            // ========================================================
+
+            members.removeWhere((member) {
+              final uid = member['uid']?.toString();
+
+              if (uid == null || uid.isEmpty) {
+                return false;
+              }
+
+              return leftAt.containsKey(uid);
+            });
+
             members.sort((a, b) {
               final String? uidA = a['uid']?.toString();
+
               final String? uidB = b['uid']?.toString();
 
-              if (uidA == currentUserId) return -1;
-              if (uidB == currentUserId) return 1;
+              if (uidA == currentUserId) {
+                return -1;
+              }
+
+              if (uidB == currentUserId) {
+                return 1;
+              }
 
               return 0;
             });
 
             if (members.isEmpty) {
               return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  vertical: 12,
+                ),
                 child: Text(
                   'Nenhum membro encontrado.',
                   style: TextStyle(
@@ -581,12 +651,18 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                 final String? avatar = member['avatar']?.toString();
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(
+                    bottom: 8,
+                  ),
                   child: Material(
                     color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      12,
+                    ),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        12,
+                      ),
                       onTap: uid == null || uid.isEmpty || uid == currentUserId
                           ? null
                           : () {
@@ -606,8 +682,12 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                         ),
                         child: Row(
                           children: [
-                            _buildMemberAvatar(avatar),
-                            const SizedBox(width: 12),
+                            _buildMemberAvatar(
+                              avatar,
+                            ),
+                            const SizedBox(
+                              width: 12,
+                            ),
                             Expanded(
                               child: Text(
                                 name,
@@ -643,9 +723,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     );
   }
 
-  // ==========================================
+  // ============================================================
   // AVATAR DOS MEMBROS
-  // ==========================================
+  // ============================================================
 
   Widget _buildMemberAvatar(
     String? avatarPath,
@@ -693,9 +773,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     );
   }
 
-  // ==========================================
+  // ============================================================
   // SAIR DO GRUPO
-  // ==========================================
+  // ============================================================
 
   Future<void> _handleLeaveGroup(
     String groupName,
@@ -769,20 +849,18 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
       return;
     }
 
-    // ==========================================
-    // SAI DO GRUPO
-    // ==========================================
-
     try {
-      await _chatService.leaveGroup(chatId);
+      await _chatService.leaveGroup(
+        chatId,
+      );
 
       if (!mounted) {
         return;
       }
 
-      // Apenas informa ao ChatScreen que a saída aconteceu.
-      // A pergunta sobre apagar o grupo será feita lá.
-      Navigator.of(context).pop('group_left');
+      Navigator.of(context).pop(
+        'group_left',
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -790,15 +868,17 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString()),
+          content: Text(
+            error.toString(),
+          ),
         ),
       );
     }
   }
 
-  // ==========================================
+  // ============================================================
   // APAGAR GRUPO
-  // ==========================================
+  // ============================================================
 
   Future<void> _handleDeleteGroup() async {
     final chatId = widget.chat.id;
@@ -820,9 +900,9 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
               fontSize: 20,
             ),
           ),
-          content: Text(
+          content: const Text(
             'O grupo será apagado apenas para você.',
-            style: const TextStyle(
+            style: TextStyle(
               color: Color(0xFF8A8A8A),
               fontFamily: 'Quicksand',
               fontSize: 14,
@@ -871,13 +951,17 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
     }
 
     try {
-      await _chatService.deleteGroup(chatId);
+      await _chatService.deleteGroup(
+        chatId,
+      );
 
       if (!mounted) {
         return;
       }
 
-      Navigator.of(context).pop('group_deleted');
+      Navigator.of(context).pop(
+        'group_deleted',
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -885,15 +969,17 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString()),
+          content: Text(
+            error.toString(),
+          ),
         ),
       );
     }
   }
 
-  // ==========================================
+  // ============================================================
   // FOTO PRINCIPAL
-  // ==========================================
+  // ============================================================
 
   Widget _buildAvatar(
     String? avatarPath,
@@ -902,14 +988,20 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
 
     if (hasAvatar) {
       return ClipOval(
-        child: avatarPath!.startsWith('assets/')
+        child: avatarPath!.startsWith(
+          'assets/',
+        )
             ? Image.asset(
                 avatarPath,
                 width: 120,
                 height: 120,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.high,
-                errorBuilder: (_, __, ___) {
+                errorBuilder: (
+                  _,
+                  __,
+                  ___,
+                ) {
                   return _buildDefaultAvatar();
                 },
               )
@@ -919,7 +1011,11 @@ class _ConversationInfoScreenState extends State<ConversationInfoScreen> {
                 height: 120,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.high,
-                errorBuilder: (_, __, ___) {
+                errorBuilder: (
+                  _,
+                  __,
+                  ___,
+                ) {
                   return _buildDefaultAvatar();
                 },
               ),
