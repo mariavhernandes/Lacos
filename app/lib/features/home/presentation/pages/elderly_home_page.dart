@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import '../../../../core/widgets/custom_search_bar.dart';
+import '../../../chat/services/chat_service.dart';
 import '../../../notifications/data/notification_service.dart';
 import '../../../profile/presentation/pages/public_profile_page.dart';
 
@@ -29,6 +30,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   final TextEditingController _searchController = TextEditingController();
 
   bool _hasUnreadNotifications = false;
+
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       _notificationSubscription;
 
@@ -36,10 +38,12 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   String _userLastName = '';
   bool _isLoadingName = true;
 
-  final Set<String> _joinedGroups = {};
+  final ChatService _chatService = ChatService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Conjunto com os IDs dos usuários que eu já sigo
+  // IDs das pessoas que o usuário atual segue.
   Set<String> _followingIds = {};
+
   final Set<String> _loadingFollowStatus = {};
 
   List<Map<String, dynamic>> _allFriendSuggestions = [];
@@ -63,22 +67,33 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   @override
   void initState() {
     super.initState();
+
     _fetchUserData();
     _fetchFriendSuggestions();
     _listenForUnreadNotifications();
   }
 
+  // ============================================================
+  // NOTIFICAÇÕES
+  // ============================================================
+
   void _listenForUnreadNotifications() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+
     if (uid == null) return;
 
     _notificationSubscription = FamilyNotificationService()
-        .unreadNotificationsStream(uid: uid, isElder: true)
+        .unreadNotificationsStream(
+          uid: uid,
+          isElder: true,
+        )
         .snapshots()
         .listen((snapshot) {
-      if (mounted) {
-        setState(() => _hasUnreadNotifications = snapshot.docs.isNotEmpty);
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _hasUnreadNotifications = snapshot.docs.isNotEmpty;
+      });
     });
   }
 
@@ -91,7 +106,12 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       final User? currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser == null) {
-        if (mounted) setState(() => _isLoadingName = false);
+        if (mounted) {
+          setState(() {
+            _isLoadingName = false;
+          });
+        }
+
         return;
       }
 
@@ -105,11 +125,16 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             userDoc.data() as Map<String, dynamic>;
 
         final String rawName = _getName(data);
-        final List<dynamic> followingList = data['followingIds'] ?? [];
+
+        final List<dynamic> followingList =
+            data['followingIds'] as List<dynamic>? ?? [];
 
         if (mounted) {
           setState(() {
-            _followingIds = followingList.map((e) => e.toString()).toSet();
+            _followingIds = followingList
+                .map((e) => e.toString())
+                .where((id) => id.isNotEmpty)
+                .toSet();
           });
         }
 
@@ -123,6 +148,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
               _isLoadingName = false;
             });
           }
+
           return;
         }
       }
@@ -130,11 +156,15 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       debugPrint('Erro ao buscar dados do idoso: $e');
     }
 
-    if (mounted) setState(() => _isLoadingName = false);
+    if (mounted) {
+      setState(() {
+        _isLoadingName = false;
+      });
+    }
   }
 
   // ============================================================
-  // BUSCAR SUGESTÕES
+  // BUSCAR SUGESTÕES DE AMIZADES
   // ============================================================
 
   Future<void> _fetchFriendSuggestions() async {
@@ -142,7 +172,12 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       final User? currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser == null) {
-        if (mounted) setState(() => _isLoadingSuggestions = false);
+        if (mounted) {
+          setState(() {
+            _isLoadingSuggestions = false;
+          });
+        }
+
         return;
       }
 
@@ -152,15 +187,19 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           .get();
 
       if (!currentUserDoc.exists || currentUserDoc.data() == null) {
-        if (mounted) setState(() => _isLoadingSuggestions = false);
+        if (mounted) {
+          setState(() {
+            _isLoadingSuggestions = false;
+          });
+        }
+
         return;
       }
 
       final Map<String, dynamic> currentUserData =
           currentUserDoc.data() as Map<String, dynamic>;
 
-      final String currentCity =
-          _getCity(currentUserData).toLowerCase().trim();
+      final String currentCity = _getCity(currentUserData).toLowerCase().trim();
 
       final List<String> currentInterests = _getInterests(currentUserData);
 
@@ -175,10 +214,15 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       final List<Map<String, dynamic>> suggestions = [];
 
       for (final DocumentSnapshot doc in usersSnapshot.docs) {
-        if (doc.id == currentUser.uid) continue;
+        if (doc.id == currentUser.uid) {
+          continue;
+        }
 
         final dynamic rawData = doc.data();
-        if (rawData == null) continue;
+
+        if (rawData == null) {
+          continue;
+        }
 
         final Map<String, dynamic> userData = rawData as Map<String, dynamic>;
 
@@ -187,9 +231,13 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         final List<String> interests = _getInterests(userData);
 
         final List<String> commonInterests = [];
+
         for (final String interest in interests) {
           final String normalizedInterest = _normalizeText(interest);
-          if (currentInterestKeys.contains(normalizedInterest)) {
+
+          if (currentInterestKeys.contains(
+            normalizedInterest,
+          )) {
             commonInterests.add(interest);
           }
         }
@@ -199,11 +247,16 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             _normalizeText(currentCity) == _normalizeText(city);
 
         final String birthDate = _getBirthDate(userData);
+
         final int? age = _calculateAge(birthDate);
+
         final String avatarPath = _getAvatarPath(userData);
 
         int score = commonInterests.length * 2;
-        if (sameCity) score += 1;
+
+        if (sameCity) {
+          score += 1;
+        }
 
         suggestions.add({
           'id': doc.id,
@@ -220,31 +273,41 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
 
       suggestions.sort((a, b) {
         final int scoreA = (a['score'] ?? 0) as int;
+
         final int scoreB = (b['score'] ?? 0) as int;
+
         return scoreB.compareTo(scoreA);
       });
 
       if (mounted) {
         setState(() {
-          _allFriendSuggestions = List<Map<String, dynamic>>.from(suggestions);
+          _allFriendSuggestions = List<Map<String, dynamic>>.from(
+            suggestions,
+          );
+
           _isLoadingSuggestions = false;
         });
       }
     } catch (e) {
-      debugPrint('ERRO AO BUSCAR SUGESTÕES: $e');
-      if (mounted) setState(() => _isLoadingSuggestions = false);
+      debugPrint(
+        'ERRO AO BUSCAR SUGESTÕES: $e',
+      );
+
+      if (mounted) {
+        setState(() {
+          _isLoadingSuggestions = false;
+        });
+      }
     }
   }
 
   // ============================================================
-  // SEGUIR / DEIXAR DE SEGUIR DIRETO
+  // SEGUIR / DEIXAR DE SEGUIR
   // ============================================================
 
-  // ============================================================
-  // SEGUIR / DEIXAR DE SEGUIR DIRETO PELA HOME + NOTIFICAÇÃO
-  // ============================================================
-
-  Future<void> _toggleFollow(String targetUid) async {
+  Future<void> _toggleFollow(
+    String targetUid,
+  ) async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
     if (currentUserId == null ||
@@ -253,21 +316,27 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       return;
     }
 
-    if (mounted) setState(() => _loadingFollowStatus.add(targetUid));
+    if (mounted) {
+      setState(() {
+        _loadingFollowStatus.add(targetUid);
+      });
+    }
 
     final bool isFollowing = _followingIds.contains(targetUid);
 
     final currentUserRef =
         FirebaseFirestore.instance.collection('idosos').doc(currentUserId);
+
     final targetUserRef =
         FirebaseFirestore.instance.collection('idosos').doc(targetUid);
 
     try {
       if (isFollowing) {
-        // Deixar de seguir
+        // Deixar de seguir.
         await currentUserRef.update({
           'followingIds': FieldValue.arrayRemove([targetUid]),
         });
+
         await targetUserRef.update({
           'followerIds': FieldValue.arrayRemove([currentUserId]),
           'followersCount': FieldValue.increment(-1),
@@ -279,15 +348,21 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           });
         }
       } else {
-        // Seguir
-        await currentUserRef.set({
-          'followingIds': FieldValue.arrayUnion([targetUid]),
-        }, SetOptions(merge: true));
+        // Seguir.
+        await currentUserRef.set(
+          {
+            'followingIds': FieldValue.arrayUnion([targetUid]),
+          },
+          SetOptions(merge: true),
+        );
 
-        await targetUserRef.set({
-          'followerIds': FieldValue.arrayUnion([currentUserId]),
-          'followersCount': FieldValue.increment(1),
-        }, SetOptions(merge: true));
+        await targetUserRef.set(
+          {
+            'followerIds': FieldValue.arrayUnion([currentUserId]),
+            'followersCount': FieldValue.increment(1),
+          },
+          SetOptions(merge: true),
+        );
 
         if (mounted) {
           setState(() {
@@ -295,9 +370,7 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           });
         }
 
-        // ------------------------------------------------------------
-        // BUSCAR NOME E ENVIAR NOTIFICAÇÃO DE NOVO SEGUIDOR
-        // ------------------------------------------------------------
+        // Enviar notificação de novo seguidor.
         try {
           var userDoc = await currentUserRef.get();
 
@@ -309,8 +382,10 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           }
 
           String followerName = 'Um usuário';
+
           if (userDoc.exists && userDoc.data() != null) {
             final data = userDoc.data()!;
+
             followerName = data['name'] ?? data['nome'] ?? 'Um usuário';
           }
 
@@ -320,13 +395,21 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             followerName: followerName,
           );
         } catch (e) {
-          debugPrint('Erro ao enviar notificação de seguidor: $e');
+          debugPrint(
+            'Erro ao enviar notificação de seguidor: $e',
+          );
         }
       }
     } catch (e) {
-      debugPrint('Erro ao alternar seguir: $e');
+      debugPrint(
+        'Erro ao alternar seguir: $e',
+      );
     } finally {
-      if (mounted) setState(() => _loadingFollowStatus.remove(targetUid));
+      if (mounted) {
+        setState(() {
+          _loadingFollowStatus.remove(targetUid);
+        });
+      }
     }
   }
 
@@ -338,25 +421,41 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     final String query = _normalizeText(_searchController.text);
 
     return _allFriendSuggestions.where((friend) {
-      final String name = _normalizeText((friend['name'] ?? '').toString());
-      final String city = _normalizeText((friend['city'] ?? '').toString());
-      final List<String> interests = _convertInterests(friend['interests']);
+      final String name = _normalizeText(
+        (friend['name'] ?? '').toString(),
+      );
+
+      final String city = _normalizeText(
+        (friend['city'] ?? '').toString(),
+      );
+
+      final List<String> interests = _convertInterests(
+        friend['interests'],
+      );
+
       final int? age = friend['age'] as int?;
 
       final bool matchesQuery = query.isEmpty ||
           name.contains(query) ||
           city.contains(query) ||
-          interests.any((i) => _normalizeText(i).contains(query));
+          interests.any(
+            (i) => _normalizeText(i).contains(query),
+          );
 
       final bool matchesCity = _selectedCity == null ||
           _normalizeText(city) == _normalizeText(_selectedCity!);
 
       final bool matchesHobby = _selectedHobby == null ||
-          interests.any((i) =>
-              _normalizeText(i).contains(_normalizeText(_selectedHobby!)) ||
-              _normalizeText(_selectedHobby!).contains(_normalizeText(i)));
+          interests.any(
+            (i) =>
+                _normalizeText(i).contains(
+                  _normalizeText(_selectedHobby!),
+                ) ||
+                _normalizeText(_selectedHobby!).contains(_normalizeText(i)),
+          );
 
       bool matchesAge = true;
+
       if (_selectedAgeRange != null && age != null) {
         if (_selectedAgeRange == '60-70') {
           matchesAge = age >= 60 && age <= 70;
@@ -375,36 +474,58 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   // PEGAR DADOS E NORMALIZAÇÃO
   // ============================================================
 
-  String _getName(Map<String, dynamic> data) {
+  String _getName(
+    Map<String, dynamic> data,
+  ) {
     final dynamic value =
         data['nome'] ?? data['name'] ?? data['Nome'] ?? data['Name'];
+
     return value == null ? '' : value.toString().trim();
   }
 
-  String _getCity(Map<String, dynamic> data) {
+  String _getCity(
+    Map<String, dynamic> data,
+  ) {
     final dynamic value =
         data['cidade'] ?? data['city'] ?? data['Cidade'] ?? data['City'];
+
     return value == null ? '' : value.toString().trim();
   }
 
-  List<String> _getInterests(Map<String, dynamic> data) {
-    dynamic interestsData =
-        data['interesses'] ?? data['interests'] ?? data['Interesses'] ?? data['Interests'];
+  List<String> _getInterests(
+    Map<String, dynamic> data,
+  ) {
+    dynamic interestsData = data['interesses'] ??
+        data['interests'] ??
+        data['Interesses'] ??
+        data['Interests'];
 
     if (interestsData is String) {
       final String value = interestsData.trim();
-      if (value.isEmpty) return [];
+
+      if (value.isEmpty) {
+        return [];
+      }
+
       return value
           .split(',')
-          .map((interest) => interest.trim())
-          .where((interest) => interest.isNotEmpty)
+          .map(
+            (interest) => interest.trim(),
+          )
+          .where(
+            (interest) => interest.isNotEmpty,
+          )
           .toList();
     }
 
     if (interestsData is List) {
       return interestsData
-          .map((interest) => interest.toString().trim())
-          .where((interest) => interest.isNotEmpty)
+          .map(
+            (interest) => interest.toString().trim(),
+          )
+          .where(
+            (interest) => interest.isNotEmpty,
+          )
           .toList();
     }
 
@@ -440,17 +561,22 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         .replaceAll('ç', 'c');
   }
 
-  String _getBirthDate(Map<String, dynamic> data) {
+  String _getBirthDate(
+    Map<String, dynamic> data,
+  ) {
     final dynamic value = data['data de nascimento'] ??
         data['dataDeNascimento'] ??
         data['data_nascimento'] ??
         data['birthDate'] ??
         data['nascimento'] ??
         data['Nascimento'];
+
     return value == null ? '' : value.toString().trim();
   }
 
-  String _getAvatarPath(Map<String, dynamic> data) {
+  String _getAvatarPath(
+    Map<String, dynamic> data,
+  ) {
     final dynamic value = data['avatarPath'] ??
         data['avatar'] ??
         data['foto'] ??
@@ -461,63 +587,111 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     if (value == null || value.toString().trim().isEmpty) {
       return 'assets/avatars/default_profile_image.png';
     }
+
     return value.toString().trim();
   }
 
-  int? _calculateAge(String birthDate) {
-    if (birthDate.isEmpty) return null;
+  int? _calculateAge(
+    String birthDate,
+  ) {
+    if (birthDate.isEmpty) {
+      return null;
+    }
 
     try {
-      String value = birthDate.trim();
+      final String value = birthDate.trim();
+
       if (value.contains('/')) {
         final List<String> parts = value.split('/');
+
         if (parts.length == 3) {
           final int day = int.parse(parts[0]);
+
           final int month = int.parse(parts[1]);
+
           final int year = int.parse(parts[2]);
-          final DateTime birth = DateTime(year, month, day);
-          return _calculateAgeFromDate(birth);
+
+          final DateTime birth = DateTime(
+            year,
+            month,
+            day,
+          );
+
+          return _calculateAgeFromDate(
+            birth,
+          );
         }
       }
 
       if (value.contains('-')) {
         final DateTime? birth = DateTime.tryParse(value);
-        if (birth != null) return _calculateAgeFromDate(birth);
+
+        if (birth != null) {
+          return _calculateAgeFromDate(
+            birth,
+          );
+        }
       }
     } catch (e) {
-      debugPrint('Erro ao calcular idade: $e');
+      debugPrint(
+        'Erro ao calcular idade: $e',
+      );
     }
 
     return null;
   }
 
-  int _calculateAgeFromDate(DateTime birth) {
+  int _calculateAgeFromDate(
+    DateTime birth,
+  ) {
     final DateTime today = DateTime.now();
+
     int age = today.year - birth.year;
+
     if (today.month < birth.month ||
         (today.month == birth.month && today.day < birth.day)) {
       age--;
     }
+
     return age;
   }
 
-  List<String> _convertInterests(dynamic interestsData) {
+  List<String> _convertInterests(
+    dynamic interestsData,
+  ) {
     if (interestsData is String) {
-      if (interestsData.trim().isEmpty) return [];
+      if (interestsData.trim().isEmpty) {
+        return [];
+      }
+
       return interestsData
           .split(',')
-          .map((interest) => interest.trim())
-          .where((interest) => interest.isNotEmpty)
+          .map(
+            (interest) => interest.trim(),
+          )
+          .where(
+            (interest) => interest.isNotEmpty,
+          )
           .toList();
     }
 
-    if (interestsData is! List) return [];
+    if (interestsData is! List) {
+      return [];
+    }
 
     return interestsData
-        .map((interest) => interest.toString().trim())
-        .where((interest) => interest.isNotEmpty)
+        .map(
+          (interest) => interest.toString().trim(),
+        )
+        .where(
+          (interest) => interest.isNotEmpty,
+        )
         .toList();
   }
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
 
   @override
   void dispose() {
@@ -557,7 +731,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     child: CustomSearchBar(
                       hintText: 'Pesquisar pessoas',
                       controller: _searchController,
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) {
+                        setState(() {});
+                      },
                     ),
                   ),
                 ],
@@ -579,7 +755,14 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, String displayName) {
+  // ============================================================
+  // HEADER
+  // ============================================================
+
+  Widget _buildHeader(
+    BuildContext context,
+    String displayName,
+  ) {
     final double topSafeArea = MediaQuery.of(context).padding.top;
 
     return Container(
@@ -605,8 +788,14 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             children: [
               GestureDetector(
                 onTap: () {
-                  setState(() => _hasUnreadNotifications = false);
-                  Navigator.pushNamed(context, AppRoutes.notifications);
+                  setState(() {
+                    _hasUnreadNotifications = false;
+                  });
+
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.notifications,
+                  );
                 },
                 child: Stack(
                   clipBehavior: Clip.none,
@@ -615,7 +804,12 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                       'assets/images/commun/notification_icon.png',
                       height: 21,
                       width: 21,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
+                      errorBuilder: (
+                        context,
+                        error,
+                        stackTrace,
+                      ) =>
+                          const Icon(
                         Icons.notifications_none,
                         color: Colors.white,
                         size: 28,
@@ -629,10 +823,14 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                           width: 10,
                           height: 10,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF62B6CB),
+                            color: const Color(
+                              0xFF62B6CB,
+                            ),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: const Color(0xFF033B63),
+                              color: const Color(
+                                0xFF033B63,
+                              ),
                               width: 1.5,
                             ),
                           ),
@@ -653,7 +851,12 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                   'assets/images/commun/help_icon.png',
                   height: 25,
                   width: 25,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
+                  errorBuilder: (
+                    context,
+                    error,
+                    stackTrace,
+                  ) =>
+                      const Icon(
                     Icons.help_outline,
                     color: Colors.white,
                     size: 28,
@@ -668,7 +871,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             children: [
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 56),
+                  padding: const EdgeInsets.only(
+                    bottom: 56,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -681,7 +886,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(
+                        height: 4,
+                      ),
                       const Text(
                         'Pronto para praticar\nseus hobbies?',
                         style: TextStyle(
@@ -699,8 +906,14 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                 'assets/images/elderly/home_banner.png',
                 height: 135,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) =>
-                    const SizedBox(height: 110),
+                errorBuilder: (
+                  context,
+                  error,
+                  stackTrace,
+                ) =>
+                    const SizedBox(
+                  height: 110,
+                ),
               ),
             ],
           ),
@@ -709,9 +922,15 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     );
   }
 
+  // ============================================================
+  // FILTROS
+  // ============================================================
+
   Widget _buildFiltersSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+      ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -888,38 +1107,83 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     ),
                   ),
                   ListTile(
-                    title: const Text('Americana', style: TextStyle(fontFamily: 'Raleway')),
+                    title: const Text(
+                      'Americana',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                      ),
+                    ),
                     onTap: () {
-                      setState(() => _selectedCity = 'Americana');
-                      Navigator.pop(context);
+                      setState(
+                        () => _selectedCity = 'Americana',
+                      );
+                      Navigator.pop(
+                        context,
+                      );
                     },
                   ),
                   ListTile(
-                    title: const Text('Campinas', style: TextStyle(fontFamily: 'Raleway')),
+                    title: const Text(
+                      'Campinas',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                      ),
+                    ),
                     onTap: () {
-                      setState(() => _selectedCity = 'Campinas');
-                      Navigator.pop(context);
+                      setState(
+                        () => _selectedCity = 'Campinas',
+                      );
+                      Navigator.pop(
+                        context,
+                      );
                     },
                   ),
                   ListTile(
-                    title: const Text('Limeira', style: TextStyle(fontFamily: 'Raleway')),
+                    title: const Text(
+                      'Limeira',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                      ),
+                    ),
                     onTap: () {
-                      setState(() => _selectedCity = 'Limeira');
-                      Navigator.pop(context);
+                      setState(
+                        () => _selectedCity = 'Limeira',
+                      );
+                      Navigator.pop(
+                        context,
+                      );
                     },
                   ),
                   ListTile(
-                    title: const Text('Santa Bárbara', style: TextStyle(fontFamily: 'Raleway')),
+                    title: const Text(
+                      'Santa Bárbara',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                      ),
+                    ),
                     onTap: () {
-                      setState(() => _selectedCity = 'SantaBarbara');
-                      Navigator.pop(context);
+                      setState(
+                        () => _selectedCity = 'SantaBarbara',
+                      );
+                      Navigator.pop(
+                        context,
+                      );
                     },
                   ),
                   ListTile(
-                    title: const Text('Sumaré', style: TextStyle(fontFamily: 'Raleway')),
+                    title: const Text(
+                      'Sumaré',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                      ),
+                    ),
                     onTap: () {
-                      setState(() => _selectedCity = 'Sumare');
-                      Navigator.pop(context);
+                      setState(
+                        () => _selectedCity = 'Sumare',
+                      );
+                      Navigator.pop(
+                        context,
+                      );
                     },
                   ),
                   const Divider(),
@@ -938,15 +1202,27 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                       ),
                     ),
                   ),
-                  ..._predefinedInterestsList.map((hobby) {
-                    return ListTile(
-                      title: Text(hobby, style: const TextStyle(fontFamily: 'Raleway')),
-                      onTap: () {
-                        setState(() => _selectedHobby = hobby);
-                        Navigator.pop(context);
-                      },
-                    );
-                  }).toList(),
+                  ..._predefinedInterestsList.map(
+                    (hobby) {
+                      return ListTile(
+                        title: Text(
+                          hobby,
+                          style: const TextStyle(
+                            fontFamily: 'Raleway',
+                          ),
+                        ),
+                        onTap: () {
+                          setState(
+                            () => _selectedHobby = hobby,
+                          );
+
+                          Navigator.pop(
+                            context,
+                          );
+                        },
+                      );
+                    },
+                  ),
                   const Divider(),
                   const Padding(
                     padding: EdgeInsets.symmetric(
@@ -964,24 +1240,54 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     ),
                   ),
                   ListTile(
-                    title: const Text('60 a 70 anos', style: TextStyle(fontFamily: 'Raleway')),
+                    title: const Text(
+                      '60 a 70 anos',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                      ),
+                    ),
                     onTap: () {
-                      setState(() => _selectedAgeRange = '60-70');
-                      Navigator.pop(context);
+                      setState(
+                        () => _selectedAgeRange = '60-70',
+                      );
+
+                      Navigator.pop(
+                        context,
+                      );
                     },
                   ),
                   ListTile(
-                    title: const Text('70 a 80 anos', style: TextStyle(fontFamily: 'Raleway')),
+                    title: const Text(
+                      '70 a 80 anos',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                      ),
+                    ),
                     onTap: () {
-                      setState(() => _selectedAgeRange = '70-80');
-                      Navigator.pop(context);
+                      setState(
+                        () => _selectedAgeRange = '70-80',
+                      );
+
+                      Navigator.pop(
+                        context,
+                      );
                     },
                   ),
                   ListTile(
-                    title: const Text('Mais de 80 anos', style: TextStyle(fontFamily: 'Raleway')),
+                    title: const Text(
+                      'Mais de 80 anos',
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                      ),
+                    ),
                     onTap: () {
-                      setState(() => _selectedAgeRange = '80+');
-                      Navigator.pop(context);
+                      setState(
+                        () => _selectedAgeRange = '80+',
+                      );
+
+                      Navigator.pop(
+                        context,
+                      );
                     },
                   ),
                 ],
@@ -993,6 +1299,10 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     );
   }
 
+  // ============================================================
+  // AMIZADES
+  // ============================================================
+
   Widget _buildFriendsSection() {
     final filteredList = _filteredFriendSuggestions;
 
@@ -1000,7 +1310,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(
+            horizontal: 20,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1053,11 +1365,16 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             height: 235,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+              ),
               itemCount: filteredList.length,
               itemBuilder: (context, index) {
                 final Map<String, dynamic> friend = filteredList[index];
-                return _buildFriendCard(friend);
+
+                return _buildFriendCard(
+                  friend,
+                );
               },
             ),
           ),
@@ -1065,19 +1382,27 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     );
   }
 
-  Widget _buildFriendCard(Map<String, dynamic> friend) {
+  Widget _buildFriendCard(
+    Map<String, dynamic> friend,
+  ) {
     final String id = (friend['id'] ?? '').toString();
+
     final String name = (friend['name'] ?? 'Usuário').toString();
 
     final bool isFollowing = _followingIds.contains(id);
+
     final bool isLoading = _loadingFollowStatus.contains(id);
 
     final int? age = friend['age'] as int?;
-    final List<String> commonInterests =
-        _convertInterests(friend['commonInterests']);
+
+    final List<String> commonInterests = _convertInterests(
+      friend['commonInterests'],
+    );
+
     final String city = (friend['city'] ?? '').toString();
 
     String description;
+
     if (age != null && commonInterests.isNotEmpty) {
       description =
           '$age anos, gosta de ${commonInterests.take(2).join(' e ')}';
@@ -1097,18 +1422,24 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PublicProfilePage(uid: id),
+              builder: (context) => PublicProfilePage(
+                uid: id,
+              ),
             ),
           ).then((_) {
-            // Recarrega o status ao voltar da tela de perfil
             _fetchUserData();
           });
         }
       },
       child: Container(
         width: 160,
-        margin: const EdgeInsets.only(right: 14),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        margin: const EdgeInsets.only(
+          right: 14,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
         decoration: BoxDecoration(
           color: const Color(0xFFF2F4F7),
           borderRadius: BorderRadius.circular(20),
@@ -1119,9 +1450,13 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             Column(
               children: [
                 ClipOval(
-                  child: _buildFriendAvatar(friend['avatarPath']),
+                  child: _buildFriendAvatar(
+                    friend['avatarPath'],
+                  ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(
+                  height: 10,
+                ),
                 Text(
                   name,
                   textAlign: TextAlign.center,
@@ -1134,7 +1469,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                     color: Color(0xFF222222),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(
+                  height: 4,
+                ),
                 Text(
                   description,
                   textAlign: TextAlign.center,
@@ -1151,12 +1488,16 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
             _buildActionButton(
               label: isLoading
                   ? 'Aguarde...'
-                  : (isFollowing ? 'Seguindo' : 'Seguir'),
+                  : isFollowing
+                      ? 'Seguindo'
+                      : 'Seguir',
               isActive: isFollowing,
               onPressed: isLoading
                   ? () {}
                   : () {
-                      _toggleFollow(id);
+                      _toggleFollow(
+                        id,
+                      );
                     },
             ),
           ],
@@ -1165,17 +1506,29 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     );
   }
 
-  Widget _buildFriendAvatar(dynamic avatarPath) {
+  Widget _buildFriendAvatar(
+    dynamic avatarPath,
+  ) {
     final String path =
         (avatarPath ?? 'assets/avatars/default_profile_image.png').toString();
 
-    if (path.startsWith('http://') || path.startsWith('https://')) {
+    if (path.startsWith(
+          'http://',
+        ) ||
+        path.startsWith(
+          'https://',
+        )) {
       return Image.network(
         path,
         width: 72,
         height: 72,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _defaultFriendAvatar(),
+        errorBuilder: (
+          context,
+          error,
+          stackTrace,
+        ) =>
+            _defaultFriendAvatar(),
       );
     }
 
@@ -1184,7 +1537,12 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       width: 72,
       height: 72,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => _defaultFriendAvatar(),
+      errorBuilder: (
+        context,
+        error,
+        stackTrace,
+      ) =>
+          _defaultFriendAvatar(),
     );
   }
 
@@ -1200,59 +1558,160 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
     );
   }
 
+  // ============================================================
+  // GRUPOS
+  // ============================================================
+
   Widget _buildGroupsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Sugestões de Grupos:',
-                style: TextStyle(
-                  fontFamily: 'Quicksand',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF222222),
-                ),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'Grupos baseados nos seus interesses',
-                style: TextStyle(
-                  fontFamily: 'Raleway',
-                  fontSize: 13,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
+    final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Sugestões de Grupos:',
+            style: TextStyle(
+              fontFamily: 'Quicksand',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF222222),
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 215,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            children: [
-              _buildGroupCard('Yoga com os Amigos'),
-              _buildGroupCard('Dia de Caminhar'),
-            ],
+          const SizedBox(height: 2),
+          const Text(
+            'Grupos baseados nos seus interesses',
+            style: TextStyle(
+              fontFamily: 'Raleway',
+              fontSize: 13,
+              color: Colors.grey,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: _firestore
+                .collection('chats')
+                .where(
+                  'isGroup',
+                  isEqualTo: true,
+                )
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox(
+                  height: 215,
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return const SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: Text(
+                      'Não foi possível carregar os grupos.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              final groups = snapshot.data?.docs ?? [];
+
+              if (groups.isEmpty) {
+                return const SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: Text(
+                      'Nenhum grupo disponível no momento.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Raleway',
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return SizedBox(
+                height: 215,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: groups.length,
+                  itemBuilder: (context, index) {
+                    final groupDoc = groups[index];
+
+                    final Map<String, dynamic> data = groupDoc.data();
+
+                    return _buildRealGroupCard(
+                      groupId: groupDoc.id,
+                      data: data,
+                      currentUserId: currentUserId,
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildGroupCard(String title) {
-    final bool isJoined = _joinedGroups.contains(title);
+  // ============================================================
+  // CARD REAL DE GRUPO
+  // ============================================================
+
+  Widget _buildRealGroupCard({
+    required String groupId,
+    required Map<String, dynamic> data,
+    required String currentUserId,
+  }) {
+    final String groupName = (data['groupName'] ?? 'Grupo').toString();
+
+    final String groupAvatar =
+        (data['groupAvatar'] ?? 'assets/avatars/default_group_image.png')
+            .toString();
+
+    final List<dynamic> participants =
+        data['participants'] as List<dynamic>? ?? [];
+
+    final Map<String, dynamic> leftAt = Map<String, dynamic>.from(
+      (data['leftAt'] as Map?) ?? {},
+    );
+
+    final bool isJoined = participants.contains(
+          currentUserId,
+        ) &&
+        !leftAt.containsKey(
+          currentUserId,
+        );
 
     return Container(
       width: 160,
-      margin: const EdgeInsets.only(right: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      margin: const EdgeInsets.only(
+        right: 14,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 14,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFF2F4F7),
         borderRadius: BorderRadius.circular(20),
@@ -1263,26 +1722,15 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
           Column(
             children: [
               ClipOval(
-                child: Image.asset(
-                  'assets/avatars/default_group_image.png',
-                  width: 72,
-                  height: 72,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const CircleAvatar(
-                    radius: 36,
-                    backgroundColor: Color(0xFFDCDCDC),
-                    child: Icon(
-                      Icons.group,
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                  ),
+                child: _buildGroupAvatar(
+                  groupAvatar,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(
+                height: 12,
+              ),
               Text(
-                title,
+                groupName,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -1295,23 +1743,143 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
               ),
             ],
           ),
-          _buildActionButton(
-            label: isJoined ? 'Participando' : 'Participar',
-            isActive: isJoined,
-            onPressed: () {
-              setState(() {
-                if (isJoined) {
-                  _joinedGroups.remove(title);
-                } else {
-                  _joinedGroups.add(title);
-                }
-              });
-            },
+          SizedBox(
+            width: double.infinity,
+            height: 32,
+            child: ElevatedButton(
+              onPressed: isJoined
+                  ? null
+                  : () async {
+                      try {
+                        await _chatService.joinGroup(
+                          groupId,
+                        );
+
+                        if (!mounted) {
+                          return;
+                        }
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Você entrou no grupo!',
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } catch (error) {
+                        if (!mounted) {
+                          return;
+                        }
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              error.toString(),
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isJoined
+                    ? const Color(
+                        0xFF033B63,
+                      )
+                    : const Color(
+                        0xFF9ED1FF,
+                      ),
+                disabledBackgroundColor: const Color(
+                  0xFF033B63,
+                ),
+                elevation: 0,
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    16,
+                  ),
+                ),
+              ),
+              child: Text(
+                isJoined ? 'Participando' : 'Participar',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Raleway',
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isJoined
+                      ? Colors.white
+                      : const Color(
+                          0xFF033B63,
+                        ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+
+  // ============================================================
+  // IMAGEM DO GRUPO
+  // ============================================================
+
+  Widget _buildGroupAvatar(
+    String path,
+  ) {
+    if (path.startsWith(
+          'http://',
+        ) ||
+        path.startsWith(
+          'https://',
+        )) {
+      return Image.network(
+        path,
+        width: 72,
+        height: 72,
+        fit: BoxFit.cover,
+        errorBuilder: (
+          context,
+          error,
+          stackTrace,
+        ) {
+          return _defaultGroupAvatar();
+        },
+      );
+    }
+
+    return Image.asset(
+      path,
+      width: 72,
+      height: 72,
+      fit: BoxFit.cover,
+      errorBuilder: (
+        context,
+        error,
+        stackTrace,
+      ) {
+        return _defaultGroupAvatar();
+      },
+    );
+  }
+
+  Widget _defaultGroupAvatar() {
+    return const CircleAvatar(
+      radius: 36,
+      backgroundColor: Color(0xFFDCDCDC),
+      child: Icon(
+        Icons.group,
+        size: 40,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  // ============================================================
+  // BOTÃO DE AÇÃO
+  // ============================================================
 
   Widget _buildActionButton({
     required String label,
@@ -1334,12 +1902,15 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
         ),
         child: Text(
           label,
-          textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'Raleway',
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: isActive ? Colors.white : const Color(0xFF033B63),
+            color: isActive
+                ? Colors.white
+                : const Color(
+                    0xFF033B63,
+                  ),
           ),
         ),
       ),

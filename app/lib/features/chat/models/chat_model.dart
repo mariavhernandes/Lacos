@@ -147,7 +147,8 @@ class Chat {
               map['photoUrl'])
           ?.toString(),
       lastMessage: map['lastMessage'] as String?,
-      lastMessageTime: _parseDateTime(map['lastMessageTime'] ?? map['timestamp']),
+      lastMessageTime:
+          _parseDateTime(map['lastMessageTime'] ?? map['timestamp']),
       unreadMessages: _parseInt(map['unreadMessages'] ?? map['unreadCount']),
       isBlocked: map['isBlocked'] as bool? ?? false,
       isGroup: map['isGroup'] as bool? ?? false,

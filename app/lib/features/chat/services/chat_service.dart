@@ -17,6 +17,10 @@ class ChatService {
   final FirebaseAuth _auth;
   final MessageService _messageService;
 
+  // ==========================================
+  // LISTAR CONVERSAS
+  // ==========================================
+
   Stream<List<Chat>> getChatsStream() {
     final userId = _auth.currentUser?.uid;
 
@@ -106,7 +110,8 @@ class ChatService {
             if (userDoc != null) {
               name = userDoc['nome'] ?? userDoc['name'] ?? name;
 
-              avatar = userDoc['foto'] ??
+              avatar = userDoc['avatarPath'] ??
+                  userDoc['foto'] ??
                   userDoc['avatar'] ??
                   userDoc['foto_url'] ??
                   avatar;
@@ -245,6 +250,122 @@ class ChatService {
     } catch (_) {}
 
     return null;
+  }
+
+  // ==========================================
+  // BUSCAR OU CRIAR CHAT PRIVADO
+  // ==========================================
+
+  Future<Chat> getOrCreatePrivateChat({
+    required String otherUserId,
+    required String otherUserName,
+    required String otherUserAvatar,
+  }) async {
+    final currentUserId = _auth.currentUser?.uid;
+
+    if (currentUserId == null) {
+      throw Exception('Usuário não autenticado');
+    }
+
+    if (otherUserId.trim().isEmpty) {
+      throw Exception('Usuário inválido');
+    }
+
+    if (currentUserId == otherUserId) {
+      throw Exception(
+        'Não é possível conversar consigo mesmo',
+      );
+    }
+
+    try {
+      // ==========================================
+      // PROCURAR CONVERSA PRIVADA EXISTENTE
+      // ==========================================
+
+      final snapshot = await _firestore
+          .collection('chats')
+          .where(
+            'participants',
+            arrayContains: currentUserId,
+          )
+          .get();
+
+      for (final document in snapshot.docs) {
+        final data = document.data();
+
+        // IMPORTANTE:
+        // grupo nunca pode ser usado como chat privado.
+        final bool isGroup = data['isGroup'] as bool? ?? false;
+
+        if (isGroup) {
+          continue;
+        }
+
+        final List<String> participants =
+            (data['participants'] as List<dynamic>? ?? [])
+                .map((participant) => participant.toString())
+                .toList();
+
+        // Uma conversa privada precisa ter exatamente
+        // os dois usuários.
+        if (participants.length == 2 &&
+            participants.contains(currentUserId) &&
+            participants.contains(otherUserId)) {
+          return Chat.fromMap(
+            <String, dynamic>{
+              ...data,
+              'id': document.id,
+              'isGroup': false,
+              'participantId': otherUserId,
+              'participantName': otherUserName,
+              'participantAvatar': otherUserAvatar,
+              'unreadMessages': 0,
+            },
+          );
+        }
+      }
+
+      // ==========================================
+      // CRIAR NOVA CONVERSA PRIVADA
+      // ==========================================
+
+      final chatRef = await _firestore.collection('chats').add({
+        'participants': [
+          currentUserId,
+          otherUserId,
+        ],
+        'isGroup': false,
+        'participantName': otherUserName,
+        'participantAvatar': otherUserAvatar,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastMessage': null,
+        'lastMessageTime': null,
+        'isBlocked': false,
+      });
+
+      return Chat.fromMap(
+        <String, dynamic>{
+          'id': chatRef.id,
+          'participants': [
+            currentUserId,
+            otherUserId,
+          ],
+          'isGroup': false,
+          'participantId': otherUserId,
+          'participantName': otherUserName,
+          'participantAvatar': otherUserAvatar,
+          'lastMessage': null,
+          'lastMessageTime': null,
+          'unreadMessages': 0,
+          'isBlocked': false,
+        },
+      );
+    } on FirebaseException catch (error) {
+      throw Exception(
+        'Não foi possível abrir a conversa privada: '
+        '${error.message}',
+      );
+    }
   }
 
   // ==========================================
@@ -388,7 +509,7 @@ class ChatService {
               userData['foto'] ??
               userData['avatar'] ??
               userData['foto_url'] ??
-              'assets/avatars/avatar_1.png';
+              'assets/avatars/default_profile_image.png';
 
           members.add({
             'uid': uid,
@@ -399,7 +520,7 @@ class ChatService {
           members.add({
             'uid': uid,
             'name': 'Usuário',
-            'avatar': 'assets/avatars/avatar_1.png',
+            'avatar': 'assets/avatars/default_profile_image.png',
           });
         }
       }
@@ -442,6 +563,84 @@ class ChatService {
       return data['creatorId'] == userId;
     } catch (_) {
       return false;
+    }
+  }
+
+  // ==========================================
+  // PARTICIPAR DE UM GRUPO
+  // ==========================================
+
+  Future<void> joinGroup(String chatId) async {
+    final userId = _auth.currentUser?.uid;
+
+    if (userId == null) {
+      throw Exception('Usuário não autenticado');
+    }
+
+    try {
+      final groupRef = _firestore.collection('chats').doc(chatId);
+
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(groupRef);
+
+        if (!snapshot.exists) {
+          throw Exception('Grupo não encontrado.');
+        }
+
+        final data = snapshot.data();
+
+        if (data == null) {
+          throw Exception(
+            'Não foi possível acessar o grupo.',
+          );
+        }
+
+        final bool isGroup = data['isGroup'] as bool? ?? false;
+
+        if (!isGroup) {
+          throw Exception(
+            'Esta conversa não é um grupo.',
+          );
+        }
+
+        final List<String> participants =
+            (data['participants'] as List<dynamic>? ?? [])
+                .map((participant) => participant.toString())
+                .toList();
+
+        if (!participants.contains(userId)) {
+          participants.add(userId);
+        }
+
+        final Map<String, dynamic> leftAt = Map<String, dynamic>.from(
+          (data['leftAt'] as Map?) ?? {},
+        );
+
+        final Map<String, dynamic> deletedFor = Map<String, dynamic>.from(
+          (data['deletedFor'] as Map?) ?? {},
+        );
+
+        // Se a pessoa tinha saído antes, ela voltou.
+        leftAt.remove(userId);
+
+        // Se tinha apagado o grupo para si,
+        // volta a enxergá-lo.
+        deletedFor.remove(userId);
+
+        transaction.update(
+          groupRef,
+          {
+            'participants': participants,
+            'leftAt': leftAt,
+            'deletedFor': deletedFor,
+          },
+        );
+      });
+    } on FirebaseException catch (error) {
+      throw Exception(
+        'Não foi possível participar do grupo: '
+        '${error.message}',
+      );
     }
   }
 

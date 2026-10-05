@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../../notifications/data/notification_service.dart';
 import '../../../chat/screens/chat_screen.dart';
 import '../../../chat/models/chat_model.dart';
-import '../../../chat/screens/chat_screen.dart';
 
 class PublicProfilePage extends StatefulWidget {
   final String? uid;
@@ -79,7 +79,11 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         targetUid.isEmpty ||
         currentUserId == null ||
         targetUid == currentUserId) {
-      if (mounted) setState(() => _isLoadingFollowStatus = false);
+      if (mounted) {
+        setState(() {
+          _isLoadingFollowStatus = false;
+        });
+      }
       return;
     }
 
@@ -91,6 +95,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
       if (doc.exists && doc.data() != null) {
         final List<dynamic> following = doc.data()?['followingIds'] ?? [];
+
         if (mounted) {
           setState(() {
             _isFollowing = following.contains(targetUid);
@@ -98,15 +103,31 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           });
         }
       } else {
-        if (mounted) setState(() => _isLoadingFollowStatus = false);
+        if (mounted) {
+          setState(() {
+            _isLoadingFollowStatus = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Erro ao verificar status de seguir: $e');
-      if (mounted) setState(() => _isLoadingFollowStatus = false);
+
+      if (mounted) {
+        setState(() {
+          _isLoadingFollowStatus = false;
+        });
+      }
     }
   }
 
-  Future<void> _confirmUnfollow(String targetUid, String targetName) async {
+  // ============================================================
+  // CONFIRMAR DEIXAR DE SEGUIR
+  // ============================================================
+
+  Future<void> _confirmUnfollow(
+    String targetUid,
+    String targetName,
+  ) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -163,10 +184,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     }
   }
 
+  // ============================================================
+  // SEGUIR / DEIXAR DE SEGUIR
+  // ============================================================
+
   Future<void> _toggleFollow(String targetUid) async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    if (currentUserId == null || currentUserId == targetUid || _isUpdatingFollow) {
+    if (currentUserId == null ||
+        currentUserId == targetUid ||
+        _isUpdatingFollow) {
       return;
     }
 
@@ -176,6 +203,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
     final currentUserRef =
         FirebaseFirestore.instance.collection('idosos').doc(currentUserId);
+
     final targetUserRef =
         FirebaseFirestore.instance.collection('idosos').doc(targetUid);
 
@@ -183,10 +211,14 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
     try {
       if (wasFollowing) {
-        // Deixar de seguir
+        // ========================================================
+        // DEIXAR DE SEGUIR
+        // ========================================================
+
         await currentUserRef.update({
           'followingIds': FieldValue.arrayRemove([targetUid]),
         });
+
         await targetUserRef.update({
           'followerIds': FieldValue.arrayRemove([currentUserId]),
           'followersCount': FieldValue.increment(-1),
@@ -198,15 +230,24 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           });
         }
       } else {
-        // Seguir
-        await currentUserRef.set({
-          'followingIds': FieldValue.arrayUnion([targetUid]),
-        }, SetOptions(merge: true));
+        // ========================================================
+        // SEGUIR
+        // ========================================================
 
-        await targetUserRef.set({
-          'followerIds': FieldValue.arrayUnion([currentUserId]),
-          'followersCount': FieldValue.increment(1),
-        }, SetOptions(merge: true));
+        await currentUserRef.set(
+          {
+            'followingIds': FieldValue.arrayUnion([targetUid]),
+          },
+          SetOptions(merge: true),
+        );
+
+        await targetUserRef.set(
+          {
+            'followerIds': FieldValue.arrayUnion([currentUserId]),
+            'followersCount': FieldValue.increment(1),
+          },
+          SetOptions(merge: true),
+        );
 
         if (mounted) {
           setState(() {
@@ -214,9 +255,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           });
         }
 
-        // ------------------------------------------------------------
-        // BUSCAR NOME DO SEGUIDOR E ENVIAR NOTIFICAÇÃO
-        // ------------------------------------------------------------
+        // ========================================================
+        // NOTIFICAÇÃO DE NOVO SEGUIDOR
+        // ========================================================
+
         String followerName = 'Um utilizador';
 
         try {
@@ -231,10 +273,14 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
           if (userDoc.exists && userDoc.data() != null) {
             final data = userDoc.data()!;
+
             followerName = data['name'] ?? data['nome'] ?? 'Um utilizador';
           }
 
-          debugPrint('Disparando notificação. Seguidor: $followerName | Alvo: $targetUid');
+          debugPrint(
+            'Disparando notificação. '
+            'Seguidor: $followerName | Alvo: $targetUid',
+          );
 
           await FamilyNotificationService().sendNewFollowerNotification(
             targetElderUid: targetUid,
@@ -242,15 +288,20 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             followerName: followerName,
           );
         } catch (notifErr) {
-          debugPrint('Erro durante envio de notificação: $notifErr');
+          debugPrint(
+            'Erro durante envio de notificação: $notifErr',
+          );
         }
       }
     } catch (error) {
       debugPrint('Erro ao atualizar seguir: $error');
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Não foi possível realizar a ação.'),
+            content: Text(
+              'Não foi possível realizar a ação.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -264,98 +315,275 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     }
   }
 
+  // ============================================================
+  // ABRIR / CRIAR CHAT PRIVADO
+  // ============================================================
+
   Future<void> _openChatWithUser(
     String targetUid,
     String targetName,
     String targetAvatar,
   ) async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
     if (currentUserId == null || currentUserId == targetUid || _isOpeningChat) {
       return;
     }
 
-    setState(() => _isOpeningChat = true);
+    setState(() {
+      _isOpeningChat = true;
+    });
 
     try {
       final chatsRef = FirebaseFirestore.instance.collection('chats');
 
-      // 1. Procurar conversa existente onde o usuário atual é participante
+      // ========================================================
+      // 1. PROCURAR SOMENTE CONVERSAS PRIVADAS
+      // ========================================================
+      //
+      // IMPORTANTE:
+      // Não basta verificar se o targetUid está nos participantes.
+      // Um grupo também pode conter os dois usuários.
+      //
+      // Por isso verificamos:
+      // - não é grupo
+      // - possui exatamente os dois usuários
+      //
       final querySnapshot = await chatsRef
-          .where('participants', arrayContains: currentUserId)
+          .where(
+            'participants',
+            arrayContains: currentUserId,
+          )
           .get();
 
       DocumentSnapshot<Map<String, dynamic>>? existingDoc;
 
       for (final doc in querySnapshot.docs) {
-        final List<dynamic> participants = doc.data()['participants'] ?? [];
-        if (participants.contains(targetUid)) {
+        final data = doc.data();
+
+        // Nunca usar grupo como conversa privada.
+        if (data['isGroup'] == true) {
+          continue;
+        }
+
+        final dynamic rawParticipants = data['participants'];
+
+        if (rawParticipants is! List) {
+          continue;
+        }
+
+        final List<String> participants = rawParticipants
+            .whereType<String>()
+            .where((id) => id.trim().isNotEmpty)
+            .toSet()
+            .toList();
+
+        // A conversa privada deve ser exatamente entre
+        // o usuário atual e a pessoa selecionada.
+        final bool isPrivateChat = participants.length == 2 &&
+            participants.contains(currentUserId) &&
+            participants.contains(targetUid);
+
+        if (isPrivateChat) {
           existingDoc = doc;
           break;
         }
       }
 
       String chatId;
-      Map<String, dynamic> chatData = {};
+      Map<String, dynamic> chatData;
+
+      // ========================================================
+      // 2. SE JÁ EXISTE, USA O CHAT EXISTENTE
+      // ========================================================
 
       if (existingDoc != null) {
-        // Encontrou a conversa existente no banco de dados!
         chatId = existingDoc.id;
         chatData = existingDoc.data() ?? {};
+
+        debugPrint(
+          'Chat privado encontrado: $chatId',
+        );
       } else {
-        // Se NUNCA conversaram antes, cria com a estrutura exata do seu Firestore
-        final newDoc = await chatsRef.add({
-          'participants': [currentUserId, targetUid],
+        // ======================================================
+        // 3. SE NÃO EXISTE, CRIA UM NOVO CHAT PRIVADO
+        // ======================================================
+
+        final newChatData = <String, dynamic>{
+          'participants': [
+            currentUserId,
+            targetUid,
+          ],
+
+          // Campos utilizados pelos chats privados.
           'participantId': targetUid,
           'participantName': targetName,
           'participantAvatar': targetAvatar,
-          'lastMessage': '',
-          'lastMessageTime': FieldValue.serverTimestamp(),
+
+          // IMPORTANTE: este chat NÃO é grupo.
+          'isGroup': false,
+
+          // Lista explícita dos participantes.
+          'participantIds': [
+            currentUserId,
+            targetUid,
+          ],
+
+          // Dados da conversa.
+          'lastMessage': null,
+          'lastMessageTime': null,
+
+          // Controle do chat.
           'isBlocked': false,
           'unreadMessages': 0,
-        });
+
+          // Data de criação.
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+
+        final newDoc = await chatsRef.add(newChatData);
 
         chatId = newDoc.id;
+
+        // Usamos os mesmos dados para montar o Chat imediatamente.
+        chatData = {
+          ...newChatData,
+          'isGroup': false,
+        };
+
+        debugPrint(
+          'Novo chat privado criado: $chatId',
+        );
       }
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
-      // 2. Montar o objeto Chat preenchendo todos os campos da conversa
+      // ========================================================
+      // 4. MONTAR O MODELO DO CHAT
+      // ========================================================
+
       final chatModel = Chat(
         id: chatId,
         participantId: targetUid,
-        participantName: targetName,
-        participantAvatar: targetAvatar,
-        lastMessage: chatData['lastMessage']?.toString() ?? '',
-        isGroup: chatData['isGroup'] == true,
+        participantName: (chatData['participantName'] ?? targetName).toString(),
+        participantAvatar:
+            (chatData['participantAvatar'] ?? targetAvatar).toString(),
+        lastMessage: chatData['lastMessage']?.toString(),
+        lastMessageTime: _parseChatDateTime(
+          chatData['lastMessageTime'],
+        ),
+        unreadMessages: _parseChatInt(
+          chatData['unreadMessages'],
+        ),
+        isBlocked: chatData['isBlocked'] == true,
+        isGroup: false,
+        groupName: null,
+        groupAvatar: null,
+        participantIds: [
+          currentUserId,
+          targetUid,
+        ],
+        creatorId: null,
       );
 
-      // 3. Abrir diretamente a tela de chat (sem SnackBar e sem criar duplicado!)
+      // ========================================================
+      // 5. ABRIR A TELA DO CHAT
+      // ========================================================
+
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ChatScreen(chat: chatModel),
+          builder: (context) => ChatScreen(
+            chat: chatModel,
+          ),
         ),
       );
-    } catch (e) {
-      debugPrint('Erro ao abrir chat: $e');
+    } catch (e, stackTrace) {
+      debugPrint(
+        'Erro ao abrir chat privado: $e',
+      );
+
+      debugPrint(
+        'StackTrace: $stackTrace',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Não foi possível abrir a conversa.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
-        setState(() => _isOpeningChat = false);
+        setState(() {
+          _isOpeningChat = false;
+        });
       }
     }
   }
 
   // ============================================================
-  // MODAL DE EXIBIÇÃO DE LISTA DE SEGUIDORES OU SEGUINDO (SEM LINHA PRETA)
+  // CONVERTER DATA DO CHAT
   // ============================================================
 
-  void _showUsersListModal(String title, List<dynamic> userIds) {
+  DateTime? _parseChatDateTime(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+
+    if (value is DateTime) {
+      return value;
+    }
+
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+
+    return null;
+  }
+
+  // ============================================================
+  // CONVERTER INTEIRO DO CHAT
+  // ============================================================
+
+  int _parseChatInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+
+    if (value is num) {
+      return value.toInt();
+    }
+
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+
+    return 0;
+  }
+
+  // ============================================================
+  // MODAL DE SEGUIDORES / SEGUINDO
+  // ============================================================
+
+  void _showUsersListModal(
+    String title,
+    List<dynamic> userIds,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
       ),
       builder: (context) {
         return DraggableScrollableSheet(
@@ -363,7 +591,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           minChildSize: 0.4,
           maxChildSize: 0.85,
           expand: false,
-          builder: (context, scrollController) {
+          builder: (
+            context,
+            scrollController,
+          ) {
             return Column(
               children: [
                 const SizedBox(height: 12),
@@ -376,7 +607,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 16, bottom: 12),
+                  padding: const EdgeInsets.only(
+                    top: 16,
+                    bottom: 12,
+                  ),
                   child: Text(
                     title,
                     style: const TextStyle(
@@ -387,7 +621,6 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     ),
                   ),
                 ),
-                // Linha divisória removida conforme solicitado!
                 Expanded(
                   child: userIds.isEmpty
                       ? Center(
@@ -402,37 +635,56 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       : ListView.builder(
                           controller: scrollController,
                           itemCount: userIds.length,
-                          itemBuilder: (context, index) {
+                          itemBuilder: (
+                            context,
+                            index,
+                          ) {
                             final uidStr = userIds[index].toString();
 
                             return FutureBuilder<Map<String, dynamic>?>(
                               future: _fetchUserData(uidStr),
-                              builder: (context, snapshot) {
-                                if (!snapshot.hasData || snapshot.data == null) {
+                              builder: (
+                                context,
+                                snapshot,
+                              ) {
+                                if (!snapshot.hasData ||
+                                    snapshot.data == null) {
                                   return const ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor: Color(0xFFEEEEEE),
                                     ),
-                                    title: Text('Carregando...'),
+                                    title: Text(
+                                      'Carregando...',
+                                    ),
                                   );
                                 }
 
                                 final uData = snapshot.data!;
-                                final uName = uData['name'] ?? uData['nome'] ?? 'Usuário';
+
+                                final uName =
+                                    uData['name'] ?? uData['nome'] ?? 'Usuário';
+
                                 final uAvatar = uData['avatarPath'] ??
                                     uData['foto'] ??
                                     'assets/avatars/default_profile_image.png';
 
                                 return ListTile(
                                   leading: CircleAvatar(
-                                    backgroundImage: AssetImage(uAvatar),
+                                    backgroundImage: AssetImage(
+                                      uAvatar,
+                                    ),
                                   ),
                                   title: Text(
                                     uName,
                                     style: const TextStyle(
                                       fontFamily: 'Quicksand',
                                       fontWeight: FontWeight.bold,
-                                      color: Color.fromARGB(255, 39, 39, 39),
+                                      color: Color.fromARGB(
+                                        255,
+                                        39,
+                                        39,
+                                        39,
+                                      ),
                                     ),
                                   ),
                                   trailing: const Icon(
@@ -441,11 +693,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                                     color: Colors.grey,
                                   ),
                                   onTap: () {
-                                    Navigator.pop(context); // Fechar modal
+                                    Navigator.pop(
+                                      context,
+                                    );
+
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => PublicProfilePage(uid: uidStr),
+                                        builder: (context) => PublicProfilePage(
+                                          uid: uidStr,
+                                        ),
                                       ),
                                     );
                                   },
@@ -464,7 +721,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   }
 
   // ============================================================
-  // NORMALIZAÇÃO DE DADOS
+  // NORMALIZAÇÃO
   // ============================================================
 
   String _normalizeText(String text) {
@@ -498,22 +755,32 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
   bool _isPredefinedInterest(String item) {
     final cleanItem = _normalizeText(item);
-    return _predefinedInterests.any((p) => _normalizeText(p) == cleanItem);
+
+    return _predefinedInterests.any(
+      (p) => _normalizeText(p) == cleanItem,
+    );
   }
 
   String? _getIconPath(String title) {
     final cleanTitle = title.toLowerCase().trim();
+
     if (_interestIcons.containsKey(cleanTitle)) {
       return _interestIcons[cleanTitle];
     }
+
     final normalized = _normalizeText(title);
+
     return _interestIcons[normalized];
   }
 
-  List<String> _extractInterestsList(Map<String, dynamic> data) {
+  List<String> _extractInterestsList(
+    Map<String, dynamic> data,
+  ) {
     final dynamic rawData = data['interests'] ?? data['interesses'];
 
-    if (rawData == null) return [];
+    if (rawData == null) {
+      return [];
+    }
 
     if (rawData is List) {
       return rawData
@@ -530,7 +797,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     }
 
     if (rawData is String) {
-      if (rawData.trim().isEmpty) return [];
+      if (rawData.trim().isEmpty) {
+        return [];
+      }
+
       return rawData
           .split(',')
           .map((e) => e.trim())
@@ -541,7 +811,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     return [];
   }
 
-  Future<Map<String, dynamic>?> _fetchUserData(String targetUid) async {
+  // ============================================================
+  // BUSCAR DADOS DO USUÁRIO
+  // ============================================================
+
+  Future<Map<String, dynamic>?> _fetchUserData(
+    String targetUid,
+  ) async {
     final idosoDoc = await FirebaseFirestore.instance
         .collection('idosos')
         .doc(targetUid)
@@ -563,7 +839,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     return null;
   }
 
-  String _getAgeText(Map<String, dynamic> data) {
+  // ============================================================
+  // IDADE
+  // ============================================================
+
+  String _getAgeText(
+    Map<String, dynamic> data,
+  ) {
     final dynamic rawBirth = data['birthDate'] ??
         data['dataNascimento'] ??
         data['data_nascimento'] ??
@@ -584,7 +866,11 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           final year = int.tryParse(parts[2]);
 
           if (day != null && month != null && year != null) {
-            birthDate = DateTime(year, month, day);
+            birthDate = DateTime(
+              year,
+              month,
+              day,
+            );
           }
         }
       } else {
@@ -596,13 +882,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
     if (birthDate != null) {
       final now = DateTime.now();
+
       age = now.year - birthDate.year;
+
       if (now.month < birthDate.month ||
           (now.month == birthDate.month && now.day < birthDate.day)) {
         age--;
       }
     } else {
       final dynamic rawAge = data['idade'] ?? data['age'];
+
       if (rawAge is int) {
         age = rawAge;
       } else if (rawAge is String) {
@@ -646,7 +935,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       body: SafeArea(
         child: FutureBuilder<Map<String, dynamic>?>(
           future: _fetchUserData(targetUid),
-          builder: (context, snapshot) {
+          builder: (
+            context,
+            snapshot,
+          ) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(),
@@ -671,15 +963,17 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             final data = snapshot.data!;
 
             final String name = data['name'] ?? data['nome'] ?? 'Usuário';
+
             final String bio =
                 data['bio'] ?? data['biografia'] ?? data['sobre'] ?? '';
+
             final String ageText = _getAgeText(data);
+
             final String city =
                 data['city'] ?? data['cidade'] ?? 'Não informada';
 
-            final bool isOnline = data['isOnline'] is bool
-                ? data['isOnline'] as bool
-                : false;
+            final bool isOnline =
+                data['isOnline'] is bool ? data['isOnline'] as bool : false;
 
             final String avatarPath = data['avatarPath'] ??
                 data['foto'] ??
@@ -688,20 +982,25 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             final List<String> allInterests = _extractInterestsList(data);
 
             final chosenInterests = allInterests
-                .where((item) => _isPredefinedInterest(item))
+                .where(
+                  (item) => _isPredefinedInterest(item),
+                )
                 .toList();
 
             final addedInterests = allInterests
-                .where((item) => !_isPredefinedInterest(item))
+                .where(
+                  (item) => !_isPredefinedInterest(item),
+                )
                 .toList();
 
-            // Cálculo dinâmico de seguidores
             final List<dynamic> followerIds = data['followerIds'] ?? [];
+
             final int followersCount = data['followersCount'] is int
                 ? data['followersCount'] as int
                 : followerIds.length;
 
             final List<dynamic> followingIds = data['followingIds'] ?? [];
+
             final int followingCount = data['followingCount'] is int
                 ? data['followingCount'] as int
                 : followingIds.length;
@@ -714,17 +1013,26 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // ==================================================
                   // CABEÇALHO
+                  // ==================================================
+
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.maybePop(context),
+                        onTap: () => Navigator.maybePop(
+                          context,
+                        ),
                         child: Image.asset(
                           'assets/icons/navigation/back_icon.png',
                           width: 40,
                           height: 40,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
+                          errorBuilder: (
+                            context,
+                            error,
+                            stackTrace,
+                          ) {
                             return const Icon(
                               Icons.arrow_back_ios_new,
                               size: 18,
@@ -756,7 +1064,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: isOnline
-                              ? const Color(0xFF6BBE66)
+                              ? const Color(
+                                  0xFF6BBE66,
+                                )
                               : Colors.grey,
                         ),
                       ),
@@ -765,14 +1075,21 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 16),
 
+                  // ==================================================
                   // FOTO + SEGUIDORES
+                  // ==================================================
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       CircleAvatar(
                         radius: 36,
-                        backgroundColor: const Color(0xFFEEEEEE),
-                        backgroundImage: AssetImage(avatarPath),
+                        backgroundColor: const Color(
+                          0xFFEEEEEE,
+                        ),
+                        backgroundImage: AssetImage(
+                          avatarPath,
+                        ),
                         child: avatarPath.isEmpty
                             ? const Icon(
                                 Icons.person,
@@ -782,16 +1099,26 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             : null,
                       ),
                       InkWell(
-                        onTap: () => _showUsersListModal('Seguidores', followerIds),
-                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _showUsersListModal(
+                          'Seguidores',
+                          followerIds,
+                        ),
+                        borderRadius: BorderRadius.circular(
+                          8,
+                        ),
                         child: _buildStatColumn(
                           'Seguidores',
                           followersCount,
                         ),
                       ),
                       InkWell(
-                        onTap: () => _showUsersListModal('Seguindo', followingIds),
-                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _showUsersListModal(
+                          'Seguindo',
+                          followingIds,
+                        ),
+                        borderRadius: BorderRadius.circular(
+                          8,
+                        ),
                         child: _buildStatColumn(
                           'Seguindo',
                           followingCount,
@@ -802,31 +1129,47 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 16),
 
+                  // ==================================================
                   // BOTÕES DE AÇÃO
+                  // ==================================================
+
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _isFollowing
-                                ? const Color(0xFF9AA7B2)
-                                : const Color(0xFF0D3B66),
+                                ? const Color(
+                                    0xFF9AA7B2,
+                                  )
+                                : const Color(
+                                    0xFF0D3B66,
+                                  ),
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(
+                                20,
+                              ),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
                           ),
                           onPressed: _isLoadingFollowStatus || _isUpdatingFollow
-                            ? null
-                            : () {
-                                if (_isFollowing) {
-                                  _confirmUnfollow(targetUid, name);
-                                } else {
-                                  _toggleFollow(targetUid);
-                                }
-                              },
+                              ? null
+                              : () {
+                                  if (_isFollowing) {
+                                    _confirmUnfollow(
+                                      targetUid,
+                                      name,
+                                    );
+                                  } else {
+                                    _toggleFollow(
+                                      targetUid,
+                                    );
+                                  }
+                                },
                           child: _isUpdatingFollow
                               ? const SizedBox(
                                   width: 18,
@@ -850,17 +1193,27 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D3B66),
+                            backgroundColor: const Color(
+                              0xFF0D3B66,
+                            ),
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(
+                                20,
+                              ),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
                           ),
                           onPressed: _isOpeningChat
                               ? null
-                              : () => _openChatWithUser(targetUid, name, avatarPath),
+                              : () => _openChatWithUser(
+                                    targetUid,
+                                    name,
+                                    avatarPath,
+                                  ),
                           child: _isOpeningChat
                               ? const SizedBox(
                                   width: 18,
@@ -885,13 +1238,22 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 20),
 
+                  // ==================================================
                   // SOBRE MIM
+                  // ==================================================
+
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(
+                      20,
+                    ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7F7F7),
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(
+                        0xFFF7F7F7,
+                      ),
+                      borderRadius: BorderRadius.circular(
+                        16,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -962,7 +1324,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 20),
 
+                  // ==================================================
                   // INTERESSES ESCOLHIDOS
+                  // ==================================================
+
                   _buildChosenInterestsSection(
                     title: 'Interesses Escolhidos',
                     icon: Icons.check_circle,
@@ -971,7 +1336,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
                   const SizedBox(height: 20),
 
+                  // ==================================================
                   // INTERESSES ADICIONADOS
+                  // ==================================================
+
                   _buildAddedInterestsSection(
                     title: 'Interesses Adicionados',
                     icon: Icons.add_circle,
@@ -987,6 +1355,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       ),
     );
   }
+
+  // ============================================================
+  // ESTATÍSTICAS
+  // ============================================================
 
   Widget _buildStatColumn(
     String label,
@@ -1016,6 +1388,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       ],
     );
   }
+
+  // ============================================================
+  // INTERESSES ESCOLHIDOS
+  // ============================================================
 
   Widget _buildChosenInterestsSection({
     required String title,
@@ -1086,8 +1462,15 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     ),
                     itemBuilder: (context, index) {
                       final titleStr = items[index];
-                      final imagePath = _getIconPath(titleStr);
-                      return _buildInterestCardWithIcon(titleStr, imagePath);
+
+                      final imagePath = _getIconPath(
+                        titleStr,
+                      );
+
+                      return _buildInterestCardWithIcon(
+                        titleStr,
+                        imagePath,
+                      );
                     },
                   ),
           ),
@@ -1096,12 +1479,19 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     );
   }
 
+  // ============================================================
+  // CARD DE INTERESSE
+  // ============================================================
+
   Widget _buildInterestCardWithIcon(
     String title,
     String? imagePath,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFF7F7F7),
         borderRadius: BorderRadius.circular(16),
@@ -1119,7 +1509,11 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               height: 36,
               width: 36,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
+              errorBuilder: (
+                context,
+                error,
+                stackTrace,
+              ) {
                 return const Icon(
                   Icons.extension,
                   size: 32,
@@ -1151,6 +1545,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       ),
     );
   }
+
+  // ============================================================
+  // INTERESSES ADICIONADOS
+  // ============================================================
 
   Widget _buildAddedInterestsSection({
     required String title,
@@ -1218,10 +1616,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F7F7),
-                          borderRadius: BorderRadius.circular(20),
+                          color: const Color(
+                            0xFFF7F7F7,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            20,
+                          ),
                           border: Border.all(
-                            color: const Color(0xFF0D3B66),
+                            color: const Color(
+                              0xFF0D3B66,
+                            ),
                             width: 1.5,
                           ),
                         ),
@@ -1229,7 +1633,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                           item,
                           style: const TextStyle(
                             fontFamily: 'Raleway',
-                            color: Color(0xFF0D3B66),
+                            color: Color(
+                              0xFF0D3B66,
+                            ),
                             fontWeight: FontWeight.bold,
                           ),
                         ),

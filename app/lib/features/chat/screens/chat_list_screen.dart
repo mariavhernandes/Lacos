@@ -32,17 +32,27 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
     super.initState();
-    _notificationService.onNotificationRequired(_showMessageNotification);
+
+    _notificationService.onNotificationRequired(
+      _showMessageNotification,
+    );
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _notificationService.removeNotificationCallback(_showMessageNotification);
+
+    _notificationService.removeNotificationCallback(
+      _showMessageNotification,
+    );
+
     super.dispose();
   }
 
-  void _showMessageNotification(String message, String senderName) {
+  void _showMessageNotification(
+    String message,
+    String senderName,
+  ) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -79,9 +89,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
-  void _initializeNotificationListeners(List<Chat> chats) {
+  void _initializeNotificationListeners(
+    List<Chat> chats,
+  ) {
     for (final chat in chats) {
-      // Grupos não usam o sistema de notificação de conversa privada.
+      // Grupos não usam o sistema de notificação
+      // de conversa privada.
       if (chat.isGroup) {
         continue;
       }
@@ -98,27 +111,28 @@ class _ChatListScreenState extends State<ChatListScreen> {
           participantName,
           participantId,
         );
+
         _initializedChats.add(chatId);
       }
     }
   }
 
-  Future<List<Chat>> _filterChats(List<Chat> chats, String query) async {
-    // 1. Filtrar primeiro para remover qualquer chat sem mensagens ativas
-    final List<Chat> chatsWithMessages = chats.where((chat) {
-      final lastMessage = chat.lastMessage?.trim() ?? '';
-      return lastMessage.isNotEmpty;
-    }).toList();
-
-    // Se não houver busca de texto, retorna direto as conversas que possuem mensagens
-    if (query.isEmpty) return chatsWithMessages;
+  Future<List<Chat>> _filterChats(
+    List<Chat> chats,
+    String query,
+  ) async {
+    if (query.isEmpty) {
+      return chats;
+    }
 
     final List<Chat> filtered = [];
 
-    for (final chat in chatsWithMessages) {
+    for (final chat in chats) {
       final participantId = chat.participantId;
+
       String userName = (chat.participantName ?? '').toLowerCase();
-      String groupName = (chat.groupName ?? '').toLowerCase();
+
+      final String groupName = (chat.groupName ?? '').toLowerCase();
 
       if (participantId != null && participantId.isNotEmpty) {
         final idosoDoc = await FirebaseFirestore.instance
@@ -128,6 +142,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
         if (idosoDoc.exists && idosoDoc.data() != null) {
           final data = idosoDoc.data()!;
+
           userName = (data['name'] ?? data['nome'] ?? userName)
               .toString()
               .toLowerCase();
@@ -139,6 +154,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
           if (familiarDoc.exists && familiarDoc.data() != null) {
             final data = familiarDoc.data()!;
+
             userName = (data['name'] ?? data['nome'] ?? userName)
                 .toString()
                 .toLowerCase();
@@ -183,7 +199,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
             Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(
+                    20,
+                    16,
+                    20,
+                    20,
+                  ),
                   child: CustomSearchBar(
                     hintText: 'Pesquisar conversas',
                     controller: _searchController,
@@ -202,9 +223,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       if (snapshot.hasError) {
                         return Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.all(16),
                             child: Text(
-                              'Erro ao carregar chats:\n${snapshot.error}',
+                              'Erro ao carregar chats:\n'
+                              '${snapshot.error}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Colors.red,
@@ -224,7 +246,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
                       final chats = snapshot.data!;
 
-                      final validChats = chats.where((c) => (c.lastMessage ?? '').trim().isNotEmpty).toList();
+                      /*
+                       * IMPORTANTE:
+                       *
+                       * Conversas privadas só aparecem se
+                       * tiverem uma mensagem.
+                       *
+                       * Grupos aparecem mesmo sem mensagem,
+                       * porque um grupo recém-criado precisa
+                       * aparecer imediatamente na lista.
+                       */
+                      final validChats = chats.where((chat) {
+                        if (chat.isGroup) {
+                          return true;
+                        }
+
+                        final lastMessage = chat.lastMessage?.trim() ?? '';
+
+                        return lastMessage.isNotEmpty;
+                      }).toList();
 
                       if (validChats.isEmpty) {
                         return const Center(
@@ -239,12 +279,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         );
                       }
 
-                      _initializeNotificationListeners(validChats);
+                      _initializeNotificationListeners(
+                        validChats,
+                      );
 
                       return FutureBuilder<List<Chat>>(
-                        future: _filterChats(validChats, _searchQuery),
-
-                        builder: (context, filterSnapshot) {
+                        future: _filterChats(
+                          validChats,
+                          _searchQuery,
+                        ),
+                        builder: (
+                          context,
+                          filterSnapshot,
+                        ) {
                           if (filterSnapshot.connectionState ==
                                   ConnectionState.waiting &&
                               _searchQuery.isNotEmpty) {
@@ -253,7 +300,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             );
                           }
 
-                          final displayChats = filterSnapshot.data ?? chats;
+                          final displayChats =
+                              filterSnapshot.data ?? validChats;
 
                           if (displayChats.isEmpty) {
                             return const Center(
@@ -270,21 +318,29 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
                           return ListView.separated(
                             itemCount: displayChats.length,
-                            separatorBuilder: (context, index) {
+                            separatorBuilder: (
+                              context,
+                              index,
+                            ) {
                               return const Divider(
                                 height: 1,
                                 thickness: 0.8,
                                 color: Color(0xFFE5E5E5),
                               );
                             },
-                            itemBuilder: (context, index) {
+                            itemBuilder: (
+                              context,
+                              index,
+                            ) {
                               final chat = displayChats[index];
 
                               return ChatTile(
                                 chat: chat,
                                 onTap: () async {
                                   if (chat.id != null) {
-                                    await _chatService.markAsRead(chat.id!);
+                                    await _chatService.markAsRead(
+                                      chat.id!,
+                                    );
                                   }
 
                                   final blocked = await Navigator.push<bool>(
@@ -301,23 +357,33 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                   }
 
                                   try {
-                                    await _chatService.markAsRead(chat.id!);
+                                    await _chatService.markAsRead(
+                                      chat.id!,
+                                    );
+
                                     if (mounted) {
                                       setState(() {});
                                     }
 
                                     if (blocked == true) {
-                                      await _chatService.blockChat(chat.id!);
-                                    }
-                                  } catch (error) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(error.toString()),
-                                        ),
+                                      await _chatService.blockChat(
+                                        chat.id!,
                                       );
                                     }
+                                  } catch (error) {
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+
+                                    ScaffoldMessenger.of(
+                                      context,
+                                    ).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          error.toString(),
+                                        ),
+                                      ),
+                                    );
                                   }
                                 },
                               );
@@ -352,7 +418,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     if (result != null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Grupo criado com sucesso!'),
+                          content: Text(
+                            'Grupo criado com sucesso!',
+                          ),
                           backgroundColor: Colors.green,
                         ),
                       );

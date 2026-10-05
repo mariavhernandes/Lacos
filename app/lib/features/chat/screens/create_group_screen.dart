@@ -144,9 +144,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       // 4. JUNTA QUEM SEGUE + QUEM JÁ TEM CONVERSA
       // ==========================================================
 
+      // Somente as pessoas que o usuário segue
+// podem ser adicionadas ao grupo.
       final Set<String> availableIds = {
         ...followingIds,
-        ...contactIds,
       };
 
       final List<Map<String, dynamic>> users = [];
