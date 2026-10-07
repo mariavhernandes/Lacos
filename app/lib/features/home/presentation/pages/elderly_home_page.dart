@@ -68,6 +68,10 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
   void initState() {
     super.initState();
 
+    _searchController.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     _fetchUserData();
     _fetchFriendSuggestions();
     _listenForUnreadNotifications();
@@ -1569,6 +1573,9 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
       return const SizedBox.shrink();
     }
 
+    // Pegamos o texto digitado na barra de pesquisa
+    final String searchQuery = _normalizeText(_searchController.text);
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: 20,
@@ -1630,14 +1637,30 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                 );
               }
 
-              final groups = snapshot.data?.docs ?? [];
+              final docs = snapshot.data?.docs ?? [];
+
+              // FILTRAGEM DOS GRUPOS PELO TEXTO DA BARRA DE PESQUISA
+              final groups = docs.where((doc) {
+                if (searchQuery.isEmpty) return true;
+
+                final data = doc.data();
+                final String groupName = _normalizeText(
+                  (data['groupName'] ?? '').toString(),
+                );
+                final String groupCategory = _normalizeText(
+                  (data['category'] ?? data['categoria'] ?? '').toString(),
+                );
+
+                return groupName.contains(searchQuery) ||
+                    groupCategory.contains(searchQuery);
+              }).toList();
 
               if (groups.isEmpty) {
                 return const SizedBox(
                   height: 100,
                   child: Center(
                     child: Text(
-                      'Nenhum grupo disponível no momento.',
+                      'Nenhum grupo encontrado.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Raleway',
@@ -1656,7 +1679,6 @@ class _ElderlyHomePageState extends State<ElderlyHomePage> {
                   itemCount: groups.length,
                   itemBuilder: (context, index) {
                     final groupDoc = groups[index];
-
                     final Map<String, dynamic> data = groupDoc.data();
 
                     return _buildRealGroupCard(
