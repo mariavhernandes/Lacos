@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/services/audit_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
@@ -52,12 +55,39 @@ class _ChatScreenState extends State<ChatScreen> {
       NotificationService().setActiveChatId(widget.chat.id!);
     }
 
+    unawaited(_logFamilyConversationView());
     _loadGroupLeftStatus();
   }
 
   // ============================================================
   // STATUS DE SAÍDA DO GRUPO
   // ============================================================
+  Future<void> _logFamilyConversationView() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final chatId = widget.chat.id;
+    if (userId == null || chatId == null) return;
+
+    try {
+      final familySnapshot = await FirebaseFirestore.instance
+          .collection('familiares')
+          .doc(userId)
+          .get();
+      if (familySnapshot.data()?['familyLinkStatus'] != 'active') return;
+
+      final conversationType = widget.chat.isGroup ? 'grupo' : 'individual';
+      final participant = widget.chat.isGroup
+          ? 'grupo'
+          : widget.chat.participantName ?? 'desconhecido';
+      await AuditService().logAction(
+        userId: userId,
+        action: 'visualizou_conversa',
+        context:
+            'chatId=$chatId; tipo=$conversationType; participante=$participant',
+      );
+    } catch (error) {
+      debugPrint('Erro ao registrar visualização da conversa: $error');
+    }
+  }
 
   Future<void> _loadGroupLeftStatus() async {
     if (!widget.chat.isGroup || widget.chat.id == null) {

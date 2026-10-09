@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/audit_service.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import '../../../notifications/data/notification_service.dart';
@@ -23,6 +24,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   String _familyLinkStatus = 'none';
   bool _isLoadingData = true;
   bool _hasUnreadNotifications = false;
+  bool _hasLoggedSupervisionView = false;
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       _notificationSubscription;
@@ -219,6 +221,16 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             }
           }
 
+          if (linkStatus == 'active' && foundElderUid.isNotEmpty) {
+            unawaited(
+              _logSupervisionView(
+                userId: currentUser.uid,
+                elderUid: foundElderUid,
+                elderName: foundElderlyName,
+              ),
+            );
+          }
+
           if (rawName.isNotEmpty) {
             List<String> nameParts = rawName.trim().split(RegExp(r'\s+'));
 
@@ -243,6 +255,25 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       setState(() {
         _isLoadingData = false;
       });
+    }
+  }
+
+  Future<void> _logSupervisionView({
+    required String userId,
+    required String elderUid,
+    required String elderName,
+  }) async {
+    if (_hasLoggedSupervisionView) return;
+    _hasLoggedSupervisionView = true;
+
+    try {
+      await AuditService().logAction(
+        userId: userId,
+        action: 'visualizou_resumo_supervisao',
+        context: 'elderUid=$elderUid; elderName=$elderName',
+      );
+    } catch (error) {
+      debugPrint('Erro ao registrar visualização da supervisão: $error');
     }
   }
 

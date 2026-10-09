@@ -1,1 +1,215 @@
-git
+﻿rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function familyDocument(familyUid) {
+      return get(
+        /databases/$(database)/documents/familiares/$(familyUid)
+      );
+    }
+
+    function isBlockedFamilyAccess(elderUid) {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/familiares/$(request.auth.uid)
+        )
+        && familyDocument(request.auth.uid).data.linkedElderUid == elderUid
+        && familyDocument(request.auth.uid).data.familyLinkStatus == 'blocked';
+    }
+
+    function activeFamilyAccess(elderUid, familyUid) {
+      let elder = get(
+        /databases/$(database)/documents/idosos/$(elderUid)
+      ).data;
+
+      let family = get(
+        /databases/$(database)/documents/familiares/$(familyUid)
+      ).data;
+
+      return signedIn()
+        && familyUid == request.auth.uid
+        && family.familyLinkStatus == 'active'
+        && elder.familyLinkStatus == 'active'
+        && family.linkedElderUid == elderUid
+        && elder.linkedFamilyUid == familyUid;
+    }
+
+    function isLinkCreation(elderUid) {
+      let elder = getAfter(
+        /databases/$(database)/documents/idosos/$(elderUid)
+      ).data;
+      let family = getAfter(
+        /databases/$(database)/documents/familiares/$(request.auth.uid)
+      ).data;
+
+      return signedIn()
+        && request.resource.data.linkedFamilyUid == request.auth.uid
+        && family.familyLinkStatus == 'active'
+        && family.linkedElderUid == elderUid
+        && elder.familyLinkStatus == 'active'
+        && elder.linkedFamilyUid == request.auth.uid;
+    }
+
+    function isElderBlockingFamily(familyUid) {
+      return signedIn()
+        && resource.data.linkedElderUid == request.auth.uid
+        && request.resource.data.linkedElderUid == resource.data.linkedElderUid
+        && request.resource.data.familyLinkStatus == 'blocked'
+        && request.resource.data.familyLinkBlockedBy == request.auth.uid;
+    }
+
+    function isElderUnblockingFamily(familyUid) {
+      return signedIn()
+        && resource.data.linkedElderUid == request.auth.uid
+        && request.resource.data.linkedElderUid == resource.data.linkedElderUid
+        && resource.data.familyLinkStatus == 'blocked'
+        && request.resource.data.familyLinkStatus == 'active'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'familyLinkStatus',
+          'familyLinkBlockedAt',
+          'familyLinkBlockedBy'
+        ])
+        && !request.resource.data.keys().hasAny([
+          'familyLinkBlockedAt',
+          'familyLinkBlockedBy'
+        ]);
+    }
+
+    function isLinkNotificationCreation(elderUid) {
+      let elder = getAfter(
+        /databases/$(database)/documents/idosos/$(elderUid)
+      ).data;
+      let family = getAfter(
+        /databases/$(database)/documents/familiares/$(request.auth.uid)
+      ).data;
+
+      return signedIn()
+        && request.resource.data.type == 'family_link_created'
+        && request.resource.data.familyUid == request.auth.uid
+        && family.familyLinkStatus == 'active'
+        && family.linkedElderUid == elderUid
+        && elder.familyLinkStatus == 'active'
+        && elder.linkedFamilyUid == request.auth.uid;
+    }
+
+    // NOVA FUNÃ‡ÃƒO: Permite a criaÃ§Ã£o de notificaÃ§Ãµes de novo seguidor
+    function isNewFollowerNotification() {
+      return signedIn()
+        && request.resource.data.type == 'new_follower'
+        && request.resource.data.followerUid == request.auth.uid;
+    }
+
+    function isFamilyLinkStatusNotificationCreation(familyUid) {
+      let elder = getAfter(
+        /databases/$(database)/documents/idosos/$(request.auth.uid)
+      ).data;
+      let family = getAfter(
+        /databases/$(database)/documents/familiares/$(familyUid)
+      ).data;
+
+      return signedIn()
+        && request.resource.data.familyUid == familyUid
+        && request.resource.data.elderUid == request.auth.uid
+        && family.linkedElderUid == request.auth.uid
+        && ((request.resource.data.type == 'family_link_blocked'
+                && family.familyLinkStatus == 'blocked'
+                && elder.familyLinkStatus == 'blocked')
+            || (request.resource.data.type == 'family_link_reactivated'
+                && family.familyLinkStatus == 'active'
+                && elder.familyLinkStatus == 'active'));
+    }
+
+    // CHAT â€” regras existentes
+    match /chats/{chatId} {
+      allow read, write: if signedIn();
+
+      match /messages/{messageId} {
+        allow read, write: if signedIn();
+      }
+    }
+
+    // IDOSOS
+    match /idosos/{elderUid} {
+      allow read: if signedIn();
+      allow create: if isOwner(elderUid);
+      allow update: if signedIn();
+      allow delete: if isOwner(elderUid);
+
+      match /notificacoes/{notificationId} {
+        allow read: if isOwner(elderUid);
+        // ATUALIZADO: Permite notificaÃ§Ãµes de vÃ­nculo OU de novo seguidor
+        allow create: if isLinkNotificationCreation(elderUid) || isNewFollowerNotification();
+        allow update: if isOwner(elderUid)
+          && request.resource.data
+              .diff(resource.data)
+              .affectedKeys()
+              .hasOnly(['read']);
+        allow delete: if isOwner(elderUid);
+      }
+    }
+
+    // FAMILIARES
+    match /familiares/{familyUid} {
+      allow read: if isOwner(familyUid)}
+        || (signedIn()
+          && resource.data.linkedElderUid == request.auth.uid);
+      allow create: if isOwner(familyUid)
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if isElderBlockingFamily(familyUid)
+        || isElderUnblockingFamily(familyUid)
+        || (isOwner(familyUid)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'linkedElderUid',
+            'linkedElderEmail',
+            'familyLinkStatus',
+            'familyLinkBlockedAt',
+            'familyLinkBlockedBy'
+          ]));
+      allow delete: if isOwner(familyUid);
+
+      match /notificacoes/{notificationId} {
+        allow read: if isOwner(familyUid);
+        // ATUALIZADO: Permite notificaÃ§Ãµes de vÃ­nculo OU de novo seguidor
+        allow create: if isFamilyLinkStatusNotificationCreation(familyUid) || isNewFollowerNotification();
+        allow update: if isOwner(familyUid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['read']);
+        allow delete: if isOwner(familyUid);
+      }
+    }
+
+    // SOLICITAÃ‡Ã•ES DE AMIZADE / PEDIDOS DE SEGUIR
+    match /friend_requests/{requestId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if signedIn()
+        && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+    }
+
+    // LOCAIS â€” regras existentes
+    match /locais/{localId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /auditoria/{logId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    // Bloqueia qualquer outra coleÃ§Ã£o nÃ£o prevista
+    match /{document=**} {
+      allow read, write: if false;
+    }
+}
