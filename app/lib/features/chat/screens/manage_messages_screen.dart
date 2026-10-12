@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/custom_footer.dart';
 
 class ManageMessagesScreen extends StatefulWidget {

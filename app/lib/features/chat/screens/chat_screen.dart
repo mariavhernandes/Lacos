@@ -1,15 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
+
 import '../models/chat_model.dart';
+
 import '../models/message_model.dart';
+
 import '../services/chat_service.dart';
+
 import '../services/message_service.dart';
+
 import '../services/notification_service.dart';
+
 import '../widgets/message_bubble.dart';
+
 import 'conversation_info_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -26,21 +36,32 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   bool isSearching = false;
+
   bool _isChatScreenActive = false;
+
   bool _hasLeftGroup = false;
 
   // Aviso temporário de que outra pessoa saiu.
+
   bool _showGroupLeftNotice = false;
+
   String? _leftGroupMemberName;
+
   String? _groupLeftNoticeMessageSignature;
 
   final TextEditingController _searchController = TextEditingController();
+
   final TextEditingController _messageController = TextEditingController();
+
   final MessageService _messageService = MessageService();
+
   final ChatService _chatService = ChatService();
+
   final FocusNode _messageFocusNode = FocusNode();
 
   String searchQuery = '';
+
+  final Map<String, Map<String, String>> _groupMemberProfileCache = {};
 
   @override
   void initState() {
@@ -56,12 +77,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ============================================================
+
   // STATUS DE SAÍDA DO GRUPO
+
   // ============================================================
 
   Future<void> _loadGroupLeftStatus() async {
     if (!widget.chat.isGroup || widget.chat.id == null) {
       _markMessagesAsRead();
+
       return;
     }
 
@@ -92,22 +116,28 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       // ------------------------------------------------------------
+
       // VERIFICA SE O USUÁRIO ATUAL SAIU
+
       // ------------------------------------------------------------
 
       final hasLeftGroup = leftAt.containsKey(userId);
 
       // ------------------------------------------------------------
+
       // PROCURA A ÚLTIMA PESSOA QUE SAIU
+
       // ------------------------------------------------------------
 
       String? latestLeftUserId;
+
       Timestamp? latestLeftTimestamp;
 
       for (final entry in leftAt.entries) {
         final leftUserId = entry.key.toString();
 
         // Não mostra "Fulano saiu" para a própria pessoa.
+
         if (leftUserId == userId) {
           continue;
         }
@@ -131,6 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   latestLeftTimestamp.toDate(),
                 )) {
           latestLeftTimestamp = timestamp;
+
           latestLeftUserId = leftUserId;
         }
       }
@@ -138,9 +169,11 @@ class _ChatScreenState extends State<ChatScreen> {
       String? latestLeftName;
 
       if (latestLeftUserId != null) {
-        latestLeftName = await _loadUserDisplayName(
+        final profile = await _loadGroupMemberProfile(
           latestLeftUserId,
         );
+
+        latestLeftName = profile['name'];
       }
 
       if (!mounted) {
@@ -152,13 +185,17 @@ class _ChatScreenState extends State<ChatScreen> {
 
         if (!hasLeftGroup && latestLeftUserId != null) {
           _showGroupLeftNotice = true;
+
           _leftGroupMemberName = latestLeftName ?? 'Usuário';
 
           // Guarda a última mensagem que existia quando o aviso apareceu.
+
           _groupLeftNoticeMessageSignature = _buildLastMessageSignature(data);
         } else {
           _showGroupLeftNotice = false;
+
           _leftGroupMemberName = null;
+
           _groupLeftNoticeMessageSignature = null;
         }
       });
@@ -173,42 +210,37 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<String?> _loadUserDisplayName(
-    String uid,
-  ) async {
+  Future<Map<String, String>> _loadGroupMemberProfile(String uid) async {
+    final cachedProfile = _groupMemberProfileCache[uid];
+    if (cachedProfile != null) {
+      return cachedProfile;
+    }
+
+    String name = 'Usuário';
+    String avatar = '';
+
     try {
-      final elderlySnapshot =
-          await FirebaseFirestore.instance.collection('idosos').doc(uid).get();
+      // Usa o mesmo serviço que fornece os membros na tela de informações.
+      final members = await ChatService().getGroupMembers(widget.chat.id!);
 
-      if (elderlySnapshot.exists) {
-        final data = elderlySnapshot.data();
-
-        final name = data?['name'] ?? data?['nome'];
-
-        if (name != null && name.toString().trim().isNotEmpty) {
-          return name.toString();
-        }
-      }
-
-      final familySnapshot = await FirebaseFirestore.instance
-          .collection('familiares')
-          .doc(uid)
-          .get();
-
-      if (familySnapshot.exists) {
-        final data = familySnapshot.data();
-
-        final name = data?['name'] ?? data?['nome'];
-
-        if (name != null && name.toString().trim().isNotEmpty) {
-          return name.toString();
+      for (final member in members) {
+        if (member['uid']?.toString() == uid) {
+          name = member['name']?.toString() ?? 'Usuário';
+          avatar = member['avatar']?.toString() ?? '';
+          break;
         }
       }
     } catch (_) {
-      // Se não conseguir carregar o nome, usa "Usuário".
+      // Mantém os valores padrão se não conseguir carregar os membros.
     }
 
-    return 'Usuário';
+    final profile = <String, String>{
+      'name': name.trim().isNotEmpty ? name : 'Usuário',
+      'avatar': avatar.trim(),
+    };
+
+    _groupMemberProfileCache[uid] = profile;
+    return profile;
   }
 
   String _buildLastMessageSignature(
@@ -219,6 +251,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final lastMessage = data['lastMessage']?.toString() ?? '';
+
     final lastMessageTime = data['lastMessageTime'];
 
     if (lastMessageTime is Timestamp) {
@@ -255,7 +288,9 @@ class _ChatScreenState extends State<ChatScreen> {
         if (_showGroupLeftNotice) {
           setState(() {
             _showGroupLeftNotice = false;
+
             _leftGroupMemberName = null;
+
             _groupLeftNoticeMessageSignature = null;
           });
         }
@@ -270,7 +305,9 @@ class _ChatScreenState extends State<ChatScreen> {
     NotificationService().clearActiveChatId();
 
     _searchController.dispose();
+
     _messageController.dispose();
+
     _messageFocusNode.dispose();
 
     super.dispose();
@@ -279,12 +316,15 @@ class _ChatScreenState extends State<ChatScreen> {
   void _markMessagesAsRead() {
     if (widget.chat.id != null && !_hasLeftGroup) {
       _messageService.markMessagesAsRead(widget.chat.id!);
+
       _chatService.markAsRead(widget.chat.id!);
     }
   }
 
   // ============================================================
+
   // ENVIAR MENSAGEM
+
   // ============================================================
 
   Future<void> _sendMessage() async {
@@ -319,7 +359,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ============================================================
+
   // PRESENÇA
+
   // ============================================================
 
   Widget _buildPresenceSubtitle(
@@ -403,6 +445,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final date = rawLastSeen.toDate();
 
       final hour = date.hour.toString().padLeft(2, '0');
+
       final minute = date.minute.toString().padLeft(2, '0');
 
       return Text(
@@ -424,7 +467,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ============================================================
+
   // BUSCA
+
   // ============================================================
 
   Widget _buildSearchBar() {
@@ -434,7 +479,9 @@ class _ChatScreenState extends State<ChatScreen> {
           onPressed: () {
             setState(() {
               isSearching = false;
+
               searchQuery = '';
+
               _searchController.clear();
             });
           },
@@ -530,7 +577,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ============================================================
+
   // INFORMAÇÕES DA CONVERSA
+
   // ============================================================
 
   Future<void> _openConversationInfo() async {
@@ -550,7 +599,9 @@ class _ChatScreenState extends State<ChatScreen> {
     if (result == 'search') {
       setState(() {
         isSearching = true;
+
         searchQuery = '';
+
         _searchController.clear();
       });
 
@@ -560,10 +611,12 @@ class _ChatScreenState extends State<ChatScreen> {
     if (result == 'group_left') {
       setState(() {
         _hasLeftGroup = true;
+
         _showGroupLeftNotice = false;
       });
 
       _messageController.clear();
+
       _messageFocusNode.unfocus();
 
       await _handleGroupLeft();
@@ -672,7 +725,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ============================================================
+
   // APP BAR
+
   // ============================================================
 
   Widget _buildNormalAppBar(
@@ -934,7 +989,9 @@ class _ChatScreenState extends State<ChatScreen> {
         if (result == 'search') {
           setState(() {
             isSearching = true;
+
             searchQuery = '';
+
             _searchController.clear();
           });
         }
@@ -997,7 +1054,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ============================================================
+
   // BUILD
+
   // ============================================================
 
   @override
@@ -1021,15 +1080,21 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         // ========================================================
+
         // IMPORTANTE:
+
         // isBlocked só existe para conversa privada.
+
         // Grupo NUNCA deve usar esse bloqueio.
+
         // ========================================================
 
         final bool effectiveIsBlocked = !widget.chat.isGroup && isBlocked;
 
         // Se chegou uma nova mensagem no grupo,
+
         // desaparece o aviso de quem saiu.
+
         if (widget.chat.isGroup) {
           _hideGroupLeftNoticeIfNewMessage(
             chatData,
@@ -1085,7 +1150,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
 
                     // ==================================================
+
                     // AVISO PARA QUEM SAIU
+
                     // ==================================================
 
                     if (_hasLeftGroup)
@@ -1120,7 +1187,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
 
                     // ==================================================
+
                     // AVISO PARA QUEM FICOU
+
                     // ==================================================
 
                     if (widget.chat.isGroup &&
@@ -1161,7 +1230,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: Column(
                         children: [
                           // ==================================================
+
                           // BLOQUEIO SOMENTE PARA CHAT PRIVADO
+
                           // ==================================================
 
                           if (effectiveIsBlocked)
@@ -1230,6 +1301,47 @@ class _ChatScreenState extends State<ChatScreen> {
                                     ) {
                                       final message = filteredMessages[index];
 
+                                      if (widget.chat.isGroup &&
+                                          !message.isCurrentUser) {
+                                        return FutureBuilder<
+                                            Map<String, String>>(
+                                          future: message.senderId
+                                                  .trim()
+                                                  .isEmpty
+                                              ? Future.value(<String, String>{
+                                                  'name': 'Usuário',
+                                                  'avatar':
+                                                      'assets/avatars/avatar_1.png',
+                                                })
+                                              : _loadGroupMemberProfile(
+                                                  message.senderId),
+                                          builder: (context, profileSnapshot) {
+                                            final profile =
+                                                profileSnapshot.data;
+                                            return Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              children: [
+                                                Flexible(
+                                                  child: MessageBubble(
+                                                    text: message.text,
+                                                    time: message.time,
+                                                    isCurrentUser: false,
+                                                    status: message.status,
+                                                    senderName:
+                                                        profile?['name'] ??
+                                                            'Usuário',
+                                                    senderAvatar: profile?[
+                                                            'avatar'] ??
+                                                        'assets/avatars/avatar_1.png',
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      }
+
                                       return Row(
                                         mainAxisAlignment: message.isCurrentUser
                                             ? MainAxisAlignment.end
@@ -1261,7 +1373,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
 
                     // ==================================================
+
                     // CAMPO DE MENSAGEM
+
                     // ==================================================
 
                     Container(
@@ -1289,19 +1403,27 @@ class _ChatScreenState extends State<ChatScreen> {
                               },
                               child: TextField(
                                 controller: _messageController,
+
                                 focusNode: _messageFocusNode,
 
                                 // Grupo só fica desabilitado
+
                                 // se a pessoa realmente saiu.
+
                                 enabled: !effectiveIsBlocked && !_hasLeftGroup,
 
                                 minLines: 1,
+
                                 maxLines: 5,
+
                                 keyboardType: TextInputType.multiline,
+
                                 textInputAction: TextInputAction.newline,
+
                                 cursorColor: const Color(
                                   0xFF8A8A8A,
                                 ),
+
                                 style: const TextStyle(
                                   color: Color(
                                     0xFF8A8A8A,
@@ -1309,6 +1431,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   fontSize: 14,
                                   fontFamily: 'Quicksand',
                                 ),
+
                                 decoration: InputDecoration(
                                   hintText: _hasLeftGroup
                                       ? 'Você saiu deste grupo'
