@@ -29,14 +29,14 @@ class _ChatbotPageState extends State<ChatbotPage> {
       'Como alterar meu perfil?',
       'Como alterar minha foto?',
       'Como adicionar ou alterar meus interesses?',
-      'Quais informaÃ§Ãµes aparecem no meu perfil?',
-      'Como funciona a privacidade das minhas informaÃ§Ãµes?',
+      'Quais informações aparecem no meu perfil?',
+      'Como funciona a privacidade das minhas informações?',
     ],
     'Amizades': [
       'Como encontrar uma pessoa?',
       'Como adicionar uma pessoa?',
-      'Como aceitar uma solicitaÃ§Ã£o de amizade?',
-      'Como recusar uma solicitaÃ§Ã£o de amizade?',
+      'Como aceitar uma solicitação de amizade?',
+      'Como recusar uma solicitação de amizade?',
       'Como encontrar pessoas com interesses em comum?',
     ],
     'Conversas': [
@@ -54,59 +54,59 @@ class _ChatbotPageState extends State<ChatbotPage> {
     'Interesses e atividades': [
       'Como encontrar locais de lazer e atividades?',
       'Como pesquisar um local?',
-      'Como visualizar as informaÃ§Ãµes de um local?',
+      'Como visualizar as informações de um local?',
     ],
     'Encontros e lazer': [
       'Posso marcar um encontro pelo aplicativo?',
     ],
-    'NotificaÃ§Ãµes': [
-      'Onde posso ver minhas notificaÃ§Ãµes?',
-      'Como saber se alguÃ©m comeÃ§ou a me seguir?',
-      'Por que recebi uma notificaÃ§Ã£o sobre meu vÃ­nculo familiar?',
+    'Notificações': [
+      'Onde posso ver minhas notificações?',
+      'Como saber se alguém começou a me seguir?',
+      'Por que recebi uma notificação sobre meu vínculo familiar?',
     ],
-    'VÃ­nculo familiar': [
-      'O que Ã© o vÃ­nculo familiar?',
-      'Como saber se um familiar estÃ¡ vinculado Ã  minha conta?',
+    'Vínculo familiar': [
+      'O que é o vínculo familiar?',
+      'Como saber se um familiar está vinculado à minha conta?',
       'Como bloquear o acompanhamento de um familiar?',
       'O que acontece quando bloqueio meu familiar?',
-      'Como encerrar o vÃ­nculo familiar?',
+      'Como encerrar o vínculo familiar?',
     ],
-    'SeguranÃ§a': [
+    'Segurança': [
       'Como bloquear uma pessoa no chat?',
-      'O que acontece quando bloqueio alguÃ©m?',
-      'O que sÃ£o alertas de seguranÃ§a?',
-      'O que fazer quando encontro uma situaÃ§Ã£o suspeita?',
+      'O que acontece quando bloqueio alguém?',
+      'O que são alertas de segurança?',
+      'O que fazer quando encontro uma situação suspeita?',
     ],
   };
 
   final Map<String, List<String>> _familyTopics = {
     'Perfil do idoso': [
-      'Quais informaÃ§Ãµes do idoso posso visualizar?',
+      'Quais informações do idoso posso visualizar?',
       'Posso alterar o perfil do idoso?',
-      'Quais informaÃ§Ãµes pessoais nÃ£o devem ser compartilhadas?',
+      'Quais informações pessoais não devem ser compartilhadas?',
     ],
-    'VÃ­nculo familiar': [
+    'Vínculo familiar': [
       'Como vincular um idoso?',
-      'O vÃ­nculo precisa de aprovaÃ§Ã£o do idoso?',
-      'Como saber se o vÃ­nculo foi estabelecido?',
+      'O vínculo precisa de aprovação do idoso?',
+      'Como saber se o vínculo foi estabelecido?',
       'O idoso pode bloquear o acompanhamento?',
-      'Posso remover meu vÃ­nculo como familiar?',
+      'Posso remover meu vínculo como familiar?',
     ],
     'Acompanhamento': [
       'O que aparece no resumo do familiar?',
-      'Posso ver a localizaÃ§Ã£o do idoso?',
+      'Posso ver a localização do idoso?',
       'Posso acessar as conversas do idoso?',
     ],
-    'SeguranÃ§a e alertas': [
-      'Que alertas de seguranÃ§a existem no aplicativo?',
-      'O que posso fazer diante de uma situaÃ§Ã£o suspeita?',
+    'Segurança e alertas': [
+      'Que alertas de segurança existem no aplicativo?',
+      'O que posso fazer diante de uma situação suspeita?',
     ],
-    'NotificaÃ§Ãµes': [
-      'Quais notificaÃ§Ãµes do vÃ­nculo familiar posso receber?',
+    'Notificações': [
+      'Quais notificações do vínculo familiar posso receber?',
     ],
-    'Privacidade e permissÃµes': [
-      'Posso fazer aÃ§Ãµes em nome do idoso?',
-      'Quais dados do idoso sÃ£o privados?',
+    'Privacidade e permissões': [
+      'Posso fazer ações em nome do idoso?',
+      'Quais dados do idoso são privados?',
     ],
   };
 
@@ -118,117 +118,117 @@ class _ChatbotPageState extends State<ChatbotPage> {
     'Grupos': Icons.groups_outlined,
     'Interesses e atividades': Icons.interests_outlined,
     'Encontros e lazer': Icons.location_on_outlined,
-    'NotificaÃ§Ãµes': Icons.notifications_none,
-    'VÃ­nculo familiar': Icons.family_restroom_outlined,
+    'Notificações': Icons.notifications_none,
+    'Vínculo familiar': Icons.family_restroom_outlined,
     'Acompanhamento': Icons.visibility_outlined,
-    'SeguranÃ§a': Icons.shield_outlined,
-    'SeguranÃ§a e alertas': Icons.shield_outlined,
-    'Privacidade e permissÃµes': Icons.lock_outline,
+    'Segurança': Icons.shield_outlined,
+    'Segurança e alertas': Icons.shield_outlined,
+    'Privacidade e permissões': Icons.lock_outline,
   };
 
   final Map<String, String> _answers = {
     'Como criar meu perfil?':
-        'No cadastro, escolha o perfil Idoso e preencha as informaÃ§Ãµes solicitadas. Depois, entre no aplicativo com seu e-mail e senha.',
+        'No cadastro, escolha o perfil Idoso e preencha as informações solicitadas. Depois, entre no aplicativo com seu e-mail e senha.',
     'Como alterar meu perfil?':
-        'Abra Perfil e toque em Editar perfil. Ali vocÃª encontra as opÃ§Ãµes disponÃ­veis para atualizar seus dados.',
+        'Abra Perfil e toque em Editar perfil. Ali você encontra as opções disponíveis para atualizar seus dados.',
     'Como alterar minha foto?':
-        'Em Perfil, toque em Editar perfil e escolha um dos avatares disponÃ­veis.',
+        'Em Perfil, toque em Editar perfil e escolha um dos avatares disponíveis.',
     'Como adicionar ou alterar meus interesses?':
-        'Abra Perfil, toque em Editar perfil e depois em Interesses. Escolha os interesses e salve as alteraÃ§Ãµes.',
-    'Quais informaÃ§Ãµes aparecem no meu perfil?':
+        'Abra Perfil, toque em Editar perfil e depois em Interesses. Escolha os interesses e salve as alterações.',
+    'Quais informações aparecem no meu perfil?':
         'Seu perfil mostra seu nome, avatar, cidade, biografia e interesses cadastrados. O que aparece depende dos dados preenchidos.',
-    'Como funciona a privacidade das minhas informaÃ§Ãµes?':
-    'Suas informaÃ§Ãµes pessoais devem ser tratadas com cuidado. Evite compartilhar senhas, cÃ³digos de acesso ou outros dados confidenciais. VocÃª pode consultar as opÃ§Ãµes disponÃ­veis no seu perfil para conhecer as informaÃ§Ãµes cadastradas.',
+    'Como funciona a privacidade das minhas informações?':
+        'Suas informações pessoais devem ser tratadas com cuidado. Evite compartilhar senhas, códigos de acesso ou outros dados confidenciais. Você pode consultar as opções disponíveis no seu perfil para conhecer as informações cadastradas.',
     'Como encontrar uma pessoa?':
-        'Na tela InÃ­cio, veja as sugestÃµes de pessoas. Toque em uma delas para abrir o perfil.',
+        'Na tela Início, veja as sugestões de pessoas. Toque em uma delas para abrir o perfil.',
     'Como adicionar uma pessoa?':
-        'No perfil pÃºblico, o botÃ£o disponÃ­vel Ã© Seguir. NÃ£o encontrei nessa tela o envio de uma solicitaÃ§Ã£o de amizade.',
-    'Como aceitar uma solicitaÃ§Ã£o de amizade?':
-        'A documentaÃ§Ã£o prevÃª aceitar solicitaÃ§Ãµes, mas nÃ£o encontrei uma tela no aplicativo para fazer isso. Esse passo precisa ser conferido antes de contar com ele.',
-    'Como recusar uma solicitaÃ§Ã£o de amizade?':
-        'A documentaÃ§Ã£o prevÃª recusar solicitaÃ§Ãµes, mas nÃ£o encontrei uma tela no aplicativo para fazer isso. Esse passo precisa ser conferido antes de contar com ele.',
+        'No perfil público, o botão disponível é Seguir. Não encontrei nessa tela o envio de uma solicitação de amizade.',
+    'Como aceitar uma solicitação de amizade?':
+        'A documentação prevê aceitar solicitações, mas não encontrei uma tela no aplicativo para fazer isso. Esse passo precisa ser conferido antes de contar com ele.',
+    'Como recusar uma solicitação de amizade?':
+        'A documentação prevê recusar solicitações, mas não encontrei uma tela no aplicativo para fazer isso. Esse passo precisa ser conferido antes de contar com ele.',
     'Como encontrar pessoas com interesses em comum?':
-        'Na tela InÃ­cio, consulte as sugestÃµes de pessoas. Use a busca dessa tela para procurar por nome, cidade ou interesse.',
+        'Na tela Início, consulte as sugestões de pessoas. Use a busca dessa tela para procurar por nome, cidade ou interesse.',
     'Como iniciar uma conversa?':
-        'Abra o perfil da pessoa e toque no botÃ£o de conversa. A documentaÃ§Ã£o prevÃª conversas entre amigos, mas nÃ£o encontrei uma verificaÃ§Ã£o de amizade antes de abrir o chat nesta versÃ£o.',
+        'Abra o perfil da pessoa e toque no botão de conversa. A documentação prevê conversas entre amigos, mas não encontrei uma verificação de amizade antes de abrir o chat nesta versão.',
     'Quem pode conversar comigo?':
-        'A documentaÃ§Ã£o prevÃª conversas privadas entre amigos confirmados. Como o aplicativo nÃ£o confirma essa condiÃ§Ã£o antes de abrir um chat, nÃ£o posso garantir que essa regra esteja sendo aplicada.',
+        'A documentação prevê conversas privadas entre amigos confirmados. Como o aplicativo não confirma essa condição antes de abrir um chat, não posso garantir que essa regra esteja sendo aplicada.',
     'Como enviar uma mensagem?':
         'Abra a conversa, escreva sua mensagem no campo na parte de baixo da tela e toque em enviar. O chat aceita mensagens de texto.',
     'Como encontrar um grupo?':
-        'A tela Conversas mostra os grupos dos quais vocÃª participa. NÃ£o encontrei um catÃ¡logo para pesquisar grupos pÃºblicos.',
+        'A tela Conversas mostra os grupos dos quais você participa. Não encontrei um catálogo para pesquisar grupos públicos.',
     'Como participar de um grupo?':
-        'NÃ£o encontrei no aplicativo uma tela para procurar e entrar em grupos disponÃ­veis. A documentaÃ§Ã£o prevÃª essa funÃ§Ã£o, mas ela precisa ser conferida na versÃ£o atual.',
+        'Não encontrei no aplicativo uma tela para procurar e entrar em grupos disponíveis. A documentação prevê essa função, mas ela precisa ser conferida na versão atual.',
     'Como criar um grupo?':
-        'Em Conversas, toque no botÃ£o com o sinal de mais. Informe o nome, escolha uma foto e selecione pelo menos uma pessoa.',
+        'Em Conversas, toque no botão com o sinal de mais. Informe o nome, escolha uma foto e selecione pelo menos uma pessoa.',
     'Como sair de um grupo?':
-        'Abra o grupo, entre nas informaÃ§Ãµes do grupo e escolha a opÃ§Ã£o para sair.',
+        'Abra o grupo, entre nas informações do grupo e escolha a opção para sair.',
     'Como enviar uma mensagem no grupo?':
         'Abra o grupo, escreva no campo de mensagem e toque em enviar.',
     'Como encontrar locais de lazer e atividades?':
-        'Abra a tela de locais, pesquise pelo nome ou escolha a categoria Lazer. A lista mostra os locais cadastrados para cada cidade disponÃ­vel.',
+        'Abra a tela de locais, pesquise pelo nome ou escolha a categoria Lazer. A lista mostra os locais cadastrados para cada cidade disponível.',
     'Como pesquisar um local?':
         'Na tela de locais, use Pesquisar lugares para buscar por nome. Toque em Filtrar para escolher uma categoria ou cidade.',
-    'Como visualizar as informaÃ§Ãµes de um local?':
-        'Toque no cartÃ£o do local para abrir os detalhes disponÃ­veis, como descriÃ§Ã£o, endereÃ§o e horÃ¡rio de funcionamento.',
+    'Como visualizar as informações de um local?':
+        'Toque no cartão do local para abrir os detalhes disponíveis, como descrição, endereço e horário de funcionamento.',
     'Posso marcar um encontro pelo aplicativo?':
-        'NÃ£o encontrei uma agenda ou um botÃ£o para marcar encontros. A documentaÃ§Ã£o prevÃª combinar atividades, mas essa funÃ§Ã£o nÃ£o estÃ¡ confirmada na versÃ£o atual. O chat permite conversar por texto.',
-    'Onde posso ver minhas notificaÃ§Ãµes?':
-        'Abra NotificaÃ§Ãµes no menu inferior. A tela mostra os avisos disponÃ­veis para sua conta.',
-    'Como saber se alguÃ©m comeÃ§ou a me seguir?':
-        'Quando alguÃ©m comeÃ§a a seguir vocÃª, o aplicativo pode mostrar um aviso em NotificaÃ§Ãµes.',
-    'Por que recebi uma notificaÃ§Ã£o sobre meu vÃ­nculo familiar?':
+        'Não encontrei uma agenda ou um botão para marcar encontros. A documentação prevê combinar atividades, mas essa função não está confirmada na versão atual. O chat permite conversar por texto.',
+    'Onde posso ver minhas notificações?':
+        'Abra Notificações no menu inferior. A tela mostra os avisos disponíveis para sua conta.',
+    'Como saber se alguém começou a me seguir?':
+        'Quando alguém começa a seguir você, o aplicativo pode mostrar um aviso em Notificações.',
+    'Por que recebi uma notificação sobre meu vínculo familiar?':
         'O aviso informa que um familiar foi vinculado, que o acompanhamento foi bloqueado ou que foi reativado.',
-    'O que Ã© o vÃ­nculo familiar?':
-        'Ã‰ a ligaÃ§Ã£o entre sua conta e a de um familiar. Quando ele informa seu e-mail no cadastro e a conta Ã© encontrada, o vÃ­nculo Ã© criado automaticamente, sem uma etapa de aprovaÃ§Ã£o.',
-    'Como saber se um familiar estÃ¡ vinculado Ã  minha conta?':
-        'Confira NotificaÃ§Ãµes. Quando o vÃ­nculo Ã© criado, vocÃª recebe um aviso com o nome do familiar.',
+    'O que é o vínculo familiar?':
+        'É a ligação entre sua conta e a de um familiar. Quando ele informa seu e-mail no cadastro e a conta é encontrada, o vínculo é criado automaticamente, sem uma etapa de aprovação.',
+    'Como saber se um familiar está vinculado à minha conta?':
+        'Confira Notificações. Quando o vínculo é criado, você recebe um aviso com o nome do familiar.',
     'Como bloquear o acompanhamento de um familiar?':
-        'Abra a notificaÃ§Ã£o do vÃ­nculo familiar e toque em Bloquear familiar. O aplicativo pede confirmaÃ§Ã£o antes de interromper o acompanhamento.',
+        'Abra a notificação do vínculo familiar e toque em Bloquear familiar. O aplicativo pede confirmação antes de interromper o acompanhamento.',
     'O que acontece quando bloqueio meu familiar?':
-        'O familiar deixa de ver o painel de acompanhamento e recebe um aviso. VocÃª pode reativar o vÃ­nculo depois, pela notificaÃ§Ã£o, usando Desbloquear familiar.',
-    'Como encerrar o vÃ­nculo familiar?':
-        'NÃ£o encontrei uma opÃ§Ã£o para remover o vÃ­nculo de forma permanente. Para interromper o acompanhamento, use Bloquear familiar em NotificaÃ§Ãµes; essa aÃ§Ã£o pode ser desfeita depois.',
+        'O familiar deixa de ver o painel de acompanhamento e recebe um aviso. Você pode reativar o vínculo depois, pela notificação, usando Desbloquear familiar.',
+    'Como encerrar o vínculo familiar?':
+        'Não encontrei uma opção para remover o vínculo de forma permanente. Para interromper o acompanhamento, use Bloquear familiar em Notificações; essa ação pode ser desfeita depois.',
     'Como bloquear uma pessoa no chat?':
-        'Abra a conversa, toque nas informaÃ§Ãµes da conversa e escolha Bloquear usuÃ¡rio. O aplicativo informa que a pessoa nÃ£o poderÃ¡ enviar mensagens para vocÃª.',
-    'O que acontece quando bloqueio alguÃ©m?':
-        'O bloqueio disponÃ­vel Ã© da conversa privada: a pessoa deixa de poder enviar mensagens nessa conversa. NÃ£o encontrei confirmaÃ§Ã£o de que ele bloqueie pedidos de amizade ou interaÃ§Ãµes em grupos.',
-    'O que sÃ£o alertas de seguranÃ§a?':
-        'A tela Gerenciar Mensagens mostra exemplos de alertas, mas nÃ£o encontrei detecÃ§Ã£o real de riscos ou avisos ligados a conversas nesta versÃ£o. NÃ£o trate os exemplos da tela como alertas confirmados.',
-    'O que fazer quando encontro uma situaÃ§Ã£o suspeita?':
-        'NÃ£o compartilhe senhas, cÃ³digos ou dados bancÃ¡rios. Se houver uma conversa privada, vocÃª pode abrir as informaÃ§Ãµes dela e escolher Bloquear usuÃ¡rio. NÃ£o encontrei um botÃ£o para denunciar a situaÃ§Ã£o.',
-    'Quais informaÃ§Ãµes do idoso posso visualizar?':
-        'A documentaÃ§Ã£o prevÃª nome, foto, faixa etÃ¡ria, cidade, estado, interesses, amizades, grupos, atividades confirmadas e conversas sinalizadas. A tela atual mostra um resumo de acompanhamento; nÃ£o consegui confirmar que todos esses dados ou limites estejam aplicados.',
+        'Abra a conversa, toque nas informações da conversa e escolha Bloquear usuário. O aplicativo informa que a pessoa não poderá enviar mensagens para você.',
+    'O que acontece quando bloqueio alguém?':
+        'O bloqueio disponível é da conversa privada: a pessoa deixa de poder enviar mensagens nessa conversa. Não encontrei confirmação de que ele bloqueie pedidos de amizade ou interações em grupos.',
+    'O que são alertas de segurança?':
+        'A tela Gerenciar Mensagens mostra exemplos de alertas, mas não encontrei detecção real de riscos ou avisos ligados a conversas nesta versão. Não trate os exemplos da tela como alertas confirmados.',
+    'O que fazer quando encontro uma situação suspeita?':
+        'Não compartilhe senhas, códigos ou dados bancários. Se houver uma conversa privada, você pode abrir as informações dela e escolher Bloquear usuário. Não encontrei um botão para denunciar a situação.',
+    'Quais informações do idoso posso visualizar?':
+        'A documentação prevê nome, foto, faixa etária, cidade, estado, interesses, amizades, grupos, atividades confirmadas e conversas sinalizadas. A tela atual mostra um resumo de acompanhamento; não consegui confirmar que todos esses dados ou limites estejam aplicados.',
     'Posso alterar o perfil do idoso?':
-        'NÃ£o. O perfil do familiar oferece ediÃ§Ã£o dos prÃ³prios dados. NÃ£o encontrei uma opÃ§Ã£o para alterar o perfil do idoso.',
-    'Quais informaÃ§Ãµes pessoais nÃ£o devem ser compartilhadas?':
-        'A documentaÃ§Ã£o prevÃª que senha, e-mail, telefone e data de nascimento completa nÃ£o sejam exibidos ao familiar. NÃ£o consigo confirmar esse bloqueio no aplicativo atual; evite compartilhar dados sensÃ­veis atÃ© que as permissÃµes sejam verificadas.',
+        'Não. O perfil do familiar oferece edição dos próprios dados. Não encontrei uma opção para alterar o perfil do idoso.',
+    'Quais informações pessoais não devem ser compartilhadas?':
+        'A documentação prevê que senha, e-mail, telefone e data de nascimento completa não sejam exibidos ao familiar. Não consigo confirmar esse bloqueio no aplicativo atual; evite compartilhar dados sensíveis até que as permissões sejam verificadas.',
     'Como vincular um idoso?':
-        'No cadastro de Familiar, informe o e-mail usado pelo idoso no LaÃ§os. Se a conta for encontrada e ainda puder ser vinculada, o vÃ­nculo Ã© criado automaticamente.',
-    'O vÃ­nculo precisa de aprovaÃ§Ã£o do idoso?':
-        'NÃ£o. O cadastro cria o vÃ­nculo automaticamente quando encontra uma conta vÃ¡lida. O idoso recebe uma notificaÃ§Ã£o e pode bloquear o acompanhamento.',
-    'Como saber se o vÃ­nculo foi estabelecido?':
-        'Na conta do familiar, a tela InÃ­cio mostra o nome do idoso vinculado. O idoso tambÃ©m recebe uma notificaÃ§Ã£o sobre o novo vÃ­nculo.',
+        'No cadastro de Familiar, informe o e-mail usado pelo idoso no Laços. Se a conta for encontrada e ainda puder ser vinculada, o vínculo é criado automaticamente.',
+    'O vínculo precisa de aprovação do idoso?':
+        'Não. O cadastro cria o vínculo automaticamente quando encontra uma conta válida. O idoso recebe uma notificação e pode bloquear o acompanhamento.',
+    'Como saber se o vínculo foi estabelecido?':
+        'Na conta do familiar, a tela Início mostra o nome do idoso vinculado. O idoso também recebe uma notificação sobre o novo vínculo.',
     'O idoso pode bloquear o acompanhamento?':
-        'Sim. Na notificaÃ§Ã£o do vÃ­nculo, o idoso pode tocar em Bloquear familiar e confirmar a aÃ§Ã£o.',
-    'Posso remover meu vÃ­nculo como familiar?':
-        'A documentaÃ§Ã£o prevÃª que o familiar possa encerrar o vÃ­nculo, mas nÃ£o encontrei essa opÃ§Ã£o no aplicativo. Nesta versÃ£o, o idoso pode bloquear o acompanhamento pela tela NotificaÃ§Ãµes.',
+        'Sim. Na notificação do vínculo, o idoso pode tocar em Bloquear familiar e confirmar a ação.',
+    'Posso remover meu vínculo como familiar?':
+        'A documentação prevê que o familiar possa encerrar o vínculo, mas não encontrei essa opção no aplicativo. Nesta versão, o idoso pode bloquear o acompanhamento pela tela Notificações.',
     'O que aparece no resumo do familiar?':
-        'A tela InÃ­cio mostra o nome do idoso e um resumo de conversas, Ãºltima interaÃ§Ã£o e atividade recente. NÃ£o encontrei ali uma lista completa de amizades, grupos e atividades confirmadas.',
-    'Posso ver a localizaÃ§Ã£o do idoso?':
-        'NÃ£o encontrei compartilhamento da localizaÃ§Ã£o do idoso. A documentaÃ§Ã£o diz que a localizaÃ§Ã£o em tempo real nÃ£o faz parte desta versÃ£o.',
+        'A tela Início mostra o nome do idoso e um resumo de conversas, última interação e atividade recente. Não encontrei ali uma lista completa de amizades, grupos e atividades confirmadas.',
+    'Posso ver a localização do idoso?':
+        'Não encontrei compartilhamento da localização do idoso. A documentação diz que a localização em tempo real não faz parte desta versão.',
     'Posso acessar as conversas do idoso?':
-        'A documentaÃ§Ã£o prevÃª acesso apenas a conversas sinalizadas por alertas. Como nÃ£o encontrei um fluxo funcional de alertas e revisÃ£o de conversas, nÃ£o posso confirmar esse acesso no aplicativo atual.',
-    'Que alertas de seguranÃ§a existem no aplicativo?':
-        'A tela Gerenciar Mensagens contÃ©m exemplos prontos, mas os botÃµes de verificaÃ§Ã£o nÃ£o executam uma aÃ§Ã£o e os alertas nÃ£o vÃªm de uma anÃ¡lise real. A documentaÃ§Ã£o tambÃ©m deixa a geraÃ§Ã£o automÃ¡tica para uma versÃ£o futura.',
-    'O que posso fazer diante de uma situaÃ§Ã£o suspeita?':
-        'NÃ£o encontrei no perfil familiar uma aÃ§Ã£o para denunciar, bloquear alguÃ©m em nome do idoso ou resolver um alerta. A tela de alertas Ã© demonstrativa; nÃ£o conte com ela como proteÃ§Ã£o ativa.',
-    'Quais notificaÃ§Ãµes do vÃ­nculo familiar posso receber?':
-        'O familiar recebe avisos quando o idoso bloqueia ou reativa o acompanhamento. NÃ£o encontrei confirmaÃ§Ã£o de notificaÃ§Ãµes de alertas de seguranÃ§a nesta versÃ£o.',
-    'Posso fazer aÃ§Ãµes em nome do idoso?':
-        'A documentaÃ§Ã£o diz que o familiar nÃ£o pode editar o perfil, enviar mensagens nem enviar pedidos de amizade pelo idoso. NÃ£o encontrei essas aÃ§Ãµes disponÃ­veis no perfil familiar.',
-    'Quais dados do idoso sÃ£o privados?':
-        'A documentaÃ§Ã£o trata senha, credenciais, e-mail, telefone e data de nascimento completa como dados privados. As regras atuais do aplicativo nÃ£o permitem confirmar que esse limite seja aplicado em todos os acessos.',
+        'A documentação prevê acesso apenas a conversas sinalizadas por alertas. Como não encontrei um fluxo funcional de alertas e revisão de conversas, não posso confirmar esse acesso no aplicativo atual.',
+    'Que alertas de segurança existem no aplicativo?':
+        'A tela Gerenciar Mensagens contém exemplos prontos, mas os botões de verificação não executam uma ação e os alertas não vêm de uma análise real. A documentação também deixa a geração automática para uma versão futura.',
+    'O que posso fazer diante de uma situação suspeita?':
+        'Não encontrei no perfil familiar uma ação para denunciar, bloquear alguém em nome do idoso ou resolver um alerta. A tela de alertas é demonstrativa; não conte com ela como proteção ativa.',
+    'Quais notificações do vínculo familiar posso receber?':
+        'O familiar recebe avisos quando o idoso bloqueia ou reativa o acompanhamento. Não encontrei confirmação de notificações de alertas de segurança nesta versão.',
+    'Posso fazer ações em nome do idoso?':
+        'A documentação diz que o familiar não pode editar o perfil, enviar mensagens nem enviar pedidos de amizade pelo idoso. Não encontrei essas ações disponíveis no perfil familiar.',
+    'Quais dados do idoso são privados?':
+        'A documentação trata senha, credenciais, e-mail, telefone e data de nascimento completa como dados privados. As regras atuais do aplicativo não permitem confirmar que esse limite seja aplicado em todos os acessos.',
   };
 
   @override
@@ -276,93 +276,95 @@ class _ChatbotPageState extends State<ChatbotPage> {
   }
 
   void _goBack() {
-  setState(() {
-    if (_isFreeChat) {
-      _isFreeChat = false;
-      _conversation.clear();
-    } else if (_selectedQuestion != null) {
-      _selectedQuestion = null;
-    } else if (_selectedTopic != null) {
-      _selectedTopic = null;
-    }
-  });
-}
-  Future<void> _sendMessage() async {
-  final message = _messageController.text.trim();
-
-  if (message.isEmpty || _isSending) {
-    return;
+    setState(() {
+      if (_isFreeChat) {
+        _isFreeChat = false;
+        _conversation.clear();
+      } else if (_selectedQuestion != null) {
+        _selectedQuestion = null;
+      } else if (_selectedTopic != null) {
+        _selectedTopic = null;
+      }
+    });
   }
 
-setState(() {
-  _isFreeChat = true;
-  _selectedTopic = null;
-  _selectedQuestion = null;
-  _isSending = true;
+  Future<void> _sendMessage() async {
+    final message = _messageController.text.trim();
 
-  _conversation.add({
-    'role': 'user',
-    'text': message,
-  });
-});
-  _messageController.clear();
-  _scrollToBottom();
+    if (message.isEmpty || _isSending) {
+      return;
+    }
 
-  try {
-    final response = await http
-        .post(
-          Uri.parse('http://localhost:3000/api/chatbot.php'),
-          headers: {'Content-Type': 'application/json; charset=utf-8'},
-          body: jsonEncode({'message': message}),
-        )
-        .timeout(const Duration(seconds: 40));
+    setState(() {
+      _isFreeChat = true;
+      _selectedTopic = null;
+      _selectedQuestion = null;
+      _isSending = true;
+
+      _conversation.add({
+        'role': 'user',
+        'text': message,
+      });
+    });
+    _messageController.clear();
+    _scrollToBottom();
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('http://localhost:3000/api/chatbot.php'),
+            headers: {'Content-Type': 'application/json; charset=utf-8'},
+            body: jsonEncode({'message': message}),
+          )
+          .timeout(const Duration(seconds: 40));
 
       debugPrint('STATUS HTTP: ${response.statusCode}');
       debugPrint('RESPOSTA BRUTA DO PHP: ${response.body}');
 
       final data = jsonDecode(utf8.decode(response.bodyBytes));
 
-    if (response.statusCode == 200 &&
-        data is Map<String, dynamic> &&
-        data['success'] == true &&
-        data['answer'] is String) {
+      if (response.statusCode == 200 &&
+          data is Map<String, dynamic> &&
+          data['success'] == true &&
+          data['answer'] is String) {
+        if (!mounted) return;
+
+        setState(() {
+          _conversation.add({
+            'role': 'bot',
+            'text': data['answer'] as String,
+          });
+        });
+      } else {
+        throw Exception(
+          data is Map<String, dynamic>
+              ? data['message'] ?? 'Não foi possível obter uma resposta.'
+              : 'Resposta inválida do servidor.',
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Erro ao enviar mensagem ao Assistente Laços: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
       if (!mounted) return;
 
       setState(() {
         _conversation.add({
           'role': 'bot',
-          'text': data['answer'] as String,
+          'text':
+              'Não consegui responder agora. Verifique sua conexão e tente novamente.',
         });
       });
-    } else {
-      throw Exception(
-        data is Map<String, dynamic>
-            ? data['message'] ?? 'NÃ£o foi possÃ­vel obter uma resposta.'
-            : 'Resposta invÃ¡lida do servidor.',
-      );
-    }
- } catch (e, stackTrace) {
-    debugPrint('Erro ao enviar mensagem ao Assistente LaÃ§os: $e');
-    debugPrintStack(stackTrace: stackTrace);
-
-    if (!mounted) return;
-
-    setState(() {
-      _conversation.add({
-        'role': 'bot',
-        'text':
-            'NÃ£o consegui responder agora. Verifique sua conexÃ£o e tente novamente.',
-      });
-    });
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isSending = false;
-      });
-      _scrollToBottom();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+        _scrollToBottom();
+      }
     }
   }
-}
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -385,7 +387,7 @@ setState(() {
     final answer = _selectedQuestion == null
         ? null
         : _answers[_selectedQuestion] ??
-            'Esta informaÃ§Ã£o ainda precisa ser confirmada no aplicativo.';
+            'Esta informação ainda precisa ser confirmada no aplicativo.';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -399,17 +401,16 @@ setState(() {
               ),
               child: Row(
                 children: [
-
-GestureDetector(
-  onTap: () {
-    if (_isFreeChat ||
-        _selectedQuestion != null ||
-        _selectedTopic != null) {
-      _goBack();
-    } else {
-      Navigator.pop(context);
-    }
-  },
+                  GestureDetector(
+                    onTap: () {
+                      if (_isFreeChat ||
+                          _selectedQuestion != null ||
+                          _selectedTopic != null) {
+                        _goBack();
+                      } else {
+                        Navigator.pop(context);
+                      }
+                    },
                     child: Image.asset(
                       'assets/icons/navigation/back_icon.png',
                       width: 40,
@@ -434,7 +435,7 @@ GestureDetector(
                   ),
                   const Expanded(
                     child: Text(
-                      'Assistente LaÃ§os',
+                      'Assistente Laços',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Quicksand',
@@ -459,31 +460,29 @@ GestureDetector(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildBotMessage(
-                      'OlÃ¡! Eu sou o Assistente LaÃ§os. '
-                      'Como posso ajudar vocÃª?',
+                      'Olá! Eu sou o Assistente Laços. '
+                      'Como posso ajudar você?',
                     ),
                     const SizedBox(height: 20),
+                    ..._conversation.map((message) {
+                      if (message['role'] == 'user') {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _buildUserMessage(message['text'] ?? ''),
+                        );
+                      }
 
-..._conversation.map((message) {
-  if (message['role'] == 'user') {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: _buildUserMessage(message['text'] ?? ''),
-    );
-  }
-
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: _buildBotMessage(message['text'] ?? ''),
-  );
-}),
-
-if (_isSending)
-  _buildBotMessage('Estou preparando uma resposta...'),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _buildBotMessage(message['text'] ?? ''),
+                      );
+                    }),
+                    if (_isSending)
+                      _buildBotMessage('Estou preparando uma resposta...'),
                     const SizedBox(height: 20),
-                  if (_isFreeChat) ...[
-  const SizedBox.shrink(),
-] else if (_selectedTopic == null) ...[
+                    if (_isFreeChat) ...[
+                      const SizedBox.shrink(),
+                    ] else if (_selectedTopic == null) ...[
                       const Text(
                         'Escolha um assunto:',
                         style: TextStyle(
@@ -595,7 +594,7 @@ if (_isSending)
                         fontFamily: 'Quicksand',
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Digite sua dÃºvida...',
+                        hintText: 'Digite sua dúvida...',
                         hintStyle: const TextStyle(
                           color: Color(0xFFB8B8B8),
                           fontSize: 15,
