@@ -12,10 +12,16 @@ class MessageService {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
 
-  Stream<List<MessageModel>> getMessagesStream(String chatId) {
-    final userId = _auth.currentUser?.uid;
+  /// Retorna as mensagens de um chat.
+  /// Se [targetUserId] for informado (ex: idoso monitorado), ele é usado
+  /// para calcular o `isCurrentUser` das mensagens do modelo.
+  Stream<List<MessageModel>> getMessagesStream(
+    String chatId, {
+    String? targetUserId,
+  }) {
+    final effectiveUserId = targetUserId ?? _auth.currentUser?.uid;
 
-    if (userId == null) {
+    if (effectiveUserId == null) {
       return Stream<List<MessageModel>>.value(const <MessageModel>[]);
     }
 
@@ -29,7 +35,7 @@ class MessageService {
       return snapshot.docs.map((document) {
         return MessageModel.fromMap(
           <String, dynamic>{...document.data(), 'id': document.id},
-          userId,
+          effectiveUserId,
         );
       }).toList();
     });
@@ -84,7 +90,6 @@ class MessageService {
 
       for (final doc in snapshot.docs) {
         final data = doc.data();
-        // Atualiza para 'read' as mensagens que vieram de VOCÊ (O6xd...)
         if (data['senderId'] != userId && data['status'] != 'read') {
           batch.update(doc.reference, {'status': 'read'});
           hasUpdates = true;
@@ -99,11 +104,6 @@ class MessageService {
     }
   }
 
-  /// Retorna um Stream com a contagem de mensagens não lidas para o usuário atual.
-  ///
-  /// Uma mensagem é considerada não lida se:
-  /// - Não foi enviada pelo usuário atual (senderId != userId)
-  /// - Ainda não foi marcada como 'read' (status != 'read')
   Stream<int> getUnreadMessageCount(String chatId) {
     final userId = _auth.currentUser?.uid;
     if (userId == null) {
@@ -122,7 +122,6 @@ class MessageService {
         final senderId = data['senderId'] as String? ?? '';
         final status = data['status'] as String? ?? 'sent';
 
-        // Conta apenas mensagens recebidas que não foram lidas
         if (senderId != userId && status != 'read') {
           unreadCount++;
         }
@@ -131,13 +130,6 @@ class MessageService {
     });
   }
 
-  /// Monitora novas mensagens para uma conversa específica e dispara notificações.
-  ///
-  /// Esta função deve ser chamada uma vez por conversa para monitorar mensagens novas.
-  /// Dispara notificações apenas se:
-  /// - A mensagem foi recebida (não enviada pelo usuário atual)
-  /// - A conversa não está aberta (_isChatScreenActive = false)
-  /// - A mensagem ainda não está marcada como lida
   void startListeningForNotifications(
     String chatId,
     String participantName,
@@ -162,9 +154,6 @@ class MessageService {
       final messageText = data['text'] as String? ?? '';
       final status = data['status'] as String? ?? 'sent';
 
-      // Dispara notificação apenas se:
-      // 1. A mensagem foi recebida (senderId != userId)
-      // 2. Ainda não foi lida (status != 'read')
       if (senderId != userId && status != 'read' && messageText.isNotEmpty) {
         NotificationService().notifyIfNeeded(
           chatId: chatId,

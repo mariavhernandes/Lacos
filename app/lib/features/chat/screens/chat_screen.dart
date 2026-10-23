@@ -19,9 +19,13 @@ class ChatScreen extends StatefulWidget {
   const ChatScreen({
     super.key,
     required this.chat,
+    this.isReadOnly = false,
+    this.viewingUserId,
   });
 
   final Chat chat;
+  final bool isReadOnly;
+  final String? viewingUserId;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -32,7 +36,6 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isChatScreenActive = false;
   bool _hasLeftGroup = false;
 
-  // Aviso temporário de que outra pessoa saiu.
   bool _showGroupLeftNotice = false;
   String? _leftGroupMemberName;
   String? _groupLeftNoticeMessageSignature;
@@ -55,13 +58,12 @@ class _ChatScreenState extends State<ChatScreen> {
       NotificationService().setActiveChatId(widget.chat.id!);
     }
 
-    unawaited(_logFamilyConversationView());
+    if (!widget.isReadOnly) {
+      unawaited(_logFamilyConversationView());
+    }
     _loadGroupLeftStatus();
   }
 
-  // ============================================================
-  // STATUS DE SAÍDA DO GRUPO
-  // ============================================================
   Future<void> _logFamilyConversationView() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     final chatId = widget.chat.id;
@@ -78,6 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final participant = widget.chat.isGroup
           ? 'grupo'
           : widget.chat.participantName ?? 'desconhecido';
+
       await AuditService().logAction(
         userId: userId,
         action: 'visualizou_conversa',
@@ -96,10 +99,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final userId = FirebaseAuth.instance.currentUser?.uid;
-
-    if (userId == null) {
-      return;
-    }
+    if (userId == null) return;
 
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -107,43 +107,24 @@ class _ChatScreenState extends State<ChatScreen> {
           .doc(widget.chat.id!)
           .get();
 
-      if (!snapshot.exists) {
-        return;
-      }
-
+      if (!snapshot.exists) return;
       final data = snapshot.data();
-
-      if (data == null) {
-        return;
-      }
+      if (data == null) return;
 
       final leftAt = Map<String, dynamic>.from(
         (data['leftAt'] as Map?) ?? {},
       );
 
-      // ------------------------------------------------------------
-      // VERIFICA SE O USUÁRIO ATUAL SAIU
-      // ------------------------------------------------------------
-
       final hasLeftGroup = leftAt.containsKey(userId);
-
-      // ------------------------------------------------------------
-      // PROCURA A ÚLTIMA PESSOA QUE SAIU
-      // ------------------------------------------------------------
 
       String? latestLeftUserId;
       Timestamp? latestLeftTimestamp;
 
       for (final entry in leftAt.entries) {
         final leftUserId = entry.key.toString();
-
-        // Não mostra "Fulano saiu" para a própria pessoa.
-        if (leftUserId == userId) {
-          continue;
-        }
+        if (leftUserId == userId) continue;
 
         final rawTimestamp = entry.value;
-
         Timestamp? timestamp;
 
         if (rawTimestamp is Timestamp) {
@@ -152,30 +133,21 @@ class _ChatScreenState extends State<ChatScreen> {
           timestamp = Timestamp.fromDate(rawTimestamp);
         }
 
-        if (timestamp == null) {
-          continue;
-        }
+        if (timestamp == null) continue;
 
         if (latestLeftTimestamp == null ||
-            timestamp.toDate().isAfter(
-                  latestLeftTimestamp.toDate(),
-                )) {
+            timestamp.toDate().isAfter(latestLeftTimestamp.toDate())) {
           latestLeftTimestamp = timestamp;
           latestLeftUserId = leftUserId;
         }
       }
 
       String? latestLeftName;
-
       if (latestLeftUserId != null) {
-        latestLeftName = await _loadUserDisplayName(
-          latestLeftUserId,
-        );
+        latestLeftName = await _loadUserDisplayName(latestLeftUserId);
       }
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _hasLeftGroup = hasLeftGroup;
@@ -183,8 +155,6 @@ class _ChatScreenState extends State<ChatScreen> {
         if (!hasLeftGroup && latestLeftUserId != null) {
           _showGroupLeftNotice = true;
           _leftGroupMemberName = latestLeftName ?? 'Usuário';
-
-          // Guarda a última mensagem que existia quando o aviso apareceu.
           _groupLeftNoticeMessageSignature = _buildLastMessageSignature(data);
         } else {
           _showGroupLeftNotice = false;
@@ -203,18 +173,14 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<String?> _loadUserDisplayName(
-    String uid,
-  ) async {
+  Future<String?> _loadUserDisplayName(String uid) async {
     try {
       final elderlySnapshot =
           await FirebaseFirestore.instance.collection('idosos').doc(uid).get();
 
       if (elderlySnapshot.exists) {
         final data = elderlySnapshot.data();
-
         final name = data?['name'] ?? data?['nome'];
-
         if (name != null && name.toString().trim().isNotEmpty) {
           return name.toString();
         }
@@ -227,27 +193,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
       if (familySnapshot.exists) {
         final data = familySnapshot.data();
-
         final name = data?['name'] ?? data?['nome'];
-
         if (name != null && name.toString().trim().isNotEmpty) {
           return name.toString();
         }
       }
-    } catch (_) {
-      // Se não conseguir carregar o nome, usa "Usuário".
-    }
+    } catch (_) {}
 
     return 'Usuário';
   }
 
-  String _buildLastMessageSignature(
-    Map<String, dynamic>? data,
-  ) {
-    if (data == null) {
-      return '';
-    }
-
+  String _buildLastMessageSignature(Map<String, dynamic>? data) {
+    if (data == null) return '';
     final lastMessage = data['lastMessage']?.toString() ?? '';
     final lastMessageTime = data['lastMessageTime'];
 
@@ -258,9 +215,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return '$lastMessageTime|$lastMessage';
   }
 
-  void _hideGroupLeftNoticeIfNewMessage(
-    Map<String, dynamic>? chatData,
-  ) {
+  void _hideGroupLeftNoticeIfNewMessage(Map<String, dynamic>? chatData) {
     if (!widget.chat.isGroup ||
         _hasLeftGroup ||
         !_showGroupLeftNotice ||
@@ -268,20 +223,12 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    final currentSignature = _buildLastMessageSignature(
-      chatData,
-    );
-
-    if (currentSignature.isEmpty) {
-      return;
-    }
+    final currentSignature = _buildLastMessageSignature(chatData);
+    if (currentSignature.isEmpty) return;
 
     if (currentSignature != _groupLeftNoticeMessageSignature) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-
+        if (!mounted) return;
         if (_showGroupLeftNotice) {
           setState(() {
             _showGroupLeftNotice = false;
@@ -296,33 +243,25 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _isChatScreenActive = false;
-
     NotificationService().clearActiveChatId();
-
     _searchController.dispose();
     _messageController.dispose();
     _messageFocusNode.dispose();
-
     super.dispose();
   }
 
   void _markMessagesAsRead() {
-    if (widget.chat.id != null && !_hasLeftGroup) {
+    if (widget.chat.id != null && !_hasLeftGroup && !widget.isReadOnly) {
       _messageService.markMessagesAsRead(widget.chat.id!);
       _chatService.markAsRead(widget.chat.id!);
     }
   }
 
-  // ============================================================
-  // ENVIAR MENSAGEM
-  // ============================================================
-
   Future<void> _sendMessage() async {
-    final messageText = _messageController.text;
+    if (widget.isReadOnly) return;
 
-    if (messageText.trim().isEmpty || _hasLeftGroup) {
-      return;
-    }
+    final messageText = _messageController.text;
+    if (messageText.trim().isEmpty || _hasLeftGroup) return;
 
     try {
       await _messageService.sendMessage(
@@ -333,28 +272,18 @@ class _ChatScreenState extends State<ChatScreen> {
       _messageController.clear();
 
       if (mounted) {
-        FocusScope.of(context).requestFocus(
-          _messageFocusNode,
-        );
+        FocusScope.of(context).requestFocus(_messageFocusNode);
       }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString()),
-          ),
+          SnackBar(content: Text(error.toString())),
         );
       }
     }
   }
 
-  // ============================================================
-  // PRESENÇA
-  // ============================================================
-
-  Widget _buildPresenceSubtitle(
-    String? participantId,
-  ) {
+  Widget _buildPresenceSubtitle(String? participantId) {
     if (participantId == null || participantId.isEmpty) {
       return const Text(
         'Off-line',
@@ -372,7 +301,6 @@ class _ChatScreenState extends State<ChatScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         Map<String, dynamic>? data;
-
         if (snapshot.hasData && snapshot.data!.exists) {
           data = snapshot.data!.data() as Map<String, dynamic>?;
         }
@@ -397,9 +325,7 @@ class _ChatScreenState extends State<ChatScreen> {
               final familiarData =
                   familiarSnapshot.data!.data() as Map<String, dynamic>?;
 
-              return _formatPresenceText(
-                familiarData,
-              );
+              return _formatPresenceText(familiarData);
             },
           );
         }
@@ -409,9 +335,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _formatPresenceText(
-    Map<String, dynamic>? data,
-  ) {
+  Widget _formatPresenceText(Map<String, dynamic>? data) {
     final bool isOnline = data != null && data.containsKey('isOnline')
         ? data['isOnline'] == true
         : false;
@@ -431,7 +355,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (rawLastSeen is Timestamp) {
       final date = rawLastSeen.toDate();
-
       final hour = date.hour.toString().padLeft(2, '0');
       final minute = date.minute.toString().padLeft(2, '0');
 
@@ -453,10 +376,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // ============================================================
-  // BUSCA
-  // ============================================================
-
   Widget _buildSearchBar() {
     return Row(
       children: [
@@ -468,9 +387,7 @@ class _ChatScreenState extends State<ChatScreen> {
               _searchController.clear();
             });
           },
-          icon: Image.asset(
-            'assets/icons/navigation/arrow_left.png',
-          ),
+          icon: Image.asset('assets/icons/navigation/arrow_left.png'),
           color: AppColors.textPrimary,
           splashRadius: 24,
           tooltip: 'Voltar',
@@ -520,7 +437,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     ? IconButton(
                         onPressed: () {
                           _searchController.clear();
-
                           setState(() {
                             searchQuery = '';
                           });
@@ -559,11 +475,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // ============================================================
-  // INFORMAÇÕES DA CONVERSA
-  // ============================================================
-
   Future<void> _openConversationInfo() async {
+    // Se for modo somente leitura (familiar), não abre as opções
+    if (widget.isReadOnly) return;
+
     final result = await Navigator.push<String>(
       context,
       MaterialPageRoute(
@@ -573,9 +488,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (result == 'search') {
       setState(() {
@@ -583,7 +496,6 @@ class _ChatScreenState extends State<ChatScreen> {
         searchQuery = '';
         _searchController.clear();
       });
-
       return;
     }
 
@@ -597,7 +509,6 @@ class _ChatScreenState extends State<ChatScreen> {
       _messageFocusNode.unfocus();
 
       await _handleGroupLeft();
-
       return;
     }
 
@@ -607,9 +518,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _handleGroupLeft() async {
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     final bool? deleteGroup = await showDialog<bool>(
       context: context,
@@ -634,12 +543,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  false,
-                );
-              },
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text(
                 'Não',
                 style: TextStyle(
@@ -650,12 +554,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  true,
-                );
-              },
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text(
                 'Sim',
                 style: TextStyle(
@@ -670,40 +569,21 @@ class _ChatScreenState extends State<ChatScreen> {
       },
     );
 
-    if (!mounted) {
-      return;
-    }
-
-    if (deleteGroup != true) {
-      return;
-    }
+    if (!mounted || deleteGroup != true) return;
 
     try {
-      await _chatService.deleteGroup(
-        widget.chat.id!,
-      );
-
-      if (!mounted) {
-        return;
+      await _chatService.deleteGroup(widget.chat.id!);
+      if (mounted) {
+        Navigator.of(context).pop(true);
       }
-
-      Navigator.of(context).pop(true);
     } catch (error) {
-      if (!mounted) {
-        return;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString()),
-        ),
-      );
     }
   }
-
-  // ============================================================
-  // APP BAR
-  // ============================================================
 
   Widget _buildNormalAppBar(
     bool isBlocked,
@@ -719,19 +599,12 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         IconButton(
           onPressed: () async {
-            if (widget.chat.id != null) {
-              await _chatService.markAsRead(
-                widget.chat.id!,
-              );
+            if (widget.chat.id != null && !widget.isReadOnly) {
+              await _chatService.markAsRead(widget.chat.id!);
             }
-
-            if (mounted) {
-              Navigator.pop(context);
-            }
+            if (mounted) Navigator.pop(context);
           },
-          icon: Image.asset(
-            'assets/icons/navigation/arrow_left.png',
-          ),
+          icon: Image.asset('assets/icons/navigation/arrow_left.png'),
           color: AppColors.textPrimary,
           splashRadius: 24,
           tooltip: 'Voltar',
@@ -745,7 +618,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 .snapshots(),
             builder: (context, snapshot) {
               Map<String, dynamic>? data;
-
               if (snapshot.hasData && snapshot.data!.exists) {
                 data = snapshot.data!.data() as Map<String, dynamic>?;
               }
@@ -756,12 +628,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       .collection('familiares')
                       .doc(otherUserId)
                       .snapshots(),
-                  builder: (
-                    context,
-                    familiarSnapshot,
-                  ) {
+                  builder: (context, familiarSnapshot) {
                     Map<String, dynamic>? familiarData;
-
                     if (familiarSnapshot.hasData &&
                         familiarSnapshot.data!.exists) {
                       familiarData = familiarSnapshot.data!.data()
@@ -789,14 +657,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildGroupAppBar(
-    Map<String, dynamic>? chatData,
-  ) {
+  Widget _buildGroupAppBar(Map<String, dynamic>? chatData) {
     final groupName =
         chatData?['groupName']?.toString() ?? widget.chat.groupName ?? 'Grupo';
-
     final participants = chatData?['participants'];
-
     final leftAt = Map<String, dynamic>.from(
       (chatData?['leftAt'] as Map?) ?? {},
     );
@@ -804,19 +668,14 @@ class _ChatScreenState extends State<ChatScreen> {
     final List<String> participantIds = participants is List
         ? participants
             .whereType<String>()
-            .where(
-              (id) => id.trim().isNotEmpty && !leftAt.containsKey(id),
-            )
+            .where((id) => id.trim().isNotEmpty && !leftAt.containsKey(id))
             .toSet()
             .toList()
         : (widget.chat.participantIds ?? const <String>[])
-            .where(
-              (id) => !leftAt.containsKey(id),
-            )
+            .where((id) => !leftAt.containsKey(id))
             .toList();
 
     final int participantCount = participantIds.length;
-
     final groupAvatar =
         chatData?['groupAvatar']?.toString() ?? widget.chat.groupAvatar;
 
@@ -824,19 +683,12 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         IconButton(
           onPressed: () async {
-            if (widget.chat.id != null) {
-              await _chatService.markAsRead(
-                widget.chat.id!,
-              );
+            if (widget.chat.id != null && !widget.isReadOnly) {
+              await _chatService.markAsRead(widget.chat.id!);
             }
-
-            if (mounted) {
-              Navigator.pop(context);
-            }
+            if (mounted) Navigator.pop(context);
           },
-          icon: Image.asset(
-            'assets/icons/navigation/arrow_left.png',
-          ),
+          icon: Image.asset('assets/icons/navigation/arrow_left.png'),
           color: AppColors.textPrimary,
           splashRadius: 24,
           tooltip: 'Voltar',
@@ -845,7 +697,7 @@ class _ChatScreenState extends State<ChatScreen> {
         Expanded(
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            onTap: _openConversationInfo,
+            onTap: widget.isReadOnly ? null : _openConversationInfo,
             child: Row(
               children: [
                 ClipOval(
@@ -856,11 +708,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               width: 40,
                               height: 40,
                               fit: BoxFit.cover,
-                              errorBuilder: (
-                                _,
-                                __,
-                                ___,
-                              ) =>
+                              errorBuilder: (_, __, ___) =>
                                   _buildDefaultGroupAvatar(),
                             )
                           : Image.network(
@@ -868,11 +716,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               width: 40,
                               height: 40,
                               fit: BoxFit.cover,
-                              errorBuilder: (
-                                _,
-                                __,
-                                ___,
-                              ) =>
+                              errorBuilder: (_, __, ___) =>
                                   _buildDefaultGroupAvatar(),
                             ))
                       : _buildDefaultGroupAvatar(),
@@ -947,28 +791,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () async {
-        final result = await Navigator.push<String>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ConversationInfoScreen(
-              chat: widget.chat,
-            ),
-          ),
-        );
-
-        if (!mounted) {
-          return;
-        }
-
-        if (result == 'search') {
-          setState(() {
-            isSearching = true;
-            searchQuery = '';
-            _searchController.clear();
-          });
-        }
-      },
+      onTap: widget.isReadOnly ? null : _openConversationInfo,
       child: Row(
         children: [
           ClipOval(
@@ -984,12 +807,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     width: 40,
                     height: 40,
                     fit: BoxFit.cover,
-                    errorBuilder: (
-                      _,
-                      __,
-                      ___,
-                    ) =>
-                        Image.asset(
+                    errorBuilder: (_, __, ___) => Image.asset(
                       'assets/avatars/avatar_1.png',
                       width: 40,
                       height: 40,
@@ -1015,9 +833,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                _buildPresenceSubtitle(
-                  userId,
-                ),
+                _buildPresenceSubtitle(userId),
               ],
             ),
           ),
@@ -1025,10 +841,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
-  // ============================================================
-  // BUILD
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -1039,36 +851,25 @@ class _ChatScreenState extends State<ChatScreen> {
           .snapshots(),
       builder: (context, chatSnapshot) {
         bool isBlocked = widget.chat.isBlocked;
-
         Map<String, dynamic>? chatData;
 
         if (chatSnapshot.hasData && chatSnapshot.data!.exists) {
           chatData = chatSnapshot.data!.data() as Map<String, dynamic>?;
-
           if (chatData != null && chatData.containsKey('isBlocked')) {
             isBlocked = chatData['isBlocked'] as bool? ?? false;
           }
         }
 
-        // ========================================================
-        // IMPORTANTE:
-        // isBlocked só existe para conversa privada.
-        // Grupo NUNCA deve usar esse bloqueio.
-        // ========================================================
-
         final bool effectiveIsBlocked = !widget.chat.isGroup && isBlocked;
 
-        // Se chegou uma nova mensagem no grupo,
-        // desaparece o aviso de quem saiu.
         if (widget.chat.isGroup) {
-          _hideGroupLeftNoticeIfNewMessage(
-            chatData,
-          );
+          _hideGroupLeftNoticeIfNewMessage(chatData);
         }
 
         return StreamBuilder<List<MessageModel>>(
           stream: _messageService.getMessagesStream(
             widget.chat.id!,
+            targetUserId: widget.viewingUserId,
           ),
           builder: (context, snapshot) {
             final messages = snapshot.data ?? const <MessageModel>[];
@@ -1076,18 +877,16 @@ class _ChatScreenState extends State<ChatScreen> {
             if (_isChatScreenActive &&
                 snapshot.hasData &&
                 messages.isNotEmpty &&
-                !_hasLeftGroup) {
+                !_hasLeftGroup &&
+                !widget.isReadOnly) {
               _markMessagesAsRead();
             }
 
             final filteredMessages = messages.where((message) {
-              if (searchQuery.trim().isEmpty) {
-                return true;
-              }
-
-              return message.text.toLowerCase().contains(
-                    searchQuery.trim().toLowerCase(),
-                  );
+              if (searchQuery.trim().isEmpty) return true;
+              return message.text
+                  .toLowerCase()
+                  .contains(searchQuery.trim().toLowerCase());
             }).toList();
 
             return Scaffold(
@@ -1113,29 +912,17 @@ class _ChatScreenState extends State<ChatScreen> {
                       thickness: 1,
                       color: Color(0xFFE5E5E5),
                     ),
-
-                    // ==================================================
-                    // AVISO PARA QUEM SAIU
-                    // ==================================================
-
                     if (_hasLeftGroup)
                       Container(
                         width: double.infinity,
-                        margin: const EdgeInsets.fromLTRB(
-                          20,
-                          12,
-                          20,
-                          4,
-                        ),
+                        margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF2F2F2),
-                          borderRadius: BorderRadius.circular(
-                            12,
-                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
                           'Você saiu deste grupo.',
@@ -1148,32 +935,20 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                         ),
                       ),
-
-                    // ==================================================
-                    // AVISO PARA QUEM FICOU
-                    // ==================================================
-
                     if (widget.chat.isGroup &&
                         !_hasLeftGroup &&
                         _showGroupLeftNotice &&
                         _leftGroupMemberName != null)
                       Container(
                         width: double.infinity,
-                        margin: const EdgeInsets.fromLTRB(
-                          20,
-                          12,
-                          20,
-                          4,
-                        ),
+                        margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF2F2F2),
-                          borderRadius: BorderRadius.circular(
-                            12,
-                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           '$_leftGroupMemberName saiu do grupo.',
@@ -1186,49 +961,32 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                         ),
                       ),
-
                     Expanded(
                       child: Column(
                         children: [
-                          // ==================================================
-                          // BLOQUEIO SOMENTE PARA CHAT PRIVADO
-                          // ==================================================
-
                           if (effectiveIsBlocked)
                             Container(
                               width: double.infinity,
-                              margin: const EdgeInsets.fromLTRB(
-                                20,
-                                12,
-                                20,
-                                4,
-                              ),
+                              margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFFF2F2F2,
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                  12,
-                                ),
+                                color: const Color(0xFFF2F2F2),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Text(
                                 'Você bloqueou esta pessoa.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Color(
-                                    0xFF8A8A8A,
-                                  ),
+                                  color: Color(0xFF8A8A8A),
                                   fontSize: 14,
                                   fontFamily: 'Quicksand',
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
-
                           Expanded(
                             child: filteredMessages.isEmpty
                                 ? Center(
@@ -1237,9 +995,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                           ? 'Nenhuma mensagem encontrada.'
                                           : 'Nenhuma mensagem.',
                                       style: const TextStyle(
-                                        color: Color(
-                                          0xFF8A8A8A,
-                                        ),
+                                        color: Color(0xFF8A8A8A),
                                         fontSize: 14,
                                         fontFamily: 'Quicksand',
                                       ),
@@ -1254,10 +1010,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       16,
                                     ),
                                     itemCount: filteredMessages.length,
-                                    itemBuilder: (
-                                      context,
-                                      index,
-                                    ) {
+                                    itemBuilder: (context, index) {
                                       final message = filteredMessages[index];
 
                                       return Row(
@@ -1277,137 +1030,123 @@ class _ChatScreenState extends State<ChatScreen> {
                                         ],
                                       );
                                     },
-                                    separatorBuilder: (
-                                      _,
-                                      __,
-                                    ) =>
-                                        const SizedBox(
-                                      height: 10,
-                                    ),
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(height: 10),
                                   ),
                           ),
                         ],
                       ),
                     ),
-
-                    // ==================================================
-                    // CAMPO DE MENSAGEM
-                    // ==================================================
-
-                    Container(
-                      color: AppColors.background,
-                      padding: const EdgeInsets.fromLTRB(
-                        20,
-                        12,
-                        20,
-                        20,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: KeyboardListener(
-                              focusNode: FocusNode(),
-                              onKeyEvent: (KeyEvent event) {
-                                if (event is KeyDownEvent &&
-                                    event.logicalKey ==
-                                        LogicalKeyboardKey.enter &&
-                                    !HardwareKeyboard.instance.isShiftPressed) {
-                                  if (!effectiveIsBlocked && !_hasLeftGroup) {
-                                    _sendMessage();
+                    if (widget.isReadOnly)
+                      Container(
+                        width: double.infinity,
+                        color: const Color(0xFFF2F2F2),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 20,
+                        ),
+                        child: const Text(
+                          'Somente Visualização',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF8A8A8A),
+                            fontSize: 14,
+                            fontFamily: 'Quicksand',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        color: AppColors.background,
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: KeyboardListener(
+                                focusNode: FocusNode(),
+                                onKeyEvent: (KeyEvent event) {
+                                  if (event is KeyDownEvent &&
+                                      event.logicalKey ==
+                                          LogicalKeyboardKey.enter &&
+                                      !HardwareKeyboard.instance.isShiftPressed) {
+                                    if (!effectiveIsBlocked && !_hasLeftGroup) {
+                                      _sendMessage();
+                                    }
                                   }
-                                }
-                              },
-                              child: TextField(
-                                controller: _messageController,
-                                focusNode: _messageFocusNode,
-
-                                // Grupo só fica desabilitado
-                                // se a pessoa realmente saiu.
-                                enabled: !effectiveIsBlocked && !_hasLeftGroup,
-
-                                minLines: 1,
-                                maxLines: 5,
-                                keyboardType: TextInputType.multiline,
-                                textInputAction: TextInputAction.newline,
-                                cursorColor: const Color(
-                                  0xFF8A8A8A,
-                                ),
-                                style: const TextStyle(
-                                  color: Color(
-                                    0xFF8A8A8A,
-                                  ),
-                                  fontSize: 14,
-                                  fontFamily: 'Quicksand',
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: _hasLeftGroup
-                                      ? 'Você saiu deste grupo'
-                                      : effectiveIsBlocked
-                                          ? 'Você bloqueou esta pessoa'
-                                          : 'Digite sua mensagem...',
-                                  hintStyle: const TextStyle(
-                                    color: Color(
-                                      0xFFB8B8B8,
-                                    ),
-                                    fontSize: 15,
+                                },
+                                child: TextField(
+                                  controller: _messageController,
+                                  focusNode: _messageFocusNode,
+                                  enabled:
+                                      !effectiveIsBlocked && !_hasLeftGroup,
+                                  minLines: 1,
+                                  maxLines: 5,
+                                  keyboardType: TextInputType.multiline,
+                                  textInputAction: TextInputAction.newline,
+                                  cursorColor: const Color(0xFF8A8A8A),
+                                  style: const TextStyle(
+                                    color: Color(0xFF8A8A8A),
+                                    fontSize: 14,
                                     fontFamily: 'Quicksand',
                                   ),
-                                  filled: true,
-                                  fillColor: const Color(
-                                    0xFFEAEAEA,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                    horizontal: 20,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      18,
+                                  decoration: InputDecoration(
+                                    hintText: _hasLeftGroup
+                                        ? 'Você saiu deste grupo'
+                                        : effectiveIsBlocked
+                                            ? 'Você bloqueou esta pessoa'
+                                            : 'Digite sua mensagem...',
+                                    hintStyle: const TextStyle(
+                                      color: Color(0xFFB8B8B8),
+                                      fontSize: 15,
+                                      fontFamily: 'Quicksand',
                                     ),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      18,
+                                    filled: true,
+                                    fillColor: const Color(0xFFEAEAEA),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 20,
                                     ),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      18,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                      borderSide: BorderSide.none,
                                     ),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  disabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      18,
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                      borderSide: BorderSide.none,
                                     ),
-                                    borderSide: BorderSide.none,
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    disabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                      borderSide: BorderSide.none,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: effectiveIsBlocked || _hasLeftGroup
-                                ? null
-                                : _sendMessage,
-                            child: Opacity(
-                              opacity: effectiveIsBlocked || _hasLeftGroup
-                                  ? 0.4
-                                  : 1.0,
-                              child: Image.asset(
-                                'assets/images/elderly/send.png',
-                                width: 40,
-                                height: 40,
-                                fit: BoxFit.contain,
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: effectiveIsBlocked || _hasLeftGroup
+                                  ? null
+                                  : _sendMessage,
+                              child: Opacity(
+                                opacity: effectiveIsBlocked || _hasLeftGroup
+                                    ? 0.4
+                                    : 1.0,
+                                child: Image.asset(
+                                  'assets/images/elderly/send.png',
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
