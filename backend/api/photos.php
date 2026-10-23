@@ -1,13 +1,11 @@
 <?php
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-
-// Responde imediatamente às requisições de teste "preflight" (OPTIONS) do navegador
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
-    exit;
+    exit();
 }
 
 header('Content-Type: application/json');
@@ -34,16 +32,17 @@ $photos = [];
 
 foreach ($files as $filePath) {
     $fileName = basename($filePath);
-
-    // Obtém o timestamp exato de modificação do arquivo no disco
     $timestamp = filemtime($filePath);
 
     $date = new DateTime('@' . $timestamp);
     $date->setTimezone(new DateTimeZone('America/Sao_Paulo'));
 
+    // Normaliza para garantir barras pra frente '/' e não '\'
+    $urlRelative = '/uploads/' . $fileName;
+
     $photos[] = [
         'fileName' => $fileName,
-        'url' => '/uploads/' . $fileName,
+        'url' => $urlRelative,
         'capturedAt' => $date->format(DateTime::ATOM),
         'timestamp' => (int)$timestamp
     ];
