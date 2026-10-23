@@ -272,8 +272,7 @@ $payload = json_encode([
     ]
 ], JSON_UNESCAPED_UNICODE);
 
-$url = 'https://generativelanguage.googleapis.com/v1beta/models/'
-    . 'gemini-3.8-flash:generateContent';
+$url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent';
 
 $ch = curl_init($url);
 
