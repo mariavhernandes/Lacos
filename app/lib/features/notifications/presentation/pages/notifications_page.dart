@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../profile/presentation/pages/public_profile_page.dart';
 
+import '../../../../core/services/audit_service.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import '../../../family_link/services/family_link_service.dart';
 import '../../data/notification_service.dart';
@@ -17,13 +18,17 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   final _auth = FirebaseAuth.instance;
+  final _auditService = AuditService();
   final _notificationService = FamilyNotificationService();
   final _familyLinkService = FamilyLinkService();
   bool? _notificationsProfileIsElder;
 
   Future<void> _markAsRead(
       AppNotification notification, String uid, bool isElder) async {
-    if (notification.isRead) return;
+    if (notification.isRead) {
+      if (!isElder) await _logFamilyNotificationView(notification);
+      return;
+    }
     if (isElder) {
       await _notificationService.markAsRead(
         elderUid: uid,
@@ -34,6 +39,25 @@ class _NotificationsPageState extends State<NotificationsPage> {
         familyUid: uid,
         notificationId: notification.id,
       );
+      await _logFamilyNotificationView(notification);
+    }
+  }
+
+  Future<void> _logFamilyNotificationView(
+    AppNotification notification,
+  ) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return;
+
+    try {
+      await _auditService.logAction(
+        userId: userId,
+        action: 'visualizou_notificacao_familiar',
+        context:
+            'notificationId=${notification.id}; title=${notification.title}',
+      );
+    } catch (error) {
+      debugPrint('Erro ao registrar visualização da notificação: $error');
     }
   }
 

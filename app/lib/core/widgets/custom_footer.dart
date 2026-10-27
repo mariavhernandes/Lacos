@@ -15,8 +15,6 @@ class CustomFooter extends StatelessWidget {
     final currentRoute =
         ModalRoute.of(context)?.settings.name ?? '';
 
-    // O parâmetro isFamily é a principal referência.
-    // A rota é usada apenas como complemento.
     final isFamilyRoute =
         isFamily || currentRoute.contains('family');
 
@@ -59,7 +57,7 @@ class CustomFooter extends StatelessWidget {
           ),
 
           // =====================================================
-          // LOCALIZAÇÃO / LUGARES
+          // LOCALIZAÇÃO / REGISTROS
           // =====================================================
 
           _FooterItem(
@@ -95,10 +93,13 @@ class CustomFooter extends StatelessWidget {
             asset:
                 'assets/icons/icons_footer/footer_chat_icon.png',
             label: 'Conversas',
-            selected: currentIndex == 2,
+            selected: currentIndex == 2 ||
+                currentRoute == '/chat' ||
+                currentRoute == '/family-chat-list' ||
+                currentRoute == '/manage-messages',
             onTap: () {
               final targetRoute = isFamilyRoute
-                  ? '/manage-messages'
+                  ? '/family-chat-list' // <- DIRECIONA PARA A LISTA DO FAMILIAR
                   : '/chat';
 
               if (currentRoute != targetRoute) {

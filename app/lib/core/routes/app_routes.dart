@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
-import '../../features/help/presentation/pages/chatbot_page.dart';
 
+import '../../features/help/presentation/pages/chatbot_page.dart';
+import '../../features/help/presentation/pages/help_page.dart';
 import '../../features/home/presentation/pages/elderly_home_page.dart';
 import '../../features/home/presentation/pages/family_home_page.dart';
+import '../../features/home/presentation/pages/splash_screen.dart';
 import '../../features/login/presentation/pages/forgot_password_page.dart';
 import '../../features/login/presentation/pages/login_page.dart';
-import '../../features/signup/presentation/pages/signup_page.dart';
-import '../../features/home/presentation/pages/splash_screen.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
-import '../../features/help/presentation/pages/help_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/public_profile_page.dart';
+import '../../features/signup/presentation/pages/signup_page.dart';
 
 // ============================================================
 // PERFIL DO FAMILIAR E EDIÇÃO
 // ============================================================
-import '../../features/profile/presentation/pages/family/family_profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_about_me_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_basic_data_page.dart';
 import '../../features/profile/presentation/pages/edit_profile/edit_interests_page.dart';
+import '../../features/profile/presentation/pages/family/family_profile_page.dart';
 
 // ============================================================
 // LOCAIS E ATIVIDADES
@@ -30,7 +30,10 @@ import '../../features/discovery/presentation/screens/discovery_screen.dart';
 // ============================================================
 // CHAT E GERENCIAMENTO DE MENSAGENS
 // ============================================================
+import '../../features/chat/models/chat_model.dart';
 import '../../features/chat/screens/chat_list_screen.dart';
+import '../../features/chat/screens/chat_screen.dart';
+import '../../features/chat/screens/family_chat_list_screen.dart'; // <- IMPORTAÇÃO ADICIONADA
 import '../../features/chat/screens/manage_messages_screen.dart';
 
 // ============================================================
@@ -58,6 +61,8 @@ class AppRoutes {
   static const String help = '/help';
   static const String chatbot = '/chatbot';
   static const String chat = '/chat';
+  static const String chatScreen = '/chat-screen';
+  static const String familyChatList = '/family-chat-list'; // <- NOVA ROTA
   static const String manageMessages = '/manage-messages';
   static const String familyRecords = '/family-records';
 
@@ -118,6 +123,7 @@ class AppRoutes {
       // ----------------------------------------------------------
       help: (context) => const HelpPage(),
       chatbot: (context) => const ChatbotPage(),
+
       // ----------------------------------------------------------
       // REGISTROS DO FAMILIAR (IOT)
       // ----------------------------------------------------------
@@ -203,7 +209,25 @@ class AppRoutes {
       // CHAT E GERENCIAMENTO DE MENSAGENS
       // ----------------------------------------------------------
       chat: (context) => const ChatListScreen(),
+      familyChatList: (context) => const FamilyChatListScreen(), // <- MAPEADO AQUI
       manageMessages: (context) => const ManageMessagesScreen(),
+      chatScreen: (context) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+
+        if (args is Map<String, dynamic>) {
+          final chat = args['chat'] as Chat;
+          final isReadOnly = args['isReadOnly'] as bool? ?? false;
+
+          return ChatScreen(
+            chat: chat,
+            isReadOnly: isReadOnly,
+          );
+        } else if (args is Chat) {
+          return ChatScreen(chat: args);
+        }
+
+        throw Exception('Argumentos inválidos para a rota ChatScreen');
+      },
     };
   }
 }

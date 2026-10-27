@@ -15,7 +15,8 @@ class RecordsPage extends StatefulWidget {
 
 class _RecordsPageState extends State<RecordsPage> {
   // IP DO COMPUTADOR NA REDE WI-FI
-  static const String _baseUrl = 'http://192.168.15.154:3000';
+  // static const String _baseUrl = 'http://192.168.15.154:3000';
+  static const String _baseUrl = 'http://10.49.165.207:3000';
 
   List<Map<String, dynamic>> _photos = [];
 
@@ -556,7 +557,7 @@ class _RecordsPageState extends State<RecordsPage> {
         DateTime.now().millisecondsSinceEpoch.toString();
 
     // Adiciona ?t=$timestamp para burlar o cache HTTP da imagem
-    final imageUrl = '$_baseUrl$relativeUrl?t=$timestamp';
+  final imageUrl = '$_baseUrl$relativeUrl?t=$timestamp';
 
     debugPrint('🖼️ TENTANDO CARREGAR IMAGEM: $imageUrl');
 

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/audit_service.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/widgets/custom_footer.dart';
 import '../../../notifications/data/notification_service.dart';
@@ -23,6 +24,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   String _familyLinkStatus = 'none';
   bool _isLoadingData = true;
   bool _hasUnreadNotifications = false;
+  bool _hasLoggedSupervisionView = false;
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       _notificationSubscription;
@@ -88,6 +90,47 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     if (difference.inHours < 24)
       return 'Há ${difference.inHours} ${difference.inHours == 1 ? 'hora' : 'horas'}';
     return 'Há ${difference.inDays} ${difference.inDays == 1 ? 'dia' : 'dias'}';
+  }
+
+  Future<String> _getFollowerNameByUid(String uid) async {
+    if (uid.isEmpty) return '-';
+    if (_userNameCache.containsKey(uid)) return _userNameCache[uid]!;
+
+    try {
+      // 1. Tenta buscar o seguidor na coleção de idosos
+      final elderDoc = await FirebaseFirestore.instance
+          .collection('idosos')
+          .doc(uid)
+          .get();
+
+      if (elderDoc.exists && elderDoc.data() != null) {
+        final data = elderDoc.data()!;
+        final fetchedName = data['name'] ?? data['fullName'] ?? '';
+        if (fetchedName.toString().isNotEmpty) {
+          _userNameCache[uid] = fetchedName.toString();
+          return fetchedName.toString();
+        }
+      }
+
+      // 2. Se não achou em idosos, busca na coleção de familiares
+      final famDoc = await FirebaseFirestore.instance
+          .collection('familiares')
+          .doc(uid)
+          .get();
+
+      if (famDoc.exists && famDoc.data() != null) {
+        final data = famDoc.data()!;
+        final fetchedName = data['name'] ?? data['fullName'] ?? '';
+        if (fetchedName.toString().isNotEmpty) {
+          _userNameCache[uid] = fetchedName.toString();
+          return fetchedName.toString();
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao buscar nome do seguidor ($uid): $e');
+    }
+
+    return 'Usuário';
   }
 
   // Descobre o nome do chat (se for grupo usa groupName, se for pessoa busca pelo UID no Firestore)
@@ -219,6 +262,16 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             }
           }
 
+          if (linkStatus == 'active' && foundElderUid.isNotEmpty) {
+            unawaited(
+              _logSupervisionView(
+                userId: currentUser.uid,
+                elderUid: foundElderUid,
+                elderName: foundElderlyName,
+              ),
+            );
+          }
+
           if (rawName.isNotEmpty) {
             List<String> nameParts = rawName.trim().split(RegExp(r'\s+'));
 
@@ -243,6 +296,25 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       setState(() {
         _isLoadingData = false;
       });
+    }
+  }
+
+  Future<void> _logSupervisionView({
+    required String userId,
+    required String elderUid,
+    required String elderName,
+  }) async {
+    if (_hasLoggedSupervisionView) return;
+    _hasLoggedSupervisionView = true;
+
+    try {
+      await AuditService().logAction(
+        userId: userId,
+        action: 'visualizou_resumo_supervisao',
+        context: 'elderUid=$elderUid; elderName=$elderName',
+      );
+    } catch (error) {
+      debugPrint('Erro ao registrar visualização da supervisão: $error');
     }
   }
 
@@ -344,44 +416,49 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                           : '-';
 
                       // 3. Busca o Novo Seguidor
-                      return FutureBuilder<QuerySnapshot>(
-                        future: _elderlyUid.isNotEmpty
+                      return StreamBuilder<DocumentSnapshot>(
+                        stream: _elderlyUid.isNotEmpty
                             ? FirebaseFirestore.instance
                                 .collection('idosos')
                                 .doc(_elderlyUid)
-                                .collection('seguidores')
-                                .orderBy('createdAt', descending: true)
-                                .limit(1)
-                                .get()
+                                .snapshots()
                             : null,
-                        builder: (context, followerSnap) {
-                          String newFollowerName = '-';
+                        builder: (context, elderSnapshot) {
+                          String lastFollowerUid = '';
 
-                          if (followerSnap.hasData &&
-                              followerSnap.data != null &&
-                              followerSnap.data!.docs.isNotEmpty) {
-                            final followerData = followerSnap.data!.docs.first
-                                .data() as Map<String, dynamic>;
-                            final rawFollower = followerData['name'] ??
-                                followerData['fullName'] ??
-                                '';
-                            if (rawFollower.isNotEmpty) {
-                              newFollowerName =
-                                  _formatFirstAndLastName(rawFollower);
+                          if (elderSnapshot.hasData &&
+                              elderSnapshot.data != null &&
+                              elderSnapshot.data!.exists) {
+                            final elderData = elderSnapshot.data!.data() as Map<String, dynamic>?;
+                            final List<dynamic> followerIds = elderData?['followerIds'] ?? [];
+
+                            // O último seguidor adicionado é o último elemento do array
+                            if (followerIds.isNotEmpty) {
+                              lastFollowerUid = followerIds.last.toString();
                             }
                           }
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildMetricCardsSection(
-                                unreadCount: totalChats,
-                                newFollower: newFollowerName,
-                                lastInteraction: lastInteractionUser,
-                              ),
-                              const SizedBox(height: 28),
-                              _buildRecentActivitiesSection(docsToDisplay),
-                            ],
+                          return FutureBuilder<String>(
+                            future: _getFollowerNameByUid(lastFollowerUid),
+                            builder: (context, followerNameSnap) {
+                              final rawFollowerName = followerNameSnap.data ?? '-';
+                              final String newFollowerName = rawFollowerName != '-' && rawFollowerName.isNotEmpty
+                                  ? _formatFirstAndLastName(rawFollowerName)
+                                  : '-';
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildMetricCardsSection(
+                                    unreadCount: totalChats,
+                                    newFollower: newFollowerName,
+                                    lastInteraction: lastInteractionUser,
+                                  ),
+                                  const SizedBox(height: 28),
+                                  _buildRecentActivitiesSection(docsToDisplay),
+                                ],
+                              );
+                            },
                           );
                         },
                       );
@@ -778,11 +855,11 @@ Widget _buildBlockedHome(BuildContext context, String displayName) {
                 child: Text(
                   value,
                   textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2, // <-- Alterado de 1 para 2 linhas
+                  overflow: TextOverflow.visible, // <-- Para permitir a quebra completa sem os "..."
                   style: const TextStyle(
                     fontFamily: 'Raleway',
-                    fontSize: 10.5,
+                    fontSize: 10, // Diminuído levemente para caber confortavelmente no card
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF033B63),
                   ),

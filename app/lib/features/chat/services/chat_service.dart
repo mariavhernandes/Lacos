@@ -21,8 +21,8 @@ class ChatService {
   // LISTAR CONVERSAS
   // ==========================================
 
-  Stream<List<Chat>> getChatsStream() {
-    final userId = _auth.currentUser?.uid;
+  Stream<List<Chat>> getChatsStream([String? targetUserId]) {
+    final userId = targetUserId ?? _auth.currentUser?.uid;
 
     if (userId == null) {
       return Stream<List<Chat>>.value(const <Chat>[]);
@@ -139,14 +139,6 @@ class ChatService {
       // =========================
       // ORDENAR CONVERSAS
       // =========================
-      //
-      // Primeiro ficam as conversas com atividade
-      // mais recente.
-      //
-      // Se a conversa ainda não possui mensagem,
-      // usamos a data de criação.
-      //
-      // Assim, um grupo recém-criado aparece no topo.
       chats.sort((a, b) {
         final aDate = a.id != null ? chatActivityDates[a.id!] : null;
         final bDate = b.id != null ? chatActivityDates[b.id!] : null;
@@ -168,6 +160,11 @@ class ChatService {
 
       return chats;
     });
+  }
+
+  /// Alias opcional para deixar explícito na leitura do código do familiar
+  Stream<List<Chat>> getChatsStreamForUser(String userId) {
+    return getChatsStream(userId);
   }
 
   // ==========================================
