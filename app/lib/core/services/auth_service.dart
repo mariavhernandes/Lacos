@@ -70,10 +70,14 @@ final class AuthService {
     required String password,
     required String relationship,
     String? linkedElderEmail,
+    FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
   }) async {
+    final authInstance = auth ?? _auth;
+    final firestoreInstance = firestore ?? _firestore;
     final trimmedLinkedEmail = linkedElderEmail?.trim();
 
-    final userCredential = await _auth.createUserWithEmailAndPassword(
+    final userCredential = await authInstance.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
@@ -87,9 +91,10 @@ final class AuthService {
     }
 
     try {
-      final familyReference = _firestore.collection('familiares').doc(uid);
+      final familyReference =
+          firestoreInstance.collection('familiares').doc(uid);
       final familyNotificationService =
-          FamilyNotificationService(firestore: _firestore);
+          FamilyNotificationService(firestore: firestoreInstance);
 
       if (trimmedLinkedEmail == null || trimmedLinkedEmail.isEmpty) {
         await familyReference.set({
@@ -105,7 +110,7 @@ final class AuthService {
         return;
       }
 
-      final elderQuery = await _firestore
+      final elderQuery = await firestoreInstance
           .collection('idosos')
           .where('email', isEqualTo: trimmedLinkedEmail)
           .limit(1)
@@ -128,7 +133,7 @@ final class AuthService {
       final elderReference = elderQuery.docs.first.reference;
       final elderUid = elderReference.id;
 
-      await _firestore.runTransaction((transaction) async {
+      await firestoreInstance.runTransaction((transaction) async {
         final elderSnapshot = await transaction.get(elderReference);
         final elderData = elderSnapshot.data() ?? <String, dynamic>{};
         final linkedFamilyUid = elderData['linkedFamilyUid']?.toString();

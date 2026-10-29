@@ -292,31 +292,35 @@ class _ManageMessagesScreenState extends State<ManageMessagesScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      onTap: onTap,
-      leading: Image.asset(
-        imageAsset,
-        width: 34,
-        height: 34,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            padding: const EdgeInsets.all(7),
-            decoration: const BoxDecoration(
-              color: Color(0xFFD9EEFF),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(fallbackIcon, size: 20, color: const Color(0xFF033B63)),
-          );
-        },
-      ),
-      title: Text(
-        label,
-        style: const TextStyle(
-          fontFamily: 'Quicksand',
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF333333),
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        onTap: onTap,
+        leading: Image.asset(
+          imageAsset,
+          width: 34,
+          height: 34,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              padding: const EdgeInsets.all(7),
+              decoration: const BoxDecoration(
+                color: Color(0xFFD9EEFF),
+                shape: BoxShape.circle,
+              ),
+              child:
+                  Icon(fallbackIcon, size: 20, color: const Color(0xFF033B63)),
+            );
+          },
+        ),
+        title: Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Quicksand',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF333333),
+          ),
         ),
       ),
     );

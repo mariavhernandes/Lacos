@@ -1,4 +1,4 @@
-﻿rules_version = '2';
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -101,7 +101,7 @@ service cloud.firestore {
         && elder.linkedFamilyUid == request.auth.uid;
     }
 
-    // NOVA FUNÃ‡ÃƒO: Permite a criaÃ§Ã£o de notificaÃ§Ãµes de novo seguidor
+    // NOVA FUNÇÃO: Permite a criação de notificações de novo seguidor
     function isNewFollowerNotification() {
       return signedIn()
         && request.resource.data.type == 'new_follower'
@@ -128,7 +128,7 @@ service cloud.firestore {
                 && elder.familyLinkStatus == 'active'));
     }
 
-    // CHAT â€” regras existentes
+    // CHAT — regras existentes
     match /chats/{chatId} {
       allow read, write: if signedIn();
 
@@ -146,7 +146,7 @@ service cloud.firestore {
 
       match /notificacoes/{notificationId} {
         allow read: if isOwner(elderUid);
-        // ATUALIZADO: Permite notificaÃ§Ãµes de vÃ­nculo OU de novo seguidor
+        // ATUALIZADO: Permite notificações de vínculo OU de novo seguidor
         allow create: if isLinkNotificationCreation(elderUid) || isNewFollowerNotification();
         allow update: if isOwner(elderUid)
           && request.resource.data
@@ -159,7 +159,7 @@ service cloud.firestore {
 
     // FAMILIARES
     match /familiares/{familyUid} {
-      allow read: if isOwner(familyUid)}
+      allow read: if isOwner(familyUid)
         || (signedIn()
           && resource.data.linkedElderUid == request.auth.uid);
       allow create: if isOwner(familyUid)
@@ -178,7 +178,7 @@ service cloud.firestore {
 
       match /notificacoes/{notificationId} {
         allow read: if isOwner(familyUid);
-        // ATUALIZADO: Permite notificaÃ§Ãµes de vÃ­nculo OU de novo seguidor
+        // ATUALIZADO: Permite notificações de vínculo OU de novo seguidor
         allow create: if isFamilyLinkStatusNotificationCreation(familyUid) || isNewFollowerNotification();
         allow update: if isOwner(familyUid)
           && request.resource.data.diff(resource.data).affectedKeys()
@@ -187,7 +187,7 @@ service cloud.firestore {
       }
     }
 
-    // SOLICITAÃ‡Ã•ES DE AMIZADE / PEDIDOS DE SEGUIR
+    // SOLICITAÇÕES DE AMIZADE / PEDIDOS DE SEGUIR
     match /friend_requests/{requestId} {
       allow read: if signedIn();
       allow create: if signedIn()
@@ -196,7 +196,7 @@ service cloud.firestore {
         && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
     }
 
-    // LOCAIS â€” regras existentes
+    // LOCAIS — regras existentes
     match /locais/{localId} {
       allow read: if true;
       allow write: if false;
@@ -208,7 +208,7 @@ service cloud.firestore {
       allow read, update, delete: if false;
     }
 
-    // Bloqueia qualquer outra coleÃ§Ã£o nÃ£o prevista
+    // Bloqueia qualquer outra coleção não prevista
     match /{document=**} {
       allow read, write: if false;
     }
