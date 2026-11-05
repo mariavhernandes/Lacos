@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../../../core/widgets/custom_footer.dart';
+import '../../../../family_link/services/family_link_service.dart';
+import '../../../../family_link/presentation/family_elder_profile_page.dart';
 
 // ==========================================================
 // PÁGINA DE MENU DE EDIÇÃO DO PERFIL DO FAMILIAR
@@ -13,16 +15,24 @@ import '../../../../../core/widgets/custom_footer.dart';
 import 'edit_profile_family/edit_family_profile_menu_page.dart';
 
 class FamilyProfilePage extends StatefulWidget {
-  const FamilyProfilePage({super.key});
+  const FamilyProfilePage({
+    super.key,
+    this.auth,
+    this.firestore,
+  });
+
+  final FirebaseAuth? auth;
+  final FirebaseFirestore? firestore;
 
   @override
   State<FamilyProfilePage> createState() => _FamilyProfilePageState();
 }
 
 class _FamilyProfilePageState extends State<FamilyProfilePage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final FirebaseAuth _auth = widget.auth ?? FirebaseAuth.instance;
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final FirebaseFirestore _firestore =
+      widget.firestore ?? FirebaseFirestore.instance;
 
   // ==========================================================
   // SAIR DO APLICATIVO
@@ -181,45 +191,28 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
               return _buildBlockedProfile(context);
             }
 
-            // ==================================================
-            // E-MAIL DO IDOSO VINCULADO
-            // ==================================================
-
-            final String linkedElderEmail =
-                data['linkedElderEmail']?.toString().trim() ?? '';
-
-            return FutureBuilder<QuerySnapshot>(
-              future: linkedElderEmail.isNotEmpty
-                  ? _firestore
-                      .collection('idosos')
-                      .where(
-                        'email',
-                        isEqualTo: linkedElderEmail,
-                      )
-                      .limit(1)
-                      .get()
-                  : null,
+            return FutureBuilder<Map<String, dynamic>?>(
+              future: FamilyLinkService(
+                firestore: _firestore,
+                auth: _auth,
+              ).getActiveElderForFamily(familyUid: currentUser.uid),
               builder: (context, elderlySnapshot) {
-                // ==================================================
-                // NOME DO IDOSO
-                // ==================================================
-
-                String elderlyName = 'Pessoa não vinculada';
-
-                if (elderlySnapshot.hasData &&
-                    elderlySnapshot.data!.docs.isNotEmpty) {
-                  final elderlyData = elderlySnapshot.data!.docs.first.data()
-                      as Map<String, dynamic>;
-
-                  final String rawElderlyName =
-                      elderlyData['name']?.toString() ??
-                          elderlyData['fullName']?.toString() ??
-                          '';
-
-                  if (rawElderlyName.isNotEmpty) {
-                    elderlyName = rawElderlyName.trim();
-                  }
-                }
+                final elderData = elderlySnapshot.data;
+                final elderUid = elderData?['uid']?.toString() ?? '';
+                final isActiveLink = elderData != null &&
+                    FamilyLinkService.hasActiveReciprocalLink(
+                      elderData: elderData,
+                      familyData: data,
+                      familyUid: currentUser.uid,
+                      elderUid: elderUid,
+                    );
+                final rawElderName =
+                    elderData?['name']?.toString() ??
+                    elderData?['fullName']?.toString() ??
+                    '';
+                final elderlyName = isActiveLink && rawElderName.trim().isNotEmpty
+                    ? rawElderName.trim()
+                    : 'Pessoa não vinculada';
 
                 // ==================================================
                 // TELA
@@ -363,11 +356,11 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                             // ------------------------------------
 
                             _buildMenuItem(
-                              title: 'Grupos de mensagem',
-                              onTap: () {
-                                // TODO:
-                                // Navegar para grupos de mensagem.
-                              },
+                              title: 'Informações do vínculo',
+                              onTap: () => _openElderSection(
+                                context,
+                                FamilyElderProfileSection.linkInfo,
+                              ),
                             ),
 
                             const Divider(
@@ -381,11 +374,13 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                             // ------------------------------------
 
                             _buildMenuItem(
-                              title: 'Interesses pessoais',
-                              onTap: () {
-                                // TODO:
-                                // Navegar para interesses pessoais.
-                              },
+                              title: isActiveLink
+                                  ? 'Interesses de $elderlyName'
+                                  : 'Interesses do idoso',
+                              onTap: () => _openElderSection(
+                                context,
+                                FamilyElderProfileSection.interests,
+                              ),
                             ),
 
                             const Divider(
@@ -399,11 +394,13 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                             // ------------------------------------
 
                             _buildMenuItem(
-                              title: 'Amigos em comum',
-                              onTap: () {
-                                // TODO:
-                                // Navegar para amigos em comum.
-                              },
+                              title: isActiveLink
+                                  ? 'Amigos de $elderlyName'
+                                  : 'Amigos do idoso',
+                              onTap: () => _openElderSection(
+                                context,
+                                FamilyElderProfileSection.friends,
+                              ),
                             ),
                           ],
                         ),
@@ -465,6 +462,22 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
       // ==========================================================
 
       bottomNavigationBar: _buildFamilyFooter(),
+    );
+  }
+
+  void _openElderSection(
+    BuildContext context,
+    FamilyElderProfileSection section,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => FamilyElderProfilePage(
+          section: section,
+          auth: _auth,
+          firestore: _firestore,
+        ),
+      ),
     );
   }
 

@@ -19,8 +19,9 @@ class FamilyLinkService {
     required String familyUid,
     required String elderUid,
   }) {
-    if (elderData['familyLinkStatus'] == 'blocked' ||
-        familyData['familyLinkStatus'] == 'blocked') {
+    if (familyData['familyLinkStatus'] != 'active' ||
+      elderData['familyLinkStatus'] == 'blocked' ||
+      elderData['familyLinkStatus'] == 'none') {
       return false;
     }
 
@@ -32,6 +33,18 @@ class FamilyLinkService {
 
     return familyData['linkedElderEmail']?.toString().trim() ==
         elderData['email']?.toString().trim();
+  }
+
+  static bool hasActiveReciprocalLink({
+    required Map<String, dynamic> elderData,
+    required Map<String, dynamic> familyData,
+    required String familyUid,
+    required String elderUid,
+  }) {
+    return familyData['familyLinkStatus'] == 'active' &&
+        elderData['familyLinkStatus'] == 'active' &&
+        familyData['linkedElderUid'] == elderUid &&
+        elderData['linkedFamilyUid'] == familyUid;
   }
 
   Future<Map<String, dynamic>?> getActiveElderForFamily({
