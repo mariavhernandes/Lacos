@@ -3,7 +3,7 @@
 |---|---|
 
 <p align="left">
-  <img width="200" height="auto" align="center" alt="Logo Laços" src="https://github.com/user-attachments/assets/ebf63066-893c-45f7-9e0b-9d30d3250213" />
+  <img width="300" height="auto" align="center" alt="Logo Laços" src="https://github.com/user-attachments/assets/d5e2ea66-8494-4e14-830b-06667cf1fbb2" />
 </p>
 
 # Laços - Conexão e Interação Social
