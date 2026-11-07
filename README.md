@@ -2,7 +2,7 @@
 | [Português 🇧🇷](README.md) | [English 🇺🇸](README-en.md) |
 |---|---|
 
-<p align="left">
+<p align="center">
   <img width="100" height="auto" align="center" alt="Logo Laços" src="https://github.com/user-attachments/assets/acbfa106-e7f6-44a1-b2cc-e4a1db1b8e8e" />
 </p>
 
