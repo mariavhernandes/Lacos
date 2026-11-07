@@ -2,8 +2,8 @@
 | [Português 🇧🇷](README.md) | [English 🇺🇸](README-en.md) |
 |---|---|
 
-<p align="center">
-  <img width="100" height="auto" align="center" alt="Logo Laços" src="https://github.com/user-attachments/assets/845e98b1-4c90-4620-897a-9a73781f958e" />
+<p align="left">
+  <img width="200" height="auto" align="center" alt="Logo Laços" src="https://github.com/user-attachments/assets/ebf63066-893c-45f7-9e0b-9d30d3250213" />
 </p>
 
 # Laços - Conexão e Interação Social
