@@ -3,7 +3,7 @@
 |---|---|
 
 <p align="left">
-  <img width="250" height="auto" align="center" alt="Logo Laços" src="https://github.com/user-attachments/assets/d5e2ea66-8494-4e14-830b-06667cf1fbb2" />
+  <img width="200" height="auto" align="center" alt="Logo Laços" src="https://github.com/user-attachments/assets/acbfa106-e7f6-44a1-b2cc-e4a1db1b8e8e" />
 </p>
 
 # Laços - Conexão e Interação Social
@@ -37,7 +37,7 @@ Sua proposta foi pensada especialmente para situações de encontros presenciais
 Como proposta futura, foi idealizado um dispositivo compacto em formato de broche, inspirado na identidade visual do Laços, para facilitar seu uso no cotidiano.
 
 <p align="center">
-  <img width="300" alt="IoT Laços" src="https://github.com/user-attachments/assets/6fd38b62-71e6-4776-9c76-478a882e24f0" />
+  <img width="400" alt="IoT Laços" src="https://github.com/user-attachments/assets/6fd38b62-71e6-4776-9c76-478a882e24f0" />
 </p>
 
 ### 🤖 Inteligência Artificial (IA)
