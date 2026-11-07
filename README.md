@@ -37,7 +37,7 @@ Sua proposta foi pensada especialmente para situações de encontros presenciais
 Como proposta futura, foi idealizado um dispositivo compacto em formato de broche, inspirado na identidade visual do Laços, para facilitar seu uso no cotidiano.
 
 <p align="center">
-  <img width="270" alt="IoT Laços" src="https://github.com/user-attachments/assets/6fd38b62-71e6-4776-9c76-478a882e24f0" />
+  <img width="300" alt="IoT Laços" src="https://github.com/user-attachments/assets/6fd38b62-71e6-4776-9c76-478a882e24f0" />
 </p>
 
 ### 🤖 Inteligência Artificial (IA)
@@ -84,9 +84,9 @@ A integração entre esses componentes permite que o aplicativo, o dispositivo f
 
 ## 📸 Capturas de Tela
 
-### 👴🏻👵🏻 Sistema Idoso
+### 👴🏻 Sistema Idoso
 
-<p align="center">
+<p align="left">
   <img width="180" alt="Login" src="https://github.com/user-attachments/assets/bc56bf2b-52ed-40d1-aae0-0141f4a6ece3" />
   <img width="180" alt="Entrada" src="https://github.com/user-attachments/assets/5dfe058a-d840-4a25-9cd4-2ed47b1f6503" />
   <img width="180" alt="Inicial" src="https://github.com/user-attachments/assets/438ad2c2-5264-4bc2-a741-46ad34566a96" />
@@ -95,7 +95,7 @@ A integração entre esses componentes permite que o aplicativo, o dispositivo f
 
 ### 👩🏻 Sistema Familiar
 
-<p align="center">
+<p align="left">
   <img width="180" alt="Inicial Familiar" src="https://github.com/user-attachments/assets/0c12e1cd-1de3-4b1c-b4e7-1d22915730da" />
   <img width="180" alt="Registro Iot" src="https://github.com/user-attachments/assets/7982f901-cd26-45fd-a108-1cf5680dfbca" />
   <img width="180" alt="Conversas" src="https://github.com/user-attachments/assets/210fec7b-f77d-42b4-9664-e1dcb36521ee" />
